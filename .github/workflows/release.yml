@@ -1,0 +1,45 @@
+# Publica os pacotes no npm quando uma tag vX.Y.Z é enviada.
+#
+# Pré-requisito (uma vez): secret NPM_TOKEN neste repo — token GRANULAR do npm
+# com permissão de publish nos pacotes @mira-commerce/* e "Bypass 2FA" marcado.
+# A versão dos package.json deve estar alinhada à tag antes de taguear.
+name: Release npm
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Digite publish para confirmar"
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || inputs.confirm == 'publish'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+      - name: Install build tooling
+        run: npm i -D tsup typescript@5.6
+      - name: Build client-sdk
+        run: cd client-sdk && npx tsup src/index.ts --format esm,cjs --dts --clean
+      - name: Build checkout-sdk
+        run: |
+          mkdir -p checkout-sdk/node_modules/@mira-commerce
+          ln -sfn ../../../client-sdk checkout-sdk/node_modules/@mira-commerce/client-sdk
+          cd checkout-sdk && npx tsup src/index.ts --format esm,cjs --dts --clean --external @mira-commerce/client-sdk
+      - name: Publish client-sdk
+        run: cd client-sdk && npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish checkout-sdk
+        run: cd checkout-sdk && npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

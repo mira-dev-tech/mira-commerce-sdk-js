@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install build tooling
+        run: npm i -D tsup typescript@5.6
+      - name: Build client-sdk
+        run: cd client-sdk && npx tsup src/index.ts --format esm,cjs --dts --clean
+      - name: Build checkout-sdk (client-sdk linkado local)
+        run: |
+          mkdir -p checkout-sdk/node_modules/@mira-commerce
+          ln -sfn ../../../client-sdk checkout-sdk/node_modules/@mira-commerce/client-sdk
+          cd checkout-sdk && npx tsup src/index.ts --format esm,cjs --dts --clean --external @mira-commerce/client-sdk
+      - name: Smoke (CJS + ESM)
+        run: |
+          node -e "const s=require('./client-sdk/dist/index.cjs'); if(typeof s.createCommerceClient!=='function') process.exit(1)"
+          node -e "const k=require('./checkout-sdk/dist/index.cjs'); if(typeof k.placeCheckoutOrder!=='function') process.exit(1)"
