@@ -1,0 +1,43 @@
+{
+  "name": "@mira-commerce/client-sdk",
+  "version": "0.2.0",
+  "description": "Cliente TypeScript oficial da API do Mira Commerce — gerado da especificação OpenAPI (tipado, fetch nativo, zero dependências)",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mira-dev-tech/mira-commerce-sdk-js.git",
+    "directory": "client-sdk"
+  },
+  "homepage": "https://github.com/mira-dev-tech/mira-commerce-storefront-guide",
+  "keywords": [
+    "mira-commerce",
+    "ecommerce",
+    "headless",
+    "storefront",
+    "api-client",
+    "typescript"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

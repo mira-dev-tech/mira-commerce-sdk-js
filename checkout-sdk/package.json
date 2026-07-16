@@ -1,0 +1,45 @@
+{
+  "name": "@mira-commerce/checkout-sdk",
+  "version": "0.2.0",
+  "description": "Helpers TypeScript de checkout headless do Mira Commerce — sessões, carrinho e place-order sobre o @mira-commerce/client-sdk",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mira-dev-tech/mira-commerce-sdk-js.git",
+    "directory": "checkout-sdk"
+  },
+  "homepage": "https://github.com/mira-dev-tech/mira-commerce-storefront-guide",
+  "keywords": [
+    "mira-commerce",
+    "ecommerce",
+    "headless",
+    "checkout",
+    "typescript"
+  ],
+  "peerDependencies": {
+    "@mira-commerce/client-sdk": "^0.2.0"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --external @mira-commerce/client-sdk"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
