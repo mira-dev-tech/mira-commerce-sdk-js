@@ -1,6 +1,6 @@
 {
   "name": "@mira-commerce/checkout-sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Helpers TypeScript de checkout headless do Mira Commerce — sessões, carrinho e place-order sobre o @mira-commerce/client-sdk",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -34,7 +34,7 @@
     "typescript"
   ],
   "peerDependencies": {
-    "@mira-commerce/client-sdk": "^0.2.0"
+    "@mira-commerce/client-sdk": "^0.3.0"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean --external @mira-commerce/client-sdk"

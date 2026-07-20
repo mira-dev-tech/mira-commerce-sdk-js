@@ -443,6 +443,52 @@ export type PlatformSecretUpsert = {
     value: string;
 };
 
+export type TenantSettings = {
+    tenant_id: string;
+    display_name?: string;
+    contact_email?: string;
+    timezone?: string;
+    description?: string;
+    notifications_enabled?: boolean;
+    updated_at?: string;
+};
+
+export type TenantSettingsUpdate = {
+    display_name?: string;
+    contact_email?: string;
+    timezone?: string;
+    description?: string;
+    notifications_enabled?: boolean;
+};
+
+export type PlatformSecretStatus = {
+    configured: boolean;
+};
+
+export type SettlementMarkPaid = {
+    bank_reference?: string;
+};
+
+export type ProductAssistDescriptionRequest = {
+    name: string;
+    category?: string;
+    specifications?: {
+        [key: string]: unknown;
+    };
+    current_description?: string;
+};
+
+export type ProductAssistDescriptionResult = {
+    description: string;
+    model?: string;
+};
+
+export type WarehouseScheduleRules = {
+    minutes_per_tire?: number;
+    minimum_duration_minutes?: number;
+    buffer_minutes?: number;
+};
+
 export type PaymentMethodCreate = {
     method: PaymentMethod;
     label?: string;
@@ -694,6 +740,7 @@ export type ProductUpdate = {
     name?: string;
     description?: string;
     status?: ProductStatus;
+    media?: Array<ProductMedia>;
 };
 
 export type ProductSku = {
@@ -1169,10 +1216,20 @@ export type Warehouse = {
     capacity?: Array<{
         [key: string]: unknown;
     }>;
+    schedule_rules?: WarehouseScheduleRules;
 };
 
 export type WarehousePatch = {
+    name?: string;
     display_name?: string;
+    is_active?: boolean;
+    is_pickup_point?: boolean;
+    phone?: string;
+    pickup_instructions?: string;
+    address?: {
+        [key: string]: unknown;
+    };
+    schedule_rules?: WarehouseScheduleRules;
     capacity?: Array<{
         [key: string]: unknown;
     }>;
@@ -1232,6 +1289,23 @@ export type Promotion = {
     target_channel?: PriceChannel;
     member_name?: string;
     target_warehouses?: Array<string>;
+};
+
+export type PromotionUpdate = {
+    name?: string;
+    value?: number;
+    ends_at?: string;
+    status?: PromotionStatus;
+};
+
+export type CouponUpdate = {
+    name?: string;
+    description?: string;
+    value?: number;
+    ends_at?: string;
+    usage_limit?: number;
+    usage_per_customer?: number;
+    status?: CouponStatus;
 };
 
 export type PromotionCreate = {
@@ -1692,6 +1766,32 @@ export type ErpWizardCredentials = {
      * true quando o vault já tem client/secret/refresh deste tenant.
      */
     oauth_configured?: boolean;
+};
+
+export type ErpOauthAuthorizeRequest = {
+    /**
+     * Provedor OAuth do catálogo (ex. `bling`).
+     */
+    provider: string;
+    /**
+     * Client ID do app no provedor (opcional se já está no vault).
+     */
+    client_id?: string;
+    /**
+     * URL do admin para onde o callback redireciona ao concluir.
+     */
+    return_url: string;
+};
+
+export type ErpOauthAuthorizeResult = {
+    /**
+     * URL do provedor para redirecionar o lojista.
+     */
+    authorize_url: string;
+    /**
+     * Redirect URI que deve estar cadastrada no app do provedor.
+     */
+    redirect_uri: string;
 };
 
 export type ErpMappingGenerateMeta = {
@@ -3877,6 +3977,223 @@ export type TaxQuoteResult = {
     resolved_at: string;
 };
 
+/**
+ * Snapshot de um item na adesão — é a verdade da assinatura. `price_policy` decide se `unit_price` é reusado ou se o ciclo reprecifica. Itens filhos de kit/combo vivem em `metadata` (o core não conhece "kit").
+ */
+export type SubscriptionItem = {
+    readonly id?: string;
+    product_id?: string;
+    sku: string;
+    name?: string;
+    quantity?: number;
+    /**
+     * Preço congelado na adesão. Ignorado quando `price_policy=current`.
+     */
+    unit_price?: number;
+    /**
+     * Snapshot extensível do vertical (config de kit, sabores, observações)
+     */
+    metadata?: {
+        [key: string]: unknown;
+    };
+    readonly created_at?: string;
+};
+
+/**
+ * Assinatura do cliente no tenant (ADR 0039). A renovação é um pedido NORMAL pela pipeline de place-order; a cobrança decide por capability do adquirente (auto-charge) ou cai no payment link. `payment_credential_ref` (referência opaca ao token no adquirente) NÃO é exposto pela API — PAN nunca toca a plataforma (PCI).
+ */
+export type Subscription = {
+    id: string;
+    customer_id?: string;
+    /**
+     * Contacto desnormalizado — a notificação do link funciona mesmo se o cadastro mudar depois da adesão
+     */
+    customer_email?: string;
+    customer_phone?: string;
+    status: 'active' | 'paused' | 'past_due' | 'cancelled';
+    /**
+     * Intervalo entre ciclos em dias. Dado do TENANT, não enum da plataforma (ex. 15/30/45/60).
+     */
+    frequency_days: number;
+    /**
+     * Quando o worker gera o próximo ciclo. Muda por comando ou pelo worker — nunca por PATCH.
+     */
+    next_run_at?: string;
+    /**
+     * `locked` congela o preço da adesão; `current` reprecifica a cada ciclo
+     */
+    price_policy?: 'locked' | 'current';
+    payment_method_id?: string;
+    /**
+     * Adquirente que detém o token do meio de pagamento
+     */
+    payment_provider?: string;
+    /**
+     * Pedido que originou a adesão
+     */
+    source_order_id?: string;
+    cycles_completed?: number;
+    /**
+     * Ciclos consecutivos sem pagamento (dunning) — zera ao pagar
+     */
+    failed_cycles?: number;
+    metadata?: {
+        [key: string]: unknown;
+    };
+    items?: Array<SubscriptionItem>;
+    created_at?: string;
+    updated_at?: string;
+    cancelled_at?: string;
+};
+
+export type SubscriptionCreate = {
+    customer_id?: string;
+    customer_email?: string;
+    customer_phone?: string;
+    frequency_days: number;
+    /**
+     * Primeiro ciclo. Omitido = agora + `frequency_days`.
+     */
+    next_run_at?: string;
+    price_policy?: 'locked' | 'current';
+    /**
+     * Referência ao meio de pagamento tokenizado no adquirente (nunca PAN)
+     */
+    payment_method_id?: string;
+    payment_provider?: string;
+    source_order_id?: string;
+    items: Array<SubscriptionItem>;
+    metadata?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * Só o que o lojista/cliente edita. Estado, contadores de ciclo e `next_run_at` mudam por comando ou pelo worker.
+ */
+export type SubscriptionUpdate = {
+    frequency_days?: number;
+    price_policy?: 'locked' | 'current';
+    /**
+     * Troca do meio de pagamento (referência opaca do adquirente)
+     */
+    payment_method_id?: string;
+    metadata?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * Um ciclo da assinatura. `UNIQUE(subscription_id, cycle_no)` no banco = idempotência: crash entre gerar o pedido e avançar `next_run_at` NÃO duplica pedido.
+ */
+export type SubscriptionRun = {
+    id?: string;
+    subscription_id?: string;
+    cycle_no?: number;
+    order_id?: string;
+    /**
+     * auto | link — `auto` = cobrado no adquirente; `link` = pedido + payment link enviado. Vazio enquanto o ciclo não decidiu a via de cobrança.
+     */
+    charge_mode?: string;
+    status?: 'pending' | 'awaiting_payment' | 'paid' | 'held' | 'failed' | 'expired' | 'skipped';
+    /**
+     * Motivo legível da falha do ciclo — nunca inclui credencial nem resposta crua do adquirente
+     */
+    failure_reason?: string;
+    scheduled_for?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type SubscriptionListPage = {
+    data: Array<Subscription>;
+    next_cursor?: string;
+    has_more: boolean;
+    /**
+     * Total estimado (opcional UX)
+     */
+    total?: number;
+};
+
+export type SubscriptionRunListPage = {
+    data: Array<SubscriptionRun>;
+    next_cursor?: string;
+    has_more: boolean;
+};
+
+/**
+ * Payment link do tenant (ADR 0039). O banco guarda apenas o SHA-256 do token (`token_hash`) — a API nunca devolve o hash, e o token em claro só aparece na resposta da criação. `provider_ref` (estado do intent no adquirente) é fonte de verdade de segurança e também não é exposto.
+ */
+export type PaymentLink = {
+    id: string;
+    order_id: string;
+    status: 'active' | 'paid' | 'expired' | 'cancelled';
+    /**
+     * subscription_renewal | abandoned_cart | manual | b2b — origem do link. Só rótulo: não muda o comportamento do link.
+     */
+    source?: string;
+    amount_cents?: number;
+    require_3ds?: boolean;
+    expires_at?: string;
+    paid_at?: string;
+    created_at?: string;
+    updated_at?: string;
+    /**
+     * Token em claro — devolvido APENAS na criação (201). É a credencial do link: nunca aparece em GET/listagem, nunca é logado.
+     */
+    readonly token?: string;
+    /**
+     * URL pronta a enviar ao cliente (contém o `token`) — devolvida APENAS na criação (201)
+     */
+    readonly url?: string;
+};
+
+export type PaymentLinkCreate = {
+    /**
+     * Pedido a cobrar — tem de pertencer ao tenant do token
+     */
+    order_id: string;
+    source?: 'subscription_renewal' | 'abandoned_cart' | 'manual' | 'b2b';
+    /**
+     * Omitido = total do pedido. Se enviado, tem de ser IGUAL ao total do pedido (senão 400): o link cobra o pedido inteiro no adquirente, então um valor diferente aqui seria só um rótulo mentiroso na página de pagamento.
+     */
+    amount_cents?: number;
+    require_3ds?: boolean;
+    /**
+     * Expiração do link. Omitido = 7 dias. Emissões internas com janela conhecida (ciclo de assinatura) passam o fim da janela: o link não pode sobreviver à renovação seguinte nem morrer antes dela (ADR 0039 D6).
+     */
+    expires_at?: string;
+};
+
+/**
+ * Vista PÚBLICA do link — o mínimo para pagar. NUNCA contém segredo (token, token_hash, provider_ref, credenciais do adquirente) nem dados do tenant (tenant_id, config, nome interno). Servida só ao portador do token.
+ */
+export type PaymentLinkPublic = {
+    order_id: string;
+    /**
+     * Código curto e amigável do pedido, para o cliente conferir o que está a pagar
+     */
+    order_code?: string;
+    amount_cents: number;
+    currency?: string;
+    status: 'active' | 'paid' | 'expired' | 'cancelled';
+    expires_at?: string;
+    /**
+     * Resumo dos itens do pedido — só para o cliente reconhecer a compra
+     */
+    items?: Array<{
+        name?: string;
+        quantity?: number;
+        unit_price_cents?: number;
+    }>;
+};
+
+export type PaymentLinkListPage = {
+    data: Array<PaymentLink>;
+    next_cursor?: string;
+    has_more: boolean;
+};
+
 export type PaymentGatewayConfigWritable = {
     provider: SplitRuleProvider;
     is_active: boolean;
@@ -3934,6 +4251,25 @@ export type ErpWizardCredentialsWritable = {
      * true quando o vault já tem client/secret/refresh deste tenant.
      */
     oauth_configured?: boolean;
+};
+
+export type ErpOauthAuthorizeRequestWritable = {
+    /**
+     * Provedor OAuth do catálogo (ex. `bling`).
+     */
+    provider: string;
+    /**
+     * Client ID do app no provedor (opcional se já está no vault).
+     */
+    client_id?: string;
+    /**
+     * Client secret — vai direto ao vault, nunca volta ao browser.
+     */
+    client_secret?: string;
+    /**
+     * URL do admin para onde o callback redireciona ao concluir.
+     */
+    return_url: string;
 };
 
 export type OrderIdentityVerificationWritable = {
@@ -4001,7 +4337,146 @@ export type WmsInventoryCountBatchResultWritable = {
     skipped_duplicates?: number;
 };
 
+/**
+ * Snapshot de um item na adesão — é a verdade da assinatura. `price_policy` decide se `unit_price` é reusado ou se o ciclo reprecifica. Itens filhos de kit/combo vivem em `metadata` (o core não conhece "kit").
+ */
+export type SubscriptionItemWritable = {
+    product_id?: string;
+    sku: string;
+    name?: string;
+    quantity?: number;
+    /**
+     * Preço congelado na adesão. Ignorado quando `price_policy=current`.
+     */
+    unit_price?: number;
+    /**
+     * Snapshot extensível do vertical (config de kit, sabores, observações)
+     */
+    metadata?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * Assinatura do cliente no tenant (ADR 0039). A renovação é um pedido NORMAL pela pipeline de place-order; a cobrança decide por capability do adquirente (auto-charge) ou cai no payment link. `payment_credential_ref` (referência opaca ao token no adquirente) NÃO é exposto pela API — PAN nunca toca a plataforma (PCI).
+ */
+export type SubscriptionWritable = {
+    id: string;
+    customer_id?: string;
+    /**
+     * Contacto desnormalizado — a notificação do link funciona mesmo se o cadastro mudar depois da adesão
+     */
+    customer_email?: string;
+    customer_phone?: string;
+    status: 'active' | 'paused' | 'past_due' | 'cancelled';
+    /**
+     * Intervalo entre ciclos em dias. Dado do TENANT, não enum da plataforma (ex. 15/30/45/60).
+     */
+    frequency_days: number;
+    /**
+     * Quando o worker gera o próximo ciclo. Muda por comando ou pelo worker — nunca por PATCH.
+     */
+    next_run_at?: string;
+    /**
+     * `locked` congela o preço da adesão; `current` reprecifica a cada ciclo
+     */
+    price_policy?: 'locked' | 'current';
+    payment_method_id?: string;
+    /**
+     * Adquirente que detém o token do meio de pagamento
+     */
+    payment_provider?: string;
+    /**
+     * Pedido que originou a adesão
+     */
+    source_order_id?: string;
+    cycles_completed?: number;
+    /**
+     * Ciclos consecutivos sem pagamento (dunning) — zera ao pagar
+     */
+    failed_cycles?: number;
+    metadata?: {
+        [key: string]: unknown;
+    };
+    items?: Array<SubscriptionItemWritable>;
+    created_at?: string;
+    updated_at?: string;
+    cancelled_at?: string;
+};
+
+export type SubscriptionCreateWritable = {
+    customer_id?: string;
+    customer_email?: string;
+    customer_phone?: string;
+    frequency_days: number;
+    /**
+     * Primeiro ciclo. Omitido = agora + `frequency_days`.
+     */
+    next_run_at?: string;
+    price_policy?: 'locked' | 'current';
+    /**
+     * Referência ao meio de pagamento tokenizado no adquirente (nunca PAN)
+     */
+    payment_method_id?: string;
+    payment_provider?: string;
+    source_order_id?: string;
+    items: Array<SubscriptionItemWritable>;
+    metadata?: {
+        [key: string]: unknown;
+    };
+};
+
+export type SubscriptionListPageWritable = {
+    data: Array<SubscriptionWritable>;
+    next_cursor?: string;
+    has_more: boolean;
+    /**
+     * Total estimado (opcional UX)
+     */
+    total?: number;
+};
+
+/**
+ * Payment link do tenant (ADR 0039). O banco guarda apenas o SHA-256 do token (`token_hash`) — a API nunca devolve o hash, e o token em claro só aparece na resposta da criação. `provider_ref` (estado do intent no adquirente) é fonte de verdade de segurança e também não é exposto.
+ */
+export type PaymentLinkWritable = {
+    id: string;
+    order_id: string;
+    status: 'active' | 'paid' | 'expired' | 'cancelled';
+    /**
+     * subscription_renewal | abandoned_cart | manual | b2b — origem do link. Só rótulo: não muda o comportamento do link.
+     */
+    source?: string;
+    amount_cents?: number;
+    require_3ds?: boolean;
+    expires_at?: string;
+    paid_at?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type PaymentLinkListPageWritable = {
+    data: Array<PaymentLinkWritable>;
+    next_cursor?: string;
+    has_more: boolean;
+};
+
 export type CampaignId = string;
+
+/**
+ * ID da assinatura (sempre resolvido dentro do tenant do token)
+ */
+export type SubscriptionId = string;
+
+/**
+ * ID do payment link (sempre resolvido dentro do tenant do token)
+ */
+export type PaymentLinkId = string;
+
+/**
+ * Token do link — é a CREDENCIAL do endpoint público (ADR 0039). O banco guarda apenas o SHA-256 (`token_hash`); o valor em claro só existe na URL enviada ao cliente. Nunca logar, nunca ecoar noutro payload.
+ */
+export type PaymentLinkToken = string;
 
 export type Limit = number;
 
@@ -4207,6 +4682,26 @@ export type UpdateCatalogSpecificationsResponses = {
 };
 
 export type UpdateCatalogSpecificationsResponse = UpdateCatalogSpecificationsResponses[keyof UpdateCatalogSpecificationsResponses];
+
+export type AssistProductDescriptionData = {
+    body: ProductAssistDescriptionRequest;
+    path?: never;
+    query?: never;
+    url: '/catalog/assist-description';
+};
+
+export type AssistProductDescriptionErrors = {
+    /**
+     * LLM não configurado neste ambiente
+     */
+    503: unknown;
+};
+
+export type AssistProductDescriptionResponses = {
+    200: ProductAssistDescriptionResult;
+};
+
+export type AssistProductDescriptionResponse = AssistProductDescriptionResponses[keyof AssistProductDescriptionResponses];
 
 export type ListOrdersData = {
     body?: never;
@@ -4981,6 +5476,50 @@ export type CreatePromotionResponses = {
 
 export type CreatePromotionResponse = CreatePromotionResponses[keyof CreatePromotionResponses];
 
+export type GetPromotionData = {
+    body?: never;
+    path: {
+        promotion_id: string;
+    };
+    query?: never;
+    url: '/promotions/{promotion_id}';
+};
+
+export type GetPromotionErrors = {
+    /**
+     * Campanha não encontrada
+     */
+    404: unknown;
+};
+
+export type GetPromotionResponses = {
+    200: Promotion;
+};
+
+export type GetPromotionResponse = GetPromotionResponses[keyof GetPromotionResponses];
+
+export type UpdatePromotionData = {
+    body: PromotionUpdate;
+    path: {
+        promotion_id: string;
+    };
+    query?: never;
+    url: '/promotions/{promotion_id}';
+};
+
+export type UpdatePromotionErrors = {
+    /**
+     * Campanha não encontrada
+     */
+    404: unknown;
+};
+
+export type UpdatePromotionResponses = {
+    200: Promotion;
+};
+
+export type UpdatePromotionResponse = UpdatePromotionResponses[keyof UpdatePromotionResponses];
+
 export type ListCouponsData = {
     body?: never;
     path?: never;
@@ -5010,6 +5549,50 @@ export type CreateCouponResponses = {
 };
 
 export type CreateCouponResponse = CreateCouponResponses[keyof CreateCouponResponses];
+
+export type GetCouponData = {
+    body?: never;
+    path: {
+        coupon_id: string;
+    };
+    query?: never;
+    url: '/coupons/{coupon_id}';
+};
+
+export type GetCouponErrors = {
+    /**
+     * Cupom não encontrado
+     */
+    404: unknown;
+};
+
+export type GetCouponResponses = {
+    200: Coupon;
+};
+
+export type GetCouponResponse = GetCouponResponses[keyof GetCouponResponses];
+
+export type UpdateCouponData = {
+    body: CouponUpdate;
+    path: {
+        coupon_id: string;
+    };
+    query?: never;
+    url: '/coupons/{coupon_id}';
+};
+
+export type UpdateCouponErrors = {
+    /**
+     * Cupom não encontrado
+     */
+    404: unknown;
+};
+
+export type UpdateCouponResponses = {
+    200: Coupon;
+};
+
+export type UpdateCouponResponse = UpdateCouponResponses[keyof UpdateCouponResponses];
 
 export type ListPaymentMethodsData = {
     body?: never;
@@ -5841,6 +6424,47 @@ export type UpsertPlatformSecretResponses = {
 
 export type UpsertPlatformSecretResponse = UpsertPlatformSecretResponses[keyof UpsertPlatformSecretResponses];
 
+export type GetPlatformSecretStatusData = {
+    body?: never;
+    path: {
+        namespace: string;
+    };
+    query?: never;
+    url: '/platform/secrets/{namespace}/status';
+};
+
+export type GetPlatformSecretStatusResponses = {
+    200: PlatformSecretStatus;
+};
+
+export type GetPlatformSecretStatusResponse = GetPlatformSecretStatusResponses[keyof GetPlatformSecretStatusResponses];
+
+export type GetTenantSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/tenant-settings';
+};
+
+export type GetTenantSettingsResponses = {
+    200: TenantSettings;
+};
+
+export type GetTenantSettingsResponse = GetTenantSettingsResponses[keyof GetTenantSettingsResponses];
+
+export type UpdateTenantSettingsData = {
+    body: TenantSettingsUpdate;
+    path?: never;
+    query?: never;
+    url: '/tenant-settings';
+};
+
+export type UpdateTenantSettingsResponses = {
+    200: TenantSettings;
+};
+
+export type UpdateTenantSettingsResponse = UpdateTenantSettingsResponses[keyof UpdateTenantSettingsResponses];
+
 export type ListSettlementsData = {
     body?: never;
     path?: never;
@@ -5878,6 +6502,28 @@ export type ApproveSettlementResponses = {
 };
 
 export type ApproveSettlementResponse = ApproveSettlementResponses[keyof ApproveSettlementResponses];
+
+export type MarkSettlementPaidData = {
+    body?: SettlementMarkPaid;
+    path: {
+        settlement_id: string;
+    };
+    query?: never;
+    url: '/settlements/{settlement_id}/commands/mark-paid';
+};
+
+export type MarkSettlementPaidErrors = {
+    /**
+     * Repasse não está aprovado (fluxo é pending → approved → paid)
+     */
+    409: unknown;
+};
+
+export type MarkSettlementPaidResponses = {
+    200: Settlement;
+};
+
+export type MarkSettlementPaidResponse = MarkSettlementPaidResponses[keyof MarkSettlementPaidResponses];
 
 export type CreatePrivacyDsrRequestData = {
     body: PrivacyDsrRequest;
@@ -6292,6 +6938,21 @@ export type TestErpConnectionResponses = {
 };
 
 export type TestErpConnectionResponse = TestErpConnectionResponses[keyof TestErpConnectionResponses];
+
+export type AuthorizeErpOauthData = {
+    body: ErpOauthAuthorizeRequestWritable;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/erp-connections/{connection_id}/oauth/authorize';
+};
+
+export type AuthorizeErpOauthResponses = {
+    200: ErpOauthAuthorizeResult;
+};
+
+export type AuthorizeErpOauthResponse = AuthorizeErpOauthResponses[keyof AuthorizeErpOauthResponses];
 
 export type GenerateErpMappingsData = {
     body: ErpWizardCredentialsWritable;
@@ -6774,6 +7435,132 @@ export type CustomerOrderDetailResponses = {
 };
 
 export type CustomerOrderDetailResponse = CustomerOrderDetailResponses[keyof CustomerOrderDetailResponses];
+
+export type CustomerListSubscriptionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/auth/customer/subscriptions';
+};
+
+export type CustomerListSubscriptionsResponses = {
+    200: JsonObject;
+};
+
+export type CustomerListSubscriptionsResponse = CustomerListSubscriptionsResponses[keyof CustomerListSubscriptionsResponses];
+
+export type CustomerSubscriptionDetailData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/auth/customer/subscriptions/{id}';
+};
+
+export type CustomerSubscriptionDetailErrors = {
+    /**
+     * Assinatura inexistente ou de outro comprador
+     */
+    404: unknown;
+};
+
+export type CustomerSubscriptionDetailResponses = {
+    200: JsonObject;
+};
+
+export type CustomerSubscriptionDetailResponse = CustomerSubscriptionDetailResponses[keyof CustomerSubscriptionDetailResponses];
+
+export type CustomerPauseSubscriptionData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/auth/customer/subscriptions/{id}/commands/pause';
+};
+
+export type CustomerPauseSubscriptionErrors = {
+    /**
+     * Assinatura inexistente ou de outro comprador
+     */
+    404: unknown;
+};
+
+export type CustomerPauseSubscriptionResponses = {
+    200: JsonObject;
+};
+
+export type CustomerPauseSubscriptionResponse = CustomerPauseSubscriptionResponses[keyof CustomerPauseSubscriptionResponses];
+
+export type CustomerResumeSubscriptionData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/auth/customer/subscriptions/{id}/commands/resume';
+};
+
+export type CustomerResumeSubscriptionErrors = {
+    /**
+     * Assinatura inexistente ou de outro comprador
+     */
+    404: unknown;
+};
+
+export type CustomerResumeSubscriptionResponses = {
+    200: JsonObject;
+};
+
+export type CustomerResumeSubscriptionResponse = CustomerResumeSubscriptionResponses[keyof CustomerResumeSubscriptionResponses];
+
+export type CustomerCancelSubscriptionData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/auth/customer/subscriptions/{id}/commands/cancel';
+};
+
+export type CustomerCancelSubscriptionErrors = {
+    /**
+     * Assinatura inexistente ou de outro comprador
+     */
+    404: unknown;
+};
+
+export type CustomerCancelSubscriptionResponses = {
+    200: JsonObject;
+};
+
+export type CustomerCancelSubscriptionResponse = CustomerCancelSubscriptionResponses[keyof CustomerCancelSubscriptionResponses];
+
+export type CustomerSkipNextSubscriptionData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/auth/customer/subscriptions/{id}/commands/skip-next';
+};
+
+export type CustomerSkipNextSubscriptionErrors = {
+    /**
+     * Assinatura inexistente ou de outro comprador
+     */
+    404: unknown;
+};
+
+export type CustomerSkipNextSubscriptionResponses = {
+    200: JsonObject;
+};
+
+export type CustomerSkipNextSubscriptionResponse = CustomerSkipNextSubscriptionResponses[keyof CustomerSkipNextSubscriptionResponses];
 
 export type ListAppsData = {
     body?: never;
@@ -9133,3 +9920,495 @@ export type AppendAiModeSessionMessagesResponses = {
 };
 
 export type AppendAiModeSessionMessagesResponse = AppendAiModeSessionMessagesResponses[keyof AppendAiModeSessionMessagesResponses];
+
+export type ListSubscriptionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        /**
+         * Filtra pelo estado da assinatura
+         */
+        status?: 'active' | 'paused' | 'past_due' | 'cancelled';
+        /**
+         * Filtra pelas assinaturas de um cliente
+         */
+        customer_id?: string;
+    };
+    url: '/subscriptions';
+};
+
+export type ListSubscriptionsResponses = {
+    /**
+     * Lista paginada
+     */
+    200: SubscriptionListPage;
+};
+
+export type ListSubscriptionsResponse = ListSubscriptionsResponses[keyof ListSubscriptionsResponses];
+
+export type CreateSubscriptionData = {
+    body: SubscriptionCreateWritable;
+    path?: never;
+    query?: never;
+    url: '/subscriptions';
+};
+
+export type CreateSubscriptionErrors = {
+    /**
+     * Payload inválido (frequency_days, itens ou política de preço)
+     */
+    400: unknown;
+};
+
+export type CreateSubscriptionResponses = {
+    /**
+     * Assinatura criada
+     */
+    201: Subscription;
+};
+
+export type CreateSubscriptionResponse = CreateSubscriptionResponses[keyof CreateSubscriptionResponses];
+
+export type GetSubscriptionData = {
+    body?: never;
+    path: {
+        /**
+         * ID da assinatura (sempre resolvido dentro do tenant do token)
+         */
+        subscription_id: string;
+    };
+    query?: never;
+    url: '/subscriptions/{subscription_id}';
+};
+
+export type GetSubscriptionErrors = {
+    /**
+     * Assinatura inexistente neste tenant
+     */
+    404: unknown;
+};
+
+export type GetSubscriptionResponses = {
+    200: Subscription;
+};
+
+export type GetSubscriptionResponse = GetSubscriptionResponses[keyof GetSubscriptionResponses];
+
+export type UpdateSubscriptionData = {
+    body: SubscriptionUpdate;
+    path: {
+        /**
+         * ID da assinatura (sempre resolvido dentro do tenant do token)
+         */
+        subscription_id: string;
+    };
+    query?: never;
+    url: '/subscriptions/{subscription_id}';
+};
+
+export type UpdateSubscriptionErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+    /**
+     * Assinatura inexistente neste tenant
+     */
+    404: unknown;
+};
+
+export type UpdateSubscriptionResponses = {
+    200: Subscription;
+};
+
+export type UpdateSubscriptionResponse = UpdateSubscriptionResponses[keyof UpdateSubscriptionResponses];
+
+export type PauseSubscriptionData = {
+    body?: never;
+    path: {
+        /**
+         * ID da assinatura (sempre resolvido dentro do tenant do token)
+         */
+        subscription_id: string;
+    };
+    query?: never;
+    url: '/subscriptions/{subscription_id}/commands/pause';
+};
+
+export type PauseSubscriptionErrors = {
+    /**
+     * Assinatura inexistente neste tenant
+     */
+    404: unknown;
+    /**
+     * Assinatura não está activa
+     */
+    409: unknown;
+};
+
+export type PauseSubscriptionResponses = {
+    200: Subscription;
+};
+
+export type PauseSubscriptionResponse = PauseSubscriptionResponses[keyof PauseSubscriptionResponses];
+
+export type ResumeSubscriptionData = {
+    body?: never;
+    path: {
+        /**
+         * ID da assinatura (sempre resolvido dentro do tenant do token)
+         */
+        subscription_id: string;
+    };
+    query?: never;
+    url: '/subscriptions/{subscription_id}/commands/resume';
+};
+
+export type ResumeSubscriptionErrors = {
+    /**
+     * Assinatura inexistente neste tenant
+     */
+    404: unknown;
+    /**
+     * Assinatura não está pausada
+     */
+    409: unknown;
+};
+
+export type ResumeSubscriptionResponses = {
+    200: Subscription;
+};
+
+export type ResumeSubscriptionResponse = ResumeSubscriptionResponses[keyof ResumeSubscriptionResponses];
+
+export type CancelSubscriptionData = {
+    body?: never;
+    path: {
+        /**
+         * ID da assinatura (sempre resolvido dentro do tenant do token)
+         */
+        subscription_id: string;
+    };
+    query?: never;
+    url: '/subscriptions/{subscription_id}/commands/cancel';
+};
+
+export type CancelSubscriptionErrors = {
+    /**
+     * Assinatura inexistente neste tenant
+     */
+    404: unknown;
+    /**
+     * Assinatura já cancelada
+     */
+    409: unknown;
+};
+
+export type CancelSubscriptionResponses = {
+    200: Subscription;
+};
+
+export type CancelSubscriptionResponse = CancelSubscriptionResponses[keyof CancelSubscriptionResponses];
+
+export type SkipNextSubscriptionCycleData = {
+    body?: never;
+    path: {
+        /**
+         * ID da assinatura (sempre resolvido dentro do tenant do token)
+         */
+        subscription_id: string;
+    };
+    query?: never;
+    url: '/subscriptions/{subscription_id}/commands/skip-next';
+};
+
+export type SkipNextSubscriptionCycleErrors = {
+    /**
+     * Assinatura inexistente neste tenant
+     */
+    404: unknown;
+    /**
+     * Assinatura não está activa
+     */
+    409: unknown;
+};
+
+export type SkipNextSubscriptionCycleResponses = {
+    200: Subscription;
+};
+
+export type SkipNextSubscriptionCycleResponse = SkipNextSubscriptionCycleResponses[keyof SkipNextSubscriptionCycleResponses];
+
+export type RunSubscriptionNowData = {
+    body?: never;
+    headers?: {
+        /**
+         * Chave idempotente para retries seguros (submit, place-order, initiate payment).
+         */
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        /**
+         * ID da assinatura (sempre resolvido dentro do tenant do token)
+         */
+        subscription_id: string;
+    };
+    query?: never;
+    url: '/subscriptions/{subscription_id}/commands/run-now';
+};
+
+export type RunSubscriptionNowErrors = {
+    /**
+     * Assinatura inexistente neste tenant
+     */
+    404: unknown;
+    /**
+     * Ciclo já existe (run em curso) ou assinatura cancelada
+     */
+    409: unknown;
+};
+
+export type RunSubscriptionNowResponses = {
+    /**
+     * Ciclo aceite — run criado
+     */
+    202: SubscriptionRun;
+};
+
+export type RunSubscriptionNowResponse = RunSubscriptionNowResponses[keyof RunSubscriptionNowResponses];
+
+export type ListSubscriptionRunsData = {
+    body?: never;
+    path: {
+        /**
+         * ID da assinatura (sempre resolvido dentro do tenant do token)
+         */
+        subscription_id: string;
+    };
+    query?: {
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/subscriptions/{subscription_id}/runs';
+};
+
+export type ListSubscriptionRunsErrors = {
+    /**
+     * Assinatura inexistente neste tenant
+     */
+    404: unknown;
+};
+
+export type ListSubscriptionRunsResponses = {
+    /**
+     * Lista paginada
+     */
+    200: SubscriptionRunListPage;
+};
+
+export type ListSubscriptionRunsResponse = ListSubscriptionRunsResponses[keyof ListSubscriptionRunsResponses];
+
+export type ListPaymentLinksData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        /**
+         * Filtra pelo estado do link
+         */
+        status?: 'active' | 'paid' | 'expired' | 'cancelled';
+        /**
+         * Filtra pelos links de um pedido
+         */
+        order_id?: string;
+    };
+    url: '/payment-links';
+};
+
+export type ListPaymentLinksResponses = {
+    /**
+     * Lista paginada
+     */
+    200: PaymentLinkListPage;
+};
+
+export type ListPaymentLinksResponse = ListPaymentLinksResponses[keyof ListPaymentLinksResponses];
+
+export type CreatePaymentLinkData = {
+    body: PaymentLinkCreate;
+    path?: never;
+    query?: never;
+    url: '/payment-links';
+};
+
+export type CreatePaymentLinkErrors = {
+    /**
+     * Payload inválido: order_id ausente, expiração no passado, ou `amount_cents` divergente do total do pedido
+     */
+    400: unknown;
+    /**
+     * Pedido inexistente neste tenant
+     */
+    404: unknown;
+    /**
+     * Pedido já está pago — link ativo sobre pedido liquidado seria cobrança dupla
+     */
+    409: unknown;
+};
+
+export type CreatePaymentLinkResponses = {
+    /**
+     * Link criado — `token`/`url` devolvidos apenas aqui
+     */
+    201: PaymentLink;
+};
+
+export type CreatePaymentLinkResponse = CreatePaymentLinkResponses[keyof CreatePaymentLinkResponses];
+
+export type CancelPaymentLinkData = {
+    body?: never;
+    path: {
+        /**
+         * ID do payment link (sempre resolvido dentro do tenant do token)
+         */
+        payment_link_id: string;
+    };
+    query?: never;
+    url: '/payment-links/{payment_link_id}/commands/cancel';
+};
+
+export type CancelPaymentLinkErrors = {
+    /**
+     * Link inexistente neste tenant
+     */
+    404: unknown;
+    /**
+     * Link já pago ou já cancelado
+     */
+    409: unknown;
+};
+
+export type CancelPaymentLinkResponses = {
+    200: PaymentLink;
+};
+
+export type CancelPaymentLinkResponse = CancelPaymentLinkResponses[keyof CancelPaymentLinkResponses];
+
+export type GetPublicPaymentLinkData = {
+    body?: never;
+    path: {
+        /**
+         * Token do link — é a CREDENCIAL do endpoint público (ADR 0039). O banco guarda apenas o SHA-256 (`token_hash`); o valor em claro só existe na URL enviada ao cliente. Nunca logar, nunca ecoar noutro payload.
+         */
+        token: string;
+    };
+    query?: never;
+    url: '/payment-links/public/{token}';
+};
+
+export type GetPublicPaymentLinkErrors = {
+    /**
+     * Token inválido, expirado ou cancelado (resposta indistinta — não revela qual)
+     */
+    404: unknown;
+};
+
+export type GetPublicPaymentLinkResponses = {
+    200: PaymentLinkPublic;
+};
+
+export type GetPublicPaymentLinkResponse = GetPublicPaymentLinkResponses[keyof GetPublicPaymentLinkResponses];
+
+export type PublicPaymentLinkPaymentIntentData = {
+    body?: JsonObject;
+    path: {
+        /**
+         * Token do link — é a CREDENCIAL do endpoint público (ADR 0039). O banco guarda apenas o SHA-256 (`token_hash`); o valor em claro só existe na URL enviada ao cliente. Nunca logar, nunca ecoar noutro payload.
+         */
+        token: string;
+    };
+    query?: never;
+    url: '/payment-links/public/{token}/payment-intent';
+};
+
+export type PublicPaymentLinkPaymentIntentErrors = {
+    /**
+     * Token inválido, expirado ou cancelado
+     */
+    404: unknown;
+    /**
+     * Link já pago
+     */
+    409: unknown;
+    /**
+     * Muitas tentativas (velocity/rate limit) — respeitar `Retry-After`
+     */
+    429: unknown;
+};
+
+export type PublicPaymentLinkPaymentIntentResponses = {
+    200: JsonObject;
+};
+
+export type PublicPaymentLinkPaymentIntentResponse = PublicPaymentLinkPaymentIntentResponses[keyof PublicPaymentLinkPaymentIntentResponses];
+
+export type PublicPaymentLinkConfirmPaymentData = {
+    body?: JsonObject;
+    path: {
+        /**
+         * Token do link — é a CREDENCIAL do endpoint público (ADR 0039). O banco guarda apenas o SHA-256 (`token_hash`); o valor em claro só existe na URL enviada ao cliente. Nunca logar, nunca ecoar noutro payload.
+         */
+        token: string;
+    };
+    query?: never;
+    url: '/payment-links/public/{token}/confirm-payment';
+};
+
+export type PublicPaymentLinkConfirmPaymentErrors = {
+    /**
+     * Token inválido, expirado ou cancelado
+     */
+    404: unknown;
+    /**
+     * Sem intent criado ou link já pago
+     */
+    409: unknown;
+    /**
+     * Muitas tentativas (velocity/rate limit) — respeitar `Retry-After`
+     */
+    429: unknown;
+};
+
+export type PublicPaymentLinkConfirmPaymentResponses = {
+    200: JsonObject;
+};
+
+export type PublicPaymentLinkConfirmPaymentResponse = PublicPaymentLinkConfirmPaymentResponses[keyof PublicPaymentLinkConfirmPaymentResponses];
+
+export type PublicPaymentLinkPaymentStatusData = {
+    body?: never;
+    path: {
+        /**
+         * Token do link — é a CREDENCIAL do endpoint público (ADR 0039). O banco guarda apenas o SHA-256 (`token_hash`); o valor em claro só existe na URL enviada ao cliente. Nunca logar, nunca ecoar noutro payload.
+         */
+        token: string;
+    };
+    query?: never;
+    url: '/payment-links/public/{token}/payment-status';
+};
+
+export type PublicPaymentLinkPaymentStatusErrors = {
+    /**
+     * Token inválido, expirado ou cancelado
+     */
+    404: unknown;
+};
+
+export type PublicPaymentLinkPaymentStatusResponses = {
+    200: JsonObject;
+};
+
+export type PublicPaymentLinkPaymentStatusResponse = PublicPaymentLinkPaymentStatusResponses[keyof PublicPaymentLinkPaymentStatusResponses];

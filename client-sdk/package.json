@@ -1,6 +1,6 @@
 {
   "name": "@mira-commerce/client-sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Cliente TypeScript oficial da API do Mira Commerce — gerado da especificação OpenAPI (tipado, fetch nativo, zero dependências)",
   "type": "module",
   "main": "./dist/index.cjs",
