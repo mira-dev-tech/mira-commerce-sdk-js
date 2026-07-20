@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { ActivateAppData, ActivateAppResponses, AiModeChatData, AiModeChatResponses, AnalyticsAskData, AnalyticsAskResponses, AnalyticsExecuteData, AnalyticsExecuteResponses, AppEmbedUrlData, AppEmbedUrlErrors, AppEmbedUrlResponses, AppendAiModeSessionMessagesData, AppendAiModeSessionMessagesErrors, AppendAiModeSessionMessagesResponses, ApplyErpCatalogMatchData, ApplyErpCatalogMatchResponses, ApplyErpPresetData, ApplyErpPresetResponses, ApproveAgentProposalData, ApproveAgentProposalResponses, ApproveOrderIdentityVerificationData, ApproveOrderIdentityVerificationErrors, ApproveOrderIdentityVerificationResponses, ApproveSettlementData, ApproveSettlementErrors, ApproveSettlementResponses, AssistMessageTemplateData, AssistMessageTemplateResponses, CancelCampaignData, CancelCampaignErrors, CancelCampaignResponses, CancelOrderData, CancelOrderResponses, CheckoutConfirmPaymentData, CheckoutConfirmPaymentResponses, CheckoutIdentityDocumentUploadUrlData, CheckoutIdentityDocumentUploadUrlErrors, CheckoutIdentityDocumentUploadUrlResponses, CheckoutIdentityLookupData, CheckoutIdentityLookupErrors, CheckoutIdentityLookupResponses, CheckoutIdentitySelfieUploadUrlData, CheckoutIdentitySelfieUploadUrlErrors, CheckoutIdentitySelfieUploadUrlResponses, CheckoutIdentitySendCodeData, CheckoutIdentitySendCodeErrors, CheckoutIdentitySendCodeResponses, CheckoutIdentityVerificationAssetUploadData, CheckoutIdentityVerificationAssetUploadErrors, CheckoutIdentityVerificationAssetUploadResponses, CheckoutIdentityVerificationConfigData, CheckoutIdentityVerificationConfigErrors, CheckoutIdentityVerificationConfigResponses, CheckoutIdentityVerificationSubmitData, CheckoutIdentityVerificationSubmitErrors, CheckoutIdentityVerificationSubmitResponses, CheckoutIdentityVerifyData, CheckoutIdentityVerifyErrors, CheckoutIdentityVerifyResponses, CheckoutPaymentIntentData, CheckoutPaymentIntentResponses, CheckoutPaymentStatusData, CheckoutPaymentStatusResponses, CompleteOrderPickingData, CompleteOrderPickingResponses, CreateAgentData, CreateAgentResponses, CreateAiModeSessionData, CreateAiModeSessionResponses, CreateAnalyticsReportData, CreateAnalyticsReportResponses, CreateApiTokenData, CreateApiTokenResponses, CreateCampaignData, CreateCampaignErrors, CreateCampaignResponses, CreateChannelData, CreateChannelErrors, CreateChannelResponses, CreateCheckoutSessionData, CreateCheckoutSessionResponses, CreateCouponData, CreateCouponResponses, CreateCustomerFieldDefinitionData, CreateCustomerFieldDefinitionResponses, CreateErpConnectionData, CreateErpConnectionResponses, CreateFreightTableData, CreateFreightTableResponses, CreateInventoryMovementData, CreateInventoryMovementErrors, CreateInventoryMovementResponses, CreateMarketplaceConnectionData, CreateMarketplaceConnectionErrors, CreateMarketplaceConnectionResponses, CreateMemberData, CreateMemberResponses, CreateOrderData, CreateOrderResponses, CreatePaymentInstallmentRuleData, CreatePaymentInstallmentRuleErrors, CreatePaymentInstallmentRuleResponses, CreatePaymentMethodData, CreatePaymentMethodErrors, CreatePaymentMethodResponses, CreatePriceOverrideData, CreatePriceOverrideResponses, CreatePrivacyDsrRequestData, CreatePrivacyDsrRequestResponses, CreateProductData, CreateProductResponses, CreatePromotionData, CreatePromotionResponses, CreateScheduleSlotData, CreateScheduleSlotResponses, CreateShippingCarrierData, CreateShippingCarrierResponses, CreateShippingMethodData, CreateShippingMethodResponses, CreateSplitRuleData, CreateSplitRuleResponses, CreateTaxProfileData, CreateTaxProfileResponses, CreateTaxRuleData, CreateTaxRuleResponses, CreateUserData, CreateUserErrors, CreateUserResponses, CreateWebhookEndpointData, CreateWebhookEndpointResponses, CreateWmsInboundNfeDraftData, CreateWmsInboundNfeDraftResponses, CreateWmsProductDraftData, CreateWmsProductDraftResponses, CustomerListOrdersData, CustomerListOrdersResponses, CustomerOrderDetailData, CustomerOrderDetailErrors, CustomerOrderDetailResponses, CustomerSignupData, CustomerSignupErrors, CustomerSignupResponses, DeleteAgentData, DeleteAgentResponses, DeleteAiModeSessionData, DeleteAiModeSessionErrors, DeleteAiModeSessionResponses, DeleteAnalyticsReportData, DeleteAnalyticsReportResponses, DeleteCustomerFieldDefinitionData, DeleteCustomerFieldDefinitionErrors, DeleteCustomerFieldDefinitionResponses, DeleteErpConnectionData, DeleteErpConnectionErrors, DeleteErpConnectionResponses, DeleteMarketplaceConnectionData, DeleteMarketplaceConnectionErrors, DeleteMarketplaceConnectionResponses, DeleteMessageTemplateData, DeleteMessageTemplateResponses, DeletePaymentInstallmentRuleData, DeletePaymentInstallmentRuleErrors, DeletePaymentInstallmentRuleResponses, DeleteWebhookEndpointData, DeleteWebhookEndpointErrors, DeleteWebhookEndpointResponses, DispatchCampaignData, DispatchCampaignErrors, DispatchCampaignResponses, DispatchOrderData, DispatchOrderResponses, ErpDiscoverAnswerData, ErpDiscoverAnswerResponses, ErpDiscoverData, ErpDiscoverResponses, ErpFlowsGenerateData, ErpFlowsGenerateResponses, ErpFlowsValidateData, ErpFlowsValidateResponses, ExecuteAnalyticsReportData, ExecuteAnalyticsReportResponses, ExportAnalyticsReportData, ExportAnalyticsReportResponses, GenerateErpMappingsData, GenerateErpMappingsResponses, GetAgentData, GetAgentErrors, GetAgentResponses, GetAiModeBootstrapData, GetAiModeBootstrapErrors, GetAiModeBootstrapResponses, GetAiModeSessionData, GetAiModeSessionErrors, GetAiModeSessionResponses, GetAnalyticsReportData, GetAnalyticsReportResponses, GetCampaignData, GetCampaignErrors, GetCampaignResponses, GetCatalogSpecificationsData, GetCatalogSpecificationsResponses, GetChannelData, GetChannelErrors, GetChannelResponses, GetCheckoutHeuristicsConfigData, GetCheckoutHeuristicsConfigResponses, GetCheckoutIdentityVerificationConfigData, GetCheckoutIdentityVerificationConfigResponses, GetCheckoutSessionData, GetCheckoutSessionErrors, GetCheckoutSessionResponses, GetClientBillingData, GetClientBillingResponses, GetCustomerData, GetCustomerMeData, GetCustomerMeErrors, GetCustomerMeResponses, GetCustomerResponses, GetDeveloperOpsData, GetDeveloperOpsResponses, GetErpConnectionData, GetErpConnectionResponses, GetErpFlowHealthData, GetErpFlowHealthResponses, GetErpFlowsData, GetErpFlowsResponses, GetErpSyncJobData, GetErpSyncJobResponses, GetErpWizardStateData, GetErpWizardStateResponses, GetFreightTableData, GetFreightTableErrors, GetFreightTableResponses, GetIntegrationTraceData, GetIntegrationTraceErrors, GetIntegrationTraceResponses, GetInventoryBalanceData, GetInventoryBalanceErrors, GetInventoryBalanceResponses, GetLlmCredentialData, GetLlmCredentialResponses, GetLlmUsageAuditData, GetLlmUsageAuditResponses, GetMarketplaceConnectionData, GetMarketplaceConnectionErrors, GetMarketplaceConnectionResponses, GetMarketplaceOAuthAuthorizeData, GetMarketplaceOAuthAuthorizeErrors, GetMarketplaceOAuthCallbackData, GetMarketplaceOAuthCallbackErrors, GetMemberData, GetMemberMeData, GetMemberMeResponses, GetMemberResponses, GetMessageBrandingData, GetMessageBrandingResponses, GetOrderData, GetOrderErrors, GetOrderIdentityVerificationData, GetOrderIdentityVerificationErrors, GetOrderIdentityVerificationResponses, GetOrderResponses, GetPaymentGatewayData, GetPaymentGatewayResponses, GetPaymentInstallmentRuleData, GetPaymentInstallmentRuleErrors, GetPaymentInstallmentRuleResponses, GetPlatformBillingData, GetPlatformBillingResponses, GetProductData, GetProductErrors, GetProductResponses, GetShippingCarrierData, GetShippingCarrierErrors, GetShippingCarrierResponses, GetShippingMethodData, GetShippingMethodErrors, GetShippingMethodResponses, GetStaffMeData, GetStaffMeErrors, GetStaffMeResponses, GetTaxProfileData, GetTaxProfileErrors, GetTaxProfileResponses, GetTaxRuleData, GetTaxRuleErrors, GetTaxRuleResponses, GetUserData, GetUserErrors, GetUserResponses, GetWarehouseData, GetWarehouseResponses, GetWebhookEndpointData, GetWebhookEndpointErrors, GetWebhookEndpointResponses, GetWmsInboundNfeDraftData, GetWmsInboundNfeDraftErrors, GetWmsInboundNfeDraftResponses, GetWmsProductDraftData, GetWmsProductDraftErrors, GetWmsProductDraftResponses, InitiateOrderPaymentData, InitiateOrderPaymentErrors, InitiateOrderPaymentResponses, InstallAppData, InstallAppResponses, InviteUserData, InviteUserErrors, InviteUserResponses, ListAgentProposalsData, ListAgentProposalsResponses, ListAgentRunsData, ListAgentRunsResponses, ListAgentsData, ListAgentsResponses, ListAiModeSessionsData, ListAiModeSessionsResponses, ListAnalyticsReportsData, ListAnalyticsReportsResponses, ListApiTokenAuditEventsData, ListApiTokenAuditEventsResponses, ListApiTokenScopesData, ListApiTokenScopesResponses, ListApiTokensData, ListApiTokensResponses, ListAppsData, ListAppsResponses, ListAvailableScheduleSlotsData, ListAvailableScheduleSlotsResponses, ListCampaignsData, ListCampaignsResponses, ListChannelsData, ListChannelsResponses, ListCouponsData, ListCouponsResponses, ListCustomerFieldDefinitionsData, ListCustomerFieldDefinitionsResponses, ListCustomersData, ListCustomersResponses, ListEmailDispatchesData, ListEmailDispatchesErrors, ListEmailDispatchesResponses, ListErpCatalogMatchData, ListErpCatalogMatchResponses, ListErpConnectionsData, ListErpConnectionsResponses, ListErpMatchDecisionsData, ListErpMatchDecisionsResponses, ListErpOutboxData, ListErpOutboxResponses, ListErpPresetsData, ListErpPresetsResponses, ListErpSkuLinksData, ListErpSkuLinksResponses, ListErpSyncRunChangesData, ListErpSyncRunChangesResponses, ListErpSyncRunsData, ListErpSyncRunsResponses, ListFreightTablesData, ListFreightTablesResponses, ListIdentityVerificationsData, ListIdentityVerificationsResponses, ListIntegrationTracesData, ListIntegrationTracesErrors, ListIntegrationTracesResponses, ListInventoryData, ListInventoryMovementsData, ListInventoryMovementsResponses, ListInventoryResponses, ListMarketplaceConnectionsData, ListMarketplaceConnectionsResponses, ListMarketplaceListingsData, ListMarketplaceListingsErrors, ListMarketplaceListingsResponses, ListMembersData, ListMemberServiceOffersData, ListMemberServiceOffersResponses, ListMembersResponses, ListMessageKindsData, ListMessageKindsResponses, ListMessageTemplatesData, ListMessageTemplatesResponses, ListOrderFulfillmentQueueData, ListOrderFulfillmentQueueResponses, ListOrdersData, ListOrdersResponses, ListPaymentInstallmentRulesData, ListPaymentInstallmentRulesErrors, ListPaymentInstallmentRulesResponses, ListPaymentMethodsData, ListPaymentMethodsResponses, ListPaymentProvidersData, ListPaymentProvidersResponses, ListPriceOverridesData, ListPriceOverridesResponses, ListPricesData, ListPricesResponses, ListProductsData, ListProductSkusData, ListProductSkusResponses, ListProductsResponses, ListPromotionsData, ListPromotionsResponses, ListScheduleSlotsData, ListScheduleSlotsResponses, ListServicePricesData, ListServicePricesResponses, ListServicesData, ListServicesResponses, ListSettlementsData, ListSettlementsResponses, ListShippingCarriersData, ListShippingCarriersResponses, ListShippingMethodsData, ListShippingMethodsResponses, ListSplitRulesData, ListSplitRulesResponses, ListTaxProfilesData, ListTaxProfilesResponses, ListTaxRulesData, ListTaxRulesResponses, ListUsersData, ListUsersResponses, ListWarehousesData, ListWarehousesResponses, ListWebhookEndpointsData, ListWebhookEndpointsResponses, ListWmsInboundNfeDraftsData, ListWmsInboundNfeDraftsResponses, ListWmsProductDraftsData, ListWmsProductDraftsResponses, LookupCatalogByEanData, LookupCatalogByEanErrors, LookupCatalogByEanResponses, PackOrderData, PackOrderResponses, PatchCheckoutSessionData, PatchCheckoutSessionErrors, PatchCheckoutSessionResponses, PatchCustomerData, PatchCustomerErrors, PatchCustomerResponses, PatchInventoryData, PatchInventoryResponses, PatchWarehouseData, PatchWarehouseResponses, PlaceCheckoutOrderData, PlaceCheckoutOrderErrors, PlaceCheckoutOrderResponses, PostMarketplaceWebhookData, PostMarketplaceWebhookErrors, PostMarketplaceWebhookResponses, PreviewCampaignData, PreviewCampaignResponses, PreviewMessageTemplateData, PreviewMessageTemplateResponses, PreviewPaymentInstallmentsData, PreviewPaymentInstallmentsErrors, PreviewPaymentInstallmentsResponses, PublishWmsInboundNfeDraftData, PublishWmsInboundNfeDraftResponses, PublishWmsProductDraftData, PublishWmsProductDraftResponses, RecomputeErpCatalogMatchData, RecomputeErpCatalogMatchResponses, RejectAgentProposalData, RejectAgentProposalResponses, RejectOrderIdentityVerificationData, RejectOrderIdentityVerificationErrors, RejectOrderIdentityVerificationResponses, RequestCustomerMagicLinkData, RequestCustomerMagicLinkErrors, RequestCustomerMagicLinkResponses, RequestStaffMagicLinkData, RequestStaffMagicLinkErrors, RequestStaffMagicLinkResponses, ResolveCheckoutQuoteData, ResolveCheckoutQuoteErrors, ResolveCheckoutQuoteResponses, ResolveInstallmentsData, ResolveInstallmentsErrors, ResolveInstallmentsResponses, ResolvePriceData, ResolvePriceResponses, ResolveShippingQuotesData, ResolveShippingQuotesErrors, ResolveShippingQuotesResponses, ResolveTaxQuotesData, ResolveTaxQuotesErrors, ResolveTaxQuotesResponses, RetryErpOutboxData, RetryErpOutboxResponses, RetryWebhookDeliveryData, RetryWebhookDeliveryErrors, RetryWebhookDeliveryResponses, RevokeApiTokenData, RevokeApiTokenResponses, RotateApiTokenData, RotateApiTokenErrors, RotateApiTokenResponses, RunAgentNowData, RunAgentNowResponses, SaveErpFlowsData, SaveErpFlowsResponses, SeedMessageTemplatesData, SeedMessageTemplatesResponses, StartOrderPickingData, StartOrderPickingResponses, SubmitOrderData, SubmitOrderErrors, SubmitOrderResponses, SubmitWmsInventoryCountBatchData, SubmitWmsInventoryCountBatchResponses, SyncAppData, SyncAppResponses, SyncMarketplaceConnectionData, SyncMarketplaceConnectionErrors, SyncMarketplaceConnectionResponses, SyncNowErpConnectionData, SyncNowErpConnectionResponses, TestErpConnectionData, TestErpConnectionResponses, TestPaymentInstallmentExternalData, TestPaymentInstallmentExternalErrors, TestPaymentInstallmentExternalResponses, TestSendMessageTemplateData, TestSendMessageTemplateResponses, TestShippingMethodExternalData, TestShippingMethodExternalErrors, TestShippingMethodExternalResponses, TestTaxProfileExternalData, TestTaxProfileExternalErrors, TestTaxProfileExternalResponses, TrackEventData, TrackEventResponses, TryMcpToolData, TryMcpToolResponses, UninstallAppData, UninstallAppResponses, UpdateAgentData, UpdateAgentResponses, UpdateAnalyticsReportData, UpdateAnalyticsReportResponses, UpdateAppSubscriptionData, UpdateAppSubscriptionResponses, UpdateCatalogSpecificationsData, UpdateCatalogSpecificationsResponses, UpdateChannelData, UpdateChannelErrors, UpdateChannelResponses, UpdateCheckoutHeuristicsConfigData, UpdateCheckoutHeuristicsConfigResponses, UpdateCheckoutIdentityVerificationConfigData, UpdateCheckoutIdentityVerificationConfigResponses, UpdateErpConnectionData, UpdateErpConnectionResponses, UpdateFreightTableData, UpdateFreightTableResponses, UpdateMemberData, UpdateMemberResponses, UpdatePaymentGatewayData, UpdatePaymentGatewayResponses, UpdatePaymentInstallmentRuleData, UpdatePaymentInstallmentRuleErrors, UpdatePaymentInstallmentRuleResponses, UpdatePaymentMethodData, UpdatePaymentMethodErrors, UpdatePaymentMethodResponses, UpdatePaymentProviderData, UpdatePaymentProviderResponses, UpdateProductData, UpdateProductResponses, UpdateShippingCarrierData, UpdateShippingCarrierResponses, UpdateShippingMethodData, UpdateShippingMethodResponses, UpdateTaxProfileData, UpdateTaxProfileResponses, UpdateTaxRuleData, UpdateTaxRuleResponses, UpdateUserData, UpdateUserErrors, UpdateUserResponses, UpdateWebhookEndpointData, UpdateWebhookEndpointResponses, UpdateWmsProductDraftData, UpdateWmsProductDraftResponses, UploadProductMediaData, UploadProductMediaResponses, UpsertMemberServiceOfferData, UpsertMemberServiceOfferResponses, UpsertMessageBrandingData, UpsertMessageBrandingResponses, UpsertMessageTemplateData, UpsertMessageTemplateResponses, UpsertPlatformSecretData, UpsertPlatformSecretErrors, UpsertPlatformSecretResponses, ValidateErpMappingsData, ValidateErpMappingsResponses, VerifyCustomerMagicLinkData, VerifyCustomerMagicLinkErrors, VerifyCustomerMagicLinkResponses, VerifyStaffMagicLinkData, VerifyStaffMagicLinkErrors, VerifyStaffMagicLinkResponses } from './types.gen';
+import type { ActivateAppData, ActivateAppResponses, AiModeChatData, AiModeChatResponses, AnalyticsAskData, AnalyticsAskResponses, AnalyticsExecuteData, AnalyticsExecuteResponses, AppEmbedUrlData, AppEmbedUrlErrors, AppEmbedUrlResponses, AppendAiModeSessionMessagesData, AppendAiModeSessionMessagesErrors, AppendAiModeSessionMessagesResponses, ApplyErpCatalogMatchData, ApplyErpCatalogMatchResponses, ApplyErpPresetData, ApplyErpPresetResponses, ApproveAgentProposalData, ApproveAgentProposalResponses, ApproveOrderIdentityVerificationData, ApproveOrderIdentityVerificationErrors, ApproveOrderIdentityVerificationResponses, ApproveSettlementData, ApproveSettlementErrors, ApproveSettlementResponses, AssistMessageTemplateData, AssistMessageTemplateResponses, AssistProductDescriptionData, AssistProductDescriptionErrors, AssistProductDescriptionResponses, AuthorizeErpOauthData, AuthorizeErpOauthResponses, CancelCampaignData, CancelCampaignErrors, CancelCampaignResponses, CancelOrderData, CancelOrderResponses, CancelPaymentLinkData, CancelPaymentLinkErrors, CancelPaymentLinkResponses, CancelSubscriptionData, CancelSubscriptionErrors, CancelSubscriptionResponses, CheckoutConfirmPaymentData, CheckoutConfirmPaymentResponses, CheckoutIdentityDocumentUploadUrlData, CheckoutIdentityDocumentUploadUrlErrors, CheckoutIdentityDocumentUploadUrlResponses, CheckoutIdentityLookupData, CheckoutIdentityLookupErrors, CheckoutIdentityLookupResponses, CheckoutIdentitySelfieUploadUrlData, CheckoutIdentitySelfieUploadUrlErrors, CheckoutIdentitySelfieUploadUrlResponses, CheckoutIdentitySendCodeData, CheckoutIdentitySendCodeErrors, CheckoutIdentitySendCodeResponses, CheckoutIdentityVerificationAssetUploadData, CheckoutIdentityVerificationAssetUploadErrors, CheckoutIdentityVerificationAssetUploadResponses, CheckoutIdentityVerificationConfigData, CheckoutIdentityVerificationConfigErrors, CheckoutIdentityVerificationConfigResponses, CheckoutIdentityVerificationSubmitData, CheckoutIdentityVerificationSubmitErrors, CheckoutIdentityVerificationSubmitResponses, CheckoutIdentityVerifyData, CheckoutIdentityVerifyErrors, CheckoutIdentityVerifyResponses, CheckoutPaymentIntentData, CheckoutPaymentIntentResponses, CheckoutPaymentStatusData, CheckoutPaymentStatusResponses, CompleteOrderPickingData, CompleteOrderPickingResponses, CreateAgentData, CreateAgentResponses, CreateAiModeSessionData, CreateAiModeSessionResponses, CreateAnalyticsReportData, CreateAnalyticsReportResponses, CreateApiTokenData, CreateApiTokenResponses, CreateCampaignData, CreateCampaignErrors, CreateCampaignResponses, CreateChannelData, CreateChannelErrors, CreateChannelResponses, CreateCheckoutSessionData, CreateCheckoutSessionResponses, CreateCouponData, CreateCouponResponses, CreateCustomerFieldDefinitionData, CreateCustomerFieldDefinitionResponses, CreateErpConnectionData, CreateErpConnectionResponses, CreateFreightTableData, CreateFreightTableResponses, CreateInventoryMovementData, CreateInventoryMovementErrors, CreateInventoryMovementResponses, CreateMarketplaceConnectionData, CreateMarketplaceConnectionErrors, CreateMarketplaceConnectionResponses, CreateMemberData, CreateMemberResponses, CreateOrderData, CreateOrderResponses, CreatePaymentInstallmentRuleData, CreatePaymentInstallmentRuleErrors, CreatePaymentInstallmentRuleResponses, CreatePaymentLinkData, CreatePaymentLinkErrors, CreatePaymentLinkResponses, CreatePaymentMethodData, CreatePaymentMethodErrors, CreatePaymentMethodResponses, CreatePriceOverrideData, CreatePriceOverrideResponses, CreatePrivacyDsrRequestData, CreatePrivacyDsrRequestResponses, CreateProductData, CreateProductResponses, CreatePromotionData, CreatePromotionResponses, CreateScheduleSlotData, CreateScheduleSlotResponses, CreateShippingCarrierData, CreateShippingCarrierResponses, CreateShippingMethodData, CreateShippingMethodResponses, CreateSplitRuleData, CreateSplitRuleResponses, CreateSubscriptionData, CreateSubscriptionErrors, CreateSubscriptionResponses, CreateTaxProfileData, CreateTaxProfileResponses, CreateTaxRuleData, CreateTaxRuleResponses, CreateUserData, CreateUserErrors, CreateUserResponses, CreateWebhookEndpointData, CreateWebhookEndpointResponses, CreateWmsInboundNfeDraftData, CreateWmsInboundNfeDraftResponses, CreateWmsProductDraftData, CreateWmsProductDraftResponses, CustomerCancelSubscriptionData, CustomerCancelSubscriptionErrors, CustomerCancelSubscriptionResponses, CustomerListOrdersData, CustomerListOrdersResponses, CustomerListSubscriptionsData, CustomerListSubscriptionsResponses, CustomerOrderDetailData, CustomerOrderDetailErrors, CustomerOrderDetailResponses, CustomerPauseSubscriptionData, CustomerPauseSubscriptionErrors, CustomerPauseSubscriptionResponses, CustomerResumeSubscriptionData, CustomerResumeSubscriptionErrors, CustomerResumeSubscriptionResponses, CustomerSignupData, CustomerSignupErrors, CustomerSignupResponses, CustomerSkipNextSubscriptionData, CustomerSkipNextSubscriptionErrors, CustomerSkipNextSubscriptionResponses, CustomerSubscriptionDetailData, CustomerSubscriptionDetailErrors, CustomerSubscriptionDetailResponses, DeleteAgentData, DeleteAgentResponses, DeleteAiModeSessionData, DeleteAiModeSessionErrors, DeleteAiModeSessionResponses, DeleteAnalyticsReportData, DeleteAnalyticsReportResponses, DeleteCustomerFieldDefinitionData, DeleteCustomerFieldDefinitionErrors, DeleteCustomerFieldDefinitionResponses, DeleteErpConnectionData, DeleteErpConnectionErrors, DeleteErpConnectionResponses, DeleteMarketplaceConnectionData, DeleteMarketplaceConnectionErrors, DeleteMarketplaceConnectionResponses, DeleteMessageTemplateData, DeleteMessageTemplateResponses, DeletePaymentInstallmentRuleData, DeletePaymentInstallmentRuleErrors, DeletePaymentInstallmentRuleResponses, DeleteWebhookEndpointData, DeleteWebhookEndpointErrors, DeleteWebhookEndpointResponses, DispatchCampaignData, DispatchCampaignErrors, DispatchCampaignResponses, DispatchOrderData, DispatchOrderResponses, ErpDiscoverAnswerData, ErpDiscoverAnswerResponses, ErpDiscoverData, ErpDiscoverResponses, ErpFlowsGenerateData, ErpFlowsGenerateResponses, ErpFlowsValidateData, ErpFlowsValidateResponses, ExecuteAnalyticsReportData, ExecuteAnalyticsReportResponses, ExportAnalyticsReportData, ExportAnalyticsReportResponses, GenerateErpMappingsData, GenerateErpMappingsResponses, GetAgentData, GetAgentErrors, GetAgentResponses, GetAiModeBootstrapData, GetAiModeBootstrapErrors, GetAiModeBootstrapResponses, GetAiModeSessionData, GetAiModeSessionErrors, GetAiModeSessionResponses, GetAnalyticsReportData, GetAnalyticsReportResponses, GetCampaignData, GetCampaignErrors, GetCampaignResponses, GetCatalogSpecificationsData, GetCatalogSpecificationsResponses, GetChannelData, GetChannelErrors, GetChannelResponses, GetCheckoutHeuristicsConfigData, GetCheckoutHeuristicsConfigResponses, GetCheckoutIdentityVerificationConfigData, GetCheckoutIdentityVerificationConfigResponses, GetCheckoutSessionData, GetCheckoutSessionErrors, GetCheckoutSessionResponses, GetClientBillingData, GetClientBillingResponses, GetCouponData, GetCouponErrors, GetCouponResponses, GetCustomerData, GetCustomerMeData, GetCustomerMeErrors, GetCustomerMeResponses, GetCustomerResponses, GetDeveloperOpsData, GetDeveloperOpsResponses, GetErpConnectionData, GetErpConnectionResponses, GetErpFlowHealthData, GetErpFlowHealthResponses, GetErpFlowsData, GetErpFlowsResponses, GetErpSyncJobData, GetErpSyncJobResponses, GetErpWizardStateData, GetErpWizardStateResponses, GetFreightTableData, GetFreightTableErrors, GetFreightTableResponses, GetIntegrationTraceData, GetIntegrationTraceErrors, GetIntegrationTraceResponses, GetInventoryBalanceData, GetInventoryBalanceErrors, GetInventoryBalanceResponses, GetLlmCredentialData, GetLlmCredentialResponses, GetLlmUsageAuditData, GetLlmUsageAuditResponses, GetMarketplaceConnectionData, GetMarketplaceConnectionErrors, GetMarketplaceConnectionResponses, GetMarketplaceOAuthAuthorizeData, GetMarketplaceOAuthAuthorizeErrors, GetMarketplaceOAuthCallbackData, GetMarketplaceOAuthCallbackErrors, GetMemberData, GetMemberMeData, GetMemberMeResponses, GetMemberResponses, GetMessageBrandingData, GetMessageBrandingResponses, GetOrderData, GetOrderErrors, GetOrderIdentityVerificationData, GetOrderIdentityVerificationErrors, GetOrderIdentityVerificationResponses, GetOrderResponses, GetPaymentGatewayData, GetPaymentGatewayResponses, GetPaymentInstallmentRuleData, GetPaymentInstallmentRuleErrors, GetPaymentInstallmentRuleResponses, GetPlatformBillingData, GetPlatformBillingResponses, GetPlatformSecretStatusData, GetPlatformSecretStatusResponses, GetProductData, GetProductErrors, GetProductResponses, GetPromotionData, GetPromotionErrors, GetPromotionResponses, GetPublicPaymentLinkData, GetPublicPaymentLinkErrors, GetPublicPaymentLinkResponses, GetShippingCarrierData, GetShippingCarrierErrors, GetShippingCarrierResponses, GetShippingMethodData, GetShippingMethodErrors, GetShippingMethodResponses, GetStaffMeData, GetStaffMeErrors, GetStaffMeResponses, GetSubscriptionData, GetSubscriptionErrors, GetSubscriptionResponses, GetTaxProfileData, GetTaxProfileErrors, GetTaxProfileResponses, GetTaxRuleData, GetTaxRuleErrors, GetTaxRuleResponses, GetTenantSettingsData, GetTenantSettingsResponses, GetUserData, GetUserErrors, GetUserResponses, GetWarehouseData, GetWarehouseResponses, GetWebhookEndpointData, GetWebhookEndpointErrors, GetWebhookEndpointResponses, GetWmsInboundNfeDraftData, GetWmsInboundNfeDraftErrors, GetWmsInboundNfeDraftResponses, GetWmsProductDraftData, GetWmsProductDraftErrors, GetWmsProductDraftResponses, InitiateOrderPaymentData, InitiateOrderPaymentErrors, InitiateOrderPaymentResponses, InstallAppData, InstallAppResponses, InviteUserData, InviteUserErrors, InviteUserResponses, ListAgentProposalsData, ListAgentProposalsResponses, ListAgentRunsData, ListAgentRunsResponses, ListAgentsData, ListAgentsResponses, ListAiModeSessionsData, ListAiModeSessionsResponses, ListAnalyticsReportsData, ListAnalyticsReportsResponses, ListApiTokenAuditEventsData, ListApiTokenAuditEventsResponses, ListApiTokenScopesData, ListApiTokenScopesResponses, ListApiTokensData, ListApiTokensResponses, ListAppsData, ListAppsResponses, ListAvailableScheduleSlotsData, ListAvailableScheduleSlotsResponses, ListCampaignsData, ListCampaignsResponses, ListChannelsData, ListChannelsResponses, ListCouponsData, ListCouponsResponses, ListCustomerFieldDefinitionsData, ListCustomerFieldDefinitionsResponses, ListCustomersData, ListCustomersResponses, ListEmailDispatchesData, ListEmailDispatchesErrors, ListEmailDispatchesResponses, ListErpCatalogMatchData, ListErpCatalogMatchResponses, ListErpConnectionsData, ListErpConnectionsResponses, ListErpMatchDecisionsData, ListErpMatchDecisionsResponses, ListErpOutboxData, ListErpOutboxResponses, ListErpPresetsData, ListErpPresetsResponses, ListErpSkuLinksData, ListErpSkuLinksResponses, ListErpSyncRunChangesData, ListErpSyncRunChangesResponses, ListErpSyncRunsData, ListErpSyncRunsResponses, ListFreightTablesData, ListFreightTablesResponses, ListIdentityVerificationsData, ListIdentityVerificationsResponses, ListIntegrationTracesData, ListIntegrationTracesErrors, ListIntegrationTracesResponses, ListInventoryData, ListInventoryMovementsData, ListInventoryMovementsResponses, ListInventoryResponses, ListMarketplaceConnectionsData, ListMarketplaceConnectionsResponses, ListMarketplaceListingsData, ListMarketplaceListingsErrors, ListMarketplaceListingsResponses, ListMembersData, ListMemberServiceOffersData, ListMemberServiceOffersResponses, ListMembersResponses, ListMessageKindsData, ListMessageKindsResponses, ListMessageTemplatesData, ListMessageTemplatesResponses, ListOrderFulfillmentQueueData, ListOrderFulfillmentQueueResponses, ListOrdersData, ListOrdersResponses, ListPaymentInstallmentRulesData, ListPaymentInstallmentRulesErrors, ListPaymentInstallmentRulesResponses, ListPaymentLinksData, ListPaymentLinksResponses, ListPaymentMethodsData, ListPaymentMethodsResponses, ListPaymentProvidersData, ListPaymentProvidersResponses, ListPriceOverridesData, ListPriceOverridesResponses, ListPricesData, ListPricesResponses, ListProductsData, ListProductSkusData, ListProductSkusResponses, ListProductsResponses, ListPromotionsData, ListPromotionsResponses, ListScheduleSlotsData, ListScheduleSlotsResponses, ListServicePricesData, ListServicePricesResponses, ListServicesData, ListServicesResponses, ListSettlementsData, ListSettlementsResponses, ListShippingCarriersData, ListShippingCarriersResponses, ListShippingMethodsData, ListShippingMethodsResponses, ListSplitRulesData, ListSplitRulesResponses, ListSubscriptionRunsData, ListSubscriptionRunsErrors, ListSubscriptionRunsResponses, ListSubscriptionsData, ListSubscriptionsResponses, ListTaxProfilesData, ListTaxProfilesResponses, ListTaxRulesData, ListTaxRulesResponses, ListUsersData, ListUsersResponses, ListWarehousesData, ListWarehousesResponses, ListWebhookEndpointsData, ListWebhookEndpointsResponses, ListWmsInboundNfeDraftsData, ListWmsInboundNfeDraftsResponses, ListWmsProductDraftsData, ListWmsProductDraftsResponses, LookupCatalogByEanData, LookupCatalogByEanErrors, LookupCatalogByEanResponses, MarkSettlementPaidData, MarkSettlementPaidErrors, MarkSettlementPaidResponses, PackOrderData, PackOrderResponses, PatchCheckoutSessionData, PatchCheckoutSessionErrors, PatchCheckoutSessionResponses, PatchCustomerData, PatchCustomerErrors, PatchCustomerResponses, PatchInventoryData, PatchInventoryResponses, PatchWarehouseData, PatchWarehouseResponses, PauseSubscriptionData, PauseSubscriptionErrors, PauseSubscriptionResponses, PlaceCheckoutOrderData, PlaceCheckoutOrderErrors, PlaceCheckoutOrderResponses, PostMarketplaceWebhookData, PostMarketplaceWebhookErrors, PostMarketplaceWebhookResponses, PreviewCampaignData, PreviewCampaignResponses, PreviewMessageTemplateData, PreviewMessageTemplateResponses, PreviewPaymentInstallmentsData, PreviewPaymentInstallmentsErrors, PreviewPaymentInstallmentsResponses, PublicPaymentLinkConfirmPaymentData, PublicPaymentLinkConfirmPaymentErrors, PublicPaymentLinkConfirmPaymentResponses, PublicPaymentLinkPaymentIntentData, PublicPaymentLinkPaymentIntentErrors, PublicPaymentLinkPaymentIntentResponses, PublicPaymentLinkPaymentStatusData, PublicPaymentLinkPaymentStatusErrors, PublicPaymentLinkPaymentStatusResponses, PublishWmsInboundNfeDraftData, PublishWmsInboundNfeDraftResponses, PublishWmsProductDraftData, PublishWmsProductDraftResponses, RecomputeErpCatalogMatchData, RecomputeErpCatalogMatchResponses, RejectAgentProposalData, RejectAgentProposalResponses, RejectOrderIdentityVerificationData, RejectOrderIdentityVerificationErrors, RejectOrderIdentityVerificationResponses, RequestCustomerMagicLinkData, RequestCustomerMagicLinkErrors, RequestCustomerMagicLinkResponses, RequestStaffMagicLinkData, RequestStaffMagicLinkErrors, RequestStaffMagicLinkResponses, ResolveCheckoutQuoteData, ResolveCheckoutQuoteErrors, ResolveCheckoutQuoteResponses, ResolveInstallmentsData, ResolveInstallmentsErrors, ResolveInstallmentsResponses, ResolvePriceData, ResolvePriceResponses, ResolveShippingQuotesData, ResolveShippingQuotesErrors, ResolveShippingQuotesResponses, ResolveTaxQuotesData, ResolveTaxQuotesErrors, ResolveTaxQuotesResponses, ResumeSubscriptionData, ResumeSubscriptionErrors, ResumeSubscriptionResponses, RetryErpOutboxData, RetryErpOutboxResponses, RetryWebhookDeliveryData, RetryWebhookDeliveryErrors, RetryWebhookDeliveryResponses, RevokeApiTokenData, RevokeApiTokenResponses, RotateApiTokenData, RotateApiTokenErrors, RotateApiTokenResponses, RunAgentNowData, RunAgentNowResponses, RunSubscriptionNowData, RunSubscriptionNowErrors, RunSubscriptionNowResponses, SaveErpFlowsData, SaveErpFlowsResponses, SeedMessageTemplatesData, SeedMessageTemplatesResponses, SkipNextSubscriptionCycleData, SkipNextSubscriptionCycleErrors, SkipNextSubscriptionCycleResponses, StartOrderPickingData, StartOrderPickingResponses, SubmitOrderData, SubmitOrderErrors, SubmitOrderResponses, SubmitWmsInventoryCountBatchData, SubmitWmsInventoryCountBatchResponses, SyncAppData, SyncAppResponses, SyncMarketplaceConnectionData, SyncMarketplaceConnectionErrors, SyncMarketplaceConnectionResponses, SyncNowErpConnectionData, SyncNowErpConnectionResponses, TestErpConnectionData, TestErpConnectionResponses, TestPaymentInstallmentExternalData, TestPaymentInstallmentExternalErrors, TestPaymentInstallmentExternalResponses, TestSendMessageTemplateData, TestSendMessageTemplateResponses, TestShippingMethodExternalData, TestShippingMethodExternalErrors, TestShippingMethodExternalResponses, TestTaxProfileExternalData, TestTaxProfileExternalErrors, TestTaxProfileExternalResponses, TrackEventData, TrackEventResponses, TryMcpToolData, TryMcpToolResponses, UninstallAppData, UninstallAppResponses, UpdateAgentData, UpdateAgentResponses, UpdateAnalyticsReportData, UpdateAnalyticsReportResponses, UpdateAppSubscriptionData, UpdateAppSubscriptionResponses, UpdateCatalogSpecificationsData, UpdateCatalogSpecificationsResponses, UpdateChannelData, UpdateChannelErrors, UpdateChannelResponses, UpdateCheckoutHeuristicsConfigData, UpdateCheckoutHeuristicsConfigResponses, UpdateCheckoutIdentityVerificationConfigData, UpdateCheckoutIdentityVerificationConfigResponses, UpdateCouponData, UpdateCouponErrors, UpdateCouponResponses, UpdateErpConnectionData, UpdateErpConnectionResponses, UpdateFreightTableData, UpdateFreightTableResponses, UpdateMemberData, UpdateMemberResponses, UpdatePaymentGatewayData, UpdatePaymentGatewayResponses, UpdatePaymentInstallmentRuleData, UpdatePaymentInstallmentRuleErrors, UpdatePaymentInstallmentRuleResponses, UpdatePaymentMethodData, UpdatePaymentMethodErrors, UpdatePaymentMethodResponses, UpdatePaymentProviderData, UpdatePaymentProviderResponses, UpdateProductData, UpdateProductResponses, UpdatePromotionData, UpdatePromotionErrors, UpdatePromotionResponses, UpdateShippingCarrierData, UpdateShippingCarrierResponses, UpdateShippingMethodData, UpdateShippingMethodResponses, UpdateSubscriptionData, UpdateSubscriptionErrors, UpdateSubscriptionResponses, UpdateTaxProfileData, UpdateTaxProfileResponses, UpdateTaxRuleData, UpdateTaxRuleResponses, UpdateTenantSettingsData, UpdateTenantSettingsResponses, UpdateUserData, UpdateUserErrors, UpdateUserResponses, UpdateWebhookEndpointData, UpdateWebhookEndpointResponses, UpdateWmsProductDraftData, UpdateWmsProductDraftResponses, UploadProductMediaData, UploadProductMediaResponses, UpsertMemberServiceOfferData, UpsertMemberServiceOfferResponses, UpsertMessageBrandingData, UpsertMessageBrandingResponses, UpsertMessageTemplateData, UpsertMessageTemplateResponses, UpsertPlatformSecretData, UpsertPlatformSecretErrors, UpsertPlatformSecretResponses, ValidateErpMappingsData, ValidateErpMappingsResponses, VerifyCustomerMagicLinkData, VerifyCustomerMagicLinkErrors, VerifyCustomerMagicLinkResponses, VerifyStaffMagicLinkData, VerifyStaffMagicLinkErrors, VerifyStaffMagicLinkResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -144,6 +144,25 @@ export const updateCatalogSpecifications = <ThrowOnError extends boolean = false
             type: 'http'
         }],
     url: '/catalog/specifications',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Gerar descrição de produto com IA
+ *
+ * Copywriting via LLM (custo atribuído ao tenant/serviço); o lojista revisa antes de salvar.
+ */
+export const assistProductDescription = <ThrowOnError extends boolean = false>(options: Options<AssistProductDescriptionData, ThrowOnError>): RequestResult<AssistProductDescriptionResponses, AssistProductDescriptionErrors, ThrowOnError> => (options.client ?? client).post<AssistProductDescriptionResponses, AssistProductDescriptionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/catalog/assist-description',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -767,6 +786,38 @@ export const createPromotion = <ThrowOnError extends boolean = false>(options: O
 });
 
 /**
+ * Detalhe de campanha
+ */
+export const getPromotion = <ThrowOnError extends boolean = false>(options: Options<GetPromotionData, ThrowOnError>): RequestResult<GetPromotionResponses, GetPromotionErrors, ThrowOnError> => (options.client ?? client).get<GetPromotionResponses, GetPromotionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/promotions/{promotion_id}',
+    ...options
+});
+
+/**
+ * Editar/pausar campanha
+ *
+ * Ciclo de vida — pausar/reativar/expirar/cancelar e editar nome, valor e término.
+ */
+export const updatePromotion = <ThrowOnError extends boolean = false>(options: Options<UpdatePromotionData, ThrowOnError>): RequestResult<UpdatePromotionResponses, UpdatePromotionErrors, ThrowOnError> => (options.client ?? client).patch<UpdatePromotionResponses, UpdatePromotionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/promotions/{promotion_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Listar cupons
  */
 export const listCoupons = <ThrowOnError extends boolean = false>(options?: Options<ListCouponsData, ThrowOnError>): RequestResult<ListCouponsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListCouponsResponses, unknown, ThrowOnError>({
@@ -789,6 +840,38 @@ export const createCoupon = <ThrowOnError extends boolean = false>(options: Opti
             type: 'http'
         }],
     url: '/coupons',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Detalhe de cupom
+ */
+export const getCoupon = <ThrowOnError extends boolean = false>(options: Options<GetCouponData, ThrowOnError>): RequestResult<GetCouponResponses, GetCouponErrors, ThrowOnError> => (options.client ?? client).get<GetCouponResponses, GetCouponErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/coupons/{coupon_id}',
+    ...options
+});
+
+/**
+ * Editar/pausar cupom
+ *
+ * Ciclo de vida — pausar/reativar/expirar/cancelar e editar nome, valor, término e limites de uso.
+ */
+export const updateCoupon = <ThrowOnError extends boolean = false>(options: Options<UpdateCouponData, ThrowOnError>): RequestResult<UpdateCouponResponses, UpdateCouponErrors, ThrowOnError> => (options.client ?? client).patch<UpdateCouponResponses, UpdateCouponErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/coupons/{coupon_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -1523,6 +1606,53 @@ export const upsertPlatformSecret = <ThrowOnError extends boolean = false>(optio
 });
 
 /**
+ * Estado de configuração de um secret (sem expor o valor)
+ *
+ * Diz apenas SE o namespace tem valor gravado — nunca o conteúdo.
+ */
+export const getPlatformSecretStatus = <ThrowOnError extends boolean = false>(options: Options<GetPlatformSecretStatusData, ThrowOnError>): RequestResult<GetPlatformSecretStatusResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetPlatformSecretStatusResponses, unknown, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/platform/secrets/{namespace}/status',
+    ...options
+});
+
+/**
+ * Configurações gerais do tenant
+ *
+ * Nome de exibição, contato, timezone e descrição — do tenant autenticado.
+ */
+export const getTenantSettings = <ThrowOnError extends boolean = false>(options?: Options<GetTenantSettingsData, ThrowOnError>): RequestResult<GetTenantSettingsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetTenantSettingsResponses, unknown, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/tenant-settings',
+    ...options
+});
+
+/**
+ * Salvar configurações gerais do tenant
+ */
+export const updateTenantSettings = <ThrowOnError extends boolean = false>(options: Options<UpdateTenantSettingsData, ThrowOnError>): RequestResult<UpdateTenantSettingsResponses, unknown, ThrowOnError> => (options.client ?? client).put<UpdateTenantSettingsResponses, unknown, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/tenant-settings',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Acertos de subsídios
  */
 export const listSettlements = <ThrowOnError extends boolean = false>(options?: Options<ListSettlementsData, ThrowOnError>): RequestResult<ListSettlementsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListSettlementsResponses, unknown, ThrowOnError>({
@@ -1548,6 +1678,25 @@ export const approveSettlement = <ThrowOnError extends boolean = false>(options:
         }],
     url: '/settlements/{settlement_id}/commands/approve',
     ...options
+});
+
+/**
+ * Registrar pagamento de repasse aprovado
+ *
+ * Transição approved → paid; grava paid_at e a referência bancária.
+ */
+export const markSettlementPaid = <ThrowOnError extends boolean = false>(options: Options<MarkSettlementPaidData, ThrowOnError>): RequestResult<MarkSettlementPaidResponses, MarkSettlementPaidErrors, ThrowOnError> => (options.client ?? client).post<MarkSettlementPaidResponses, MarkSettlementPaidErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/settlements/{settlement_id}/commands/mark-paid',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -1867,6 +2016,25 @@ export const testErpConnection = <ThrowOnError extends boolean = false>(options:
             type: 'http'
         }],
     url: '/erp-connections/{connection_id}/test',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Iniciar autorização OAuth2 do ERP (modo Bling)
+ *
+ * Cria uma sessão de autorização one-time e devolve a URL do provedor para o admin redirecionar o lojista. O callback genérico `/webhooks/erp/oauth/callback` troca o code por tokens e grava no vault do tenant — o refresh automático assume a partir daí.
+ */
+export const authorizeErpOauth = <ThrowOnError extends boolean = false>(options: Options<AuthorizeErpOauthData, ThrowOnError>): RequestResult<AuthorizeErpOauthResponses, unknown, ThrowOnError> => (options.client ?? client).post<AuthorizeErpOauthResponses, unknown, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/erp-connections/{connection_id}/oauth/authorize',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -2242,6 +2410,88 @@ export const customerOrderDetail = <ThrowOnError extends boolean = false>(option
             type: 'http'
         }],
     url: '/auth/customer/orders/{order_id}',
+    ...options
+});
+
+/**
+ * Assinaturas do comprador logado (sessão mc_sess)
+ *
+ * Lista SÓ as assinaturas do cliente da sessão. O customer_id vem da sessão (mc_sess), nunca de query/body — não há como ver a de outro.
+ */
+export const customerListSubscriptions = <ThrowOnError extends boolean = false>(options?: Options<CustomerListSubscriptionsData, ThrowOnError>): RequestResult<CustomerListSubscriptionsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<CustomerListSubscriptionsResponses, unknown, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/auth/customer/subscriptions',
+    ...options
+});
+
+/**
+ * Detalhe de assinatura do comprador logado
+ *
+ * 404 se a assinatura não for do cliente da sessão (não confirma existência).
+ */
+export const customerSubscriptionDetail = <ThrowOnError extends boolean = false>(options: Options<CustomerSubscriptionDetailData, ThrowOnError>): RequestResult<CustomerSubscriptionDetailResponses, CustomerSubscriptionDetailErrors, ThrowOnError> => (options.client ?? client).get<CustomerSubscriptionDetailResponses, CustomerSubscriptionDetailErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/auth/customer/subscriptions/{id}',
+    ...options
+});
+
+/**
+ * Comprador pausa a própria assinatura
+ */
+export const customerPauseSubscription = <ThrowOnError extends boolean = false>(options: Options<CustomerPauseSubscriptionData, ThrowOnError>): RequestResult<CustomerPauseSubscriptionResponses, CustomerPauseSubscriptionErrors, ThrowOnError> => (options.client ?? client).post<CustomerPauseSubscriptionResponses, CustomerPauseSubscriptionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/auth/customer/subscriptions/{id}/commands/pause',
+    ...options
+});
+
+/**
+ * Comprador retoma a própria assinatura
+ */
+export const customerResumeSubscription = <ThrowOnError extends boolean = false>(options: Options<CustomerResumeSubscriptionData, ThrowOnError>): RequestResult<CustomerResumeSubscriptionResponses, CustomerResumeSubscriptionErrors, ThrowOnError> => (options.client ?? client).post<CustomerResumeSubscriptionResponses, CustomerResumeSubscriptionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/auth/customer/subscriptions/{id}/commands/resume',
+    ...options
+});
+
+/**
+ * Comprador cancela a própria assinatura
+ */
+export const customerCancelSubscription = <ThrowOnError extends boolean = false>(options: Options<CustomerCancelSubscriptionData, ThrowOnError>): RequestResult<CustomerCancelSubscriptionResponses, CustomerCancelSubscriptionErrors, ThrowOnError> => (options.client ?? client).post<CustomerCancelSubscriptionResponses, CustomerCancelSubscriptionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/auth/customer/subscriptions/{id}/commands/cancel',
+    ...options
+});
+
+/**
+ * Comprador pula o próximo ciclo da própria assinatura
+ */
+export const customerSkipNextSubscription = <ThrowOnError extends boolean = false>(options: Options<CustomerSkipNextSubscriptionData, ThrowOnError>): RequestResult<CustomerSkipNextSubscriptionResponses, CustomerSkipNextSubscriptionErrors, ThrowOnError> => (options.client ?? client).post<CustomerSkipNextSubscriptionResponses, CustomerSkipNextSubscriptionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/auth/customer/subscriptions/{id}/commands/skip-next',
     ...options
 });
 
@@ -3907,3 +4157,254 @@ export const appendAiModeSessionMessages = <ThrowOnError extends boolean = false
         ...options.headers
     }
 });
+
+/**
+ * Listar assinaturas do tenant
+ *
+ * Sempre filtrado pelo tenant do token — nunca devolve assinatura de outro tenant.
+ */
+export const listSubscriptions = <ThrowOnError extends boolean = false>(options?: Options<ListSubscriptionsData, ThrowOnError>): RequestResult<ListSubscriptionsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListSubscriptionsResponses, unknown, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/subscriptions',
+    ...options
+});
+
+/**
+ * Criar assinatura (adesão)
+ *
+ * Cria a assinatura com o snapshot dos itens. `price_policy=locked` congela o preço da adesão; `current` reprecifica a cada ciclo. A renovação é um pedido NORMAL pela pipeline de place-order (ADR 0039).
+ */
+export const createSubscription = <ThrowOnError extends boolean = false>(options: Options<CreateSubscriptionData, ThrowOnError>): RequestResult<CreateSubscriptionResponses, CreateSubscriptionErrors, ThrowOnError> => (options.client ?? client).post<CreateSubscriptionResponses, CreateSubscriptionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/subscriptions',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Detalhe da assinatura (com itens)
+ */
+export const getSubscription = <ThrowOnError extends boolean = false>(options: Options<GetSubscriptionData, ThrowOnError>): RequestResult<GetSubscriptionResponses, GetSubscriptionErrors, ThrowOnError> => (options.client ?? client).get<GetSubscriptionResponses, GetSubscriptionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/subscriptions/{subscription_id}',
+    ...options
+});
+
+/**
+ * Actualizar assinatura
+ *
+ * Só campos editáveis pelo lojista/cliente. Estado (`status`), contadores de ciclo e `next_run_at` mudam por comando ou pelo worker — nunca por PATCH.
+ */
+export const updateSubscription = <ThrowOnError extends boolean = false>(options: Options<UpdateSubscriptionData, ThrowOnError>): RequestResult<UpdateSubscriptionResponses, UpdateSubscriptionErrors, ThrowOnError> => (options.client ?? client).patch<UpdateSubscriptionResponses, UpdateSubscriptionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/subscriptions/{subscription_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Pausar assinatura (workflow command)
+ *
+ * Transição `active` → `paused`: o worker deixa de gerar ciclos. Reversível por `resume`.
+ */
+export const pauseSubscription = <ThrowOnError extends boolean = false>(options: Options<PauseSubscriptionData, ThrowOnError>): RequestResult<PauseSubscriptionResponses, PauseSubscriptionErrors, ThrowOnError> => (options.client ?? client).post<PauseSubscriptionResponses, PauseSubscriptionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/subscriptions/{subscription_id}/commands/pause',
+    ...options
+});
+
+/**
+ * Retomar assinatura (workflow command)
+ *
+ * Transição `paused` → `active`: reagenda `next_run_at` a partir de agora + `frequency_days`.
+ */
+export const resumeSubscription = <ThrowOnError extends boolean = false>(options: Options<ResumeSubscriptionData, ThrowOnError>): RequestResult<ResumeSubscriptionResponses, ResumeSubscriptionErrors, ThrowOnError> => (options.client ?? client).post<ResumeSubscriptionResponses, ResumeSubscriptionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/subscriptions/{subscription_id}/commands/resume',
+    ...options
+});
+
+/**
+ * Cancelar assinatura (workflow command)
+ *
+ * Terminal — grava `cancelled_at` e limpa `next_run_at`. Não estorna ciclos já cobrados.
+ */
+export const cancelSubscription = <ThrowOnError extends boolean = false>(options: Options<CancelSubscriptionData, ThrowOnError>): RequestResult<CancelSubscriptionResponses, CancelSubscriptionErrors, ThrowOnError> => (options.client ?? client).post<CancelSubscriptionResponses, CancelSubscriptionErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/subscriptions/{subscription_id}/commands/cancel',
+    ...options
+});
+
+/**
+ * Saltar o próximo ciclo (workflow command)
+ *
+ * Avança `next_run_at` em `frequency_days` sem gerar pedido e regista o ciclo saltado como run `skipped` (mantém o histórico contínuo e a idempotência por `cycle_no`).
+ */
+export const skipNextSubscriptionCycle = <ThrowOnError extends boolean = false>(options: Options<SkipNextSubscriptionCycleData, ThrowOnError>): RequestResult<SkipNextSubscriptionCycleResponses, SkipNextSubscriptionCycleErrors, ThrowOnError> => (options.client ?? client).post<SkipNextSubscriptionCycleResponses, SkipNextSubscriptionCycleErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/subscriptions/{subscription_id}/commands/skip-next',
+    ...options
+});
+
+/**
+ * Forçar o ciclo agora (workflow command — admin)
+ *
+ * Antecipa o ciclo corrente: gera o pedido pela pipeline normal e cobra (auto-charge do adquirente) ou emite payment link. Idempotente por `(subscription_id, cycle_no)` — o mesmo ciclo nunca gera dois pedidos. Ação de staff, não do comprador.
+ */
+export const runSubscriptionNow = <ThrowOnError extends boolean = false>(options: Options<RunSubscriptionNowData, ThrowOnError>): RequestResult<RunSubscriptionNowResponses, RunSubscriptionNowErrors, ThrowOnError> => (options.client ?? client).post<RunSubscriptionNowResponses, RunSubscriptionNowErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/subscriptions/{subscription_id}/commands/run-now',
+    ...options
+});
+
+/**
+ * Histórico de ciclos da assinatura
+ *
+ * Uma linha por ciclo (`cycle_no` descendente), com o pedido gerado e o desfecho da cobrança.
+ */
+export const listSubscriptionRuns = <ThrowOnError extends boolean = false>(options: Options<ListSubscriptionRunsData, ThrowOnError>): RequestResult<ListSubscriptionRunsResponses, ListSubscriptionRunsErrors, ThrowOnError> => (options.client ?? client).get<ListSubscriptionRunsResponses, ListSubscriptionRunsErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/subscriptions/{subscription_id}/runs',
+    ...options
+});
+
+/**
+ * Listar payment links do tenant
+ *
+ * Sempre filtrado pelo tenant do token. O token em claro NUNCA aparece aqui — só na resposta da criação (o banco guarda apenas o `token_hash`).
+ */
+export const listPaymentLinks = <ThrowOnError extends boolean = false>(options?: Options<ListPaymentLinksData, ThrowOnError>): RequestResult<ListPaymentLinksResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListPaymentLinksResponses, unknown, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/payment-links',
+    ...options
+});
+
+/**
+ * Criar payment link a partir de um pedido
+ *
+ * Primitivo genérico (ADR 0039) — nasce de um `order_id`, seja renovação de assinatura, carrinho abandonado, pedido criado no admin ou B2B faturado. `source` é só rótulo de origem, não muda o comportamento do link. **A resposta 201 é o único momento em que o token em claro (`token`/`url`) existe na API** — guardar ou enviar ao cliente já.
+ *
+ * O link cobra o **pedido inteiro**: quem cobra é `order.total_amount`, não o `amount_cents` do link. Por isso `amount_cents` divergente do total do pedido é **400** — senão a página prometeria um valor e o adquirente debitaria outro. Para cobrar outro valor, altere o PEDIDO.
+ */
+export const createPaymentLink = <ThrowOnError extends boolean = false>(options: Options<CreatePaymentLinkData, ThrowOnError>): RequestResult<CreatePaymentLinkResponses, CreatePaymentLinkErrors, ThrowOnError> => (options.client ?? client).post<CreatePaymentLinkResponses, CreatePaymentLinkErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/payment-links',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Cancelar payment link (workflow command)
+ *
+ * Invalida o link — o token deixa de resolver nos endpoints públicos. Não afecta o pedido.
+ */
+export const cancelPaymentLink = <ThrowOnError extends boolean = false>(options: Options<CancelPaymentLinkData, ThrowOnError>): RequestResult<CancelPaymentLinkResponses, CancelPaymentLinkErrors, ThrowOnError> => (options.client ?? client).post<CancelPaymentLinkResponses, CancelPaymentLinkErrors, ThrowOnError>({
+    security: [{
+            key: 'bearerAuth',
+            scheme: 'bearer',
+            type: 'http'
+        }],
+    url: '/payment-links/{payment_link_id}/commands/cancel',
+    ...options
+});
+
+/**
+ * Ver o link de pagamento (PÚBLICO — o token é a credencial)
+ *
+ * Endpoint PÚBLICO: sem auth de staff, sem `X-Tenant-ID` vindo do browser. A credencial é o próprio token da URL — o servidor resolve o link pelo SHA-256 do token e daí deriva o tenant (o browser NÃO escolhe o tenant). Devolve apenas o mínimo para pagar: nada de segredo, nada de dados do tenant, nada de PII além do pedido em causa.
+ */
+export const getPublicPaymentLink = <ThrowOnError extends boolean = false>(options: Options<GetPublicPaymentLinkData, ThrowOnError>): RequestResult<GetPublicPaymentLinkResponses, GetPublicPaymentLinkErrors, ThrowOnError> => (options.client ?? client).get<GetPublicPaymentLinkResponses, GetPublicPaymentLinkErrors, ThrowOnError>({ url: '/payment-links/public/{token}', ...options });
+
+/**
+ * Criar payment intent do pedido do link (PÚBLICO — gateway embutido)
+ *
+ * Equivalente a `POST /checkout/sessions/{session_id}/payment-intent` para o fluxo por link, que não tem sessão de checkout. O payload é específico do adquirente (JSON livre). O `provider_ref` (ex.: NIT do e-SiTef) fica no servidor — o browser não escolhe a transação.
+ *
+ * **Antifraude**: rota anónima que cria transação no adquirente, portanto passa pelo mesmo guard do checkout (velocity por pedido e por IP, captcha opcional em `captcha_token`, hooks `risk_assess`/`payment.route`) e por rate limit por IP. Excesso de tentativas responde **429** com `Retry-After`.
+ */
+export const publicPaymentLinkPaymentIntent = <ThrowOnError extends boolean = false>(options: Options<PublicPaymentLinkPaymentIntentData, ThrowOnError>): RequestResult<PublicPaymentLinkPaymentIntentResponses, PublicPaymentLinkPaymentIntentErrors, ThrowOnError> => (options.client ?? client).post<PublicPaymentLinkPaymentIntentResponses, PublicPaymentLinkPaymentIntentErrors, ThrowOnError>({
+    url: '/payment-links/public/{token}/payment-intent',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Confirmar pagamento do link (PÚBLICO — gateway embutido)
+ *
+ * Confirma a transação criada no `payment-intent`. A transação confirmada é sempre a do `provider_ref` guardado no link, nunca uma referência enviada pelo browser.
+ *
+ * **Antifraude (card testing)**: esta é a rota onde cada chamada é uma tentativa de cartão. Corre o mesmo guard do checkout (velocity por pedido e por IP) + rate limit por IP; estourado o teto responde **429** com `Retry-After` e nada chega ao adquirente.
+ */
+export const publicPaymentLinkConfirmPayment = <ThrowOnError extends boolean = false>(options: Options<PublicPaymentLinkConfirmPaymentData, ThrowOnError>): RequestResult<PublicPaymentLinkConfirmPaymentResponses, PublicPaymentLinkConfirmPaymentErrors, ThrowOnError> => (options.client ?? client).post<PublicPaymentLinkConfirmPaymentResponses, PublicPaymentLinkConfirmPaymentErrors, ThrowOnError>({
+    url: '/payment-links/public/{token}/confirm-payment',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Status do pagamento do link (PÚBLICO — polling do widget)
+ */
+export const publicPaymentLinkPaymentStatus = <ThrowOnError extends boolean = false>(options: Options<PublicPaymentLinkPaymentStatusData, ThrowOnError>): RequestResult<PublicPaymentLinkPaymentStatusResponses, PublicPaymentLinkPaymentStatusErrors, ThrowOnError> => (options.client ?? client).get<PublicPaymentLinkPaymentStatusResponses, PublicPaymentLinkPaymentStatusErrors, ThrowOnError>({ url: '/payment-links/public/{token}/payment-status', ...options });
