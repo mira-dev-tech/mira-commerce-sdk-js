@@ -4,6 +4,25 @@ Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 As operações são geradas da OpenAPI do Mirá Commerce — cada versão traz o que
 mudou no contrato da API, não no código deste pacote.
 
+## [0.4.0] — 2026-08-12
+
+Sync do OpenAPI do **mira-commerce-core** no tip `e90797ec` (release train
+**v1.54.2**). O `0.3.0` ficou tagueado no git mas **não chegou ao npm** (registry
+ainda em `0.2.0`); esta release publica tudo o que estava em `0.3.0` mais o
+delta até v1.54.2.
+
+### Adicionado / actualizado (destaque)
+
+- Cotação de frete: schema `ShippingQuoteNoOptions` (422 com `reasons[]`)
+- Extensão de aluguel: `extendOrderRental` + `Order.extends_order_id` (pedido filho)
+- Paths rental/digital/booking (ADR 0049) e restante superfície da API até v1.54.2
+- Regeneração completa de `sdk.gen.ts` / `types.gen.ts` (de ~4k para ~13k linhas de ops)
+
+Compatibilidade: aditivo em relação a `0.2.0`. Integradores em `0.2.0` podem
+subir para `0.4.0` sem mudar imports existentes.
+
+Fonte: `mira-commerce-core@e90797ec` · GH Packages interno `@mira-dev-tech/commerce-client-sdk@0.10.5` (mesmo OpenAPI).
+
 ## [0.3.0] — 2026-07-19
 
 Primeira publicação depois de um intervalo grande: o pacote estava **33 operações

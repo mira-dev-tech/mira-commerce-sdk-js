@@ -5,6 +5,1333 @@ export type ClientOptions = {
 };
 
 /**
+ * staff = vendedor da loja; affiliate = afiliado externo (≠ Member rede)
+ */
+export const CommissionActorKind = { STAFF: 'staff', AFFILIATE: 'affiliate' } as const;
+
+/**
+ * staff = vendedor da loja; affiliate = afiliado externo (≠ Member rede)
+ */
+export type CommissionActorKind = typeof CommissionActorKind[keyof typeof CommissionActorKind];
+
+export const CommissionLedgerStatus = {
+    PENDING: 'pending',
+    ACCRUED: 'accrued',
+    PAYABLE: 'payable',
+    PAID: 'paid',
+    CLAWBACK: 'clawback'
+} as const;
+
+export type CommissionLedgerStatus = typeof CommissionLedgerStatus[keyof typeof CommissionLedgerStatus];
+
+export const CommissionChannel = {
+    WEB: 'web',
+    POS: 'pos',
+    WHATSAPP: 'whatsapp',
+    API: 'api',
+    MARKETPLACE: 'marketplace'
+} as const;
+
+export type CommissionChannel = typeof CommissionChannel[keyof typeof CommissionChannel];
+
+export const OrderAttributionSource = {
+    STAFF_PIN: 'staff_pin',
+    AFFILIATE_CODE: 'affiliate_code',
+    LINK: 'link',
+    QR: 'qr',
+    API: 'api'
+} as const;
+
+export type OrderAttributionSource = typeof OrderAttributionSource[keyof typeof OrderAttributionSource];
+
+export type OrderAttribution = {
+    actor_id: string;
+    actor_kind: CommissionActorKind;
+    channel?: CommissionChannel;
+    source?: OrderAttributionSource;
+    /**
+     * Código afiliado/cupom usado na captura
+     */
+    code?: string;
+    captured_at?: string;
+};
+
+export type OrderAttributionSet = {
+    actor_id?: string;
+    actor_kind?: CommissionActorKind;
+    /**
+     * Resolve actor por code se actor_id omitido
+     */
+    code?: string;
+    channel?: CommissionChannel;
+    source?: OrderAttributionSource;
+};
+
+export type CommissionProgram = {
+    id: string;
+    name: string;
+    status: 'active' | 'inactive';
+    channels?: Array<CommissionChannel>;
+    starts_at?: string;
+    ends_at?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type CommissionProgramCreate = {
+    name: string;
+    channels?: Array<CommissionChannel>;
+    starts_at?: string;
+    ends_at?: string;
+};
+
+export type CommissionProgramUpdate = {
+    name?: string;
+    status?: 'active' | 'inactive';
+    channels?: Array<CommissionChannel>;
+    starts_at?: string;
+    ends_at?: string;
+};
+
+export type CommissionProgramListPage = {
+    data: Array<CommissionProgram>;
+    next_cursor?: string;
+};
+
+export type CommissionActor = {
+    id: string;
+    kind: CommissionActorKind;
+    name: string;
+    /**
+     * Código público (cupom/link/QR)
+     */
+    code?: string;
+    staff_id?: string;
+    email?: string;
+    status: 'active' | 'inactive';
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type CommissionActorCreate = {
+    kind: CommissionActorKind;
+    name: string;
+    code?: string;
+    staff_id?: string;
+    email?: string;
+};
+
+export type CommissionActorUpdate = {
+    name?: string;
+    code?: string;
+    email?: string;
+    status?: 'active' | 'inactive';
+};
+
+export type CommissionActorListPage = {
+    data: Array<CommissionActor>;
+    next_cursor?: string;
+};
+
+export type CommissionRule = {
+    id: string;
+    program_id: string;
+    name: string;
+    /**
+     * Basis points (100 = 1%). Preferir a amount_cents fixo.
+     */
+    rate_bps: number;
+    /**
+     * Valor fixo em centavos (alternativa a rate_bps)
+     */
+    amount_cents?: number;
+    base?: 'net' | 'gross' | 'margin';
+    product_ids?: Array<string>;
+    category_ids?: Array<string>;
+    actor_kinds?: Array<CommissionActorKind>;
+    status: 'active' | 'inactive';
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type CommissionRuleCreate = {
+    program_id: string;
+    name: string;
+    rate_bps?: number;
+    amount_cents?: number;
+    base?: 'net' | 'gross' | 'margin';
+    product_ids?: Array<string>;
+    category_ids?: Array<string>;
+    actor_kinds?: Array<CommissionActorKind>;
+};
+
+export type CommissionRuleUpdate = {
+    name?: string;
+    rate_bps?: number;
+    amount_cents?: number;
+    base?: 'net' | 'gross' | 'margin';
+    product_ids?: Array<string>;
+    category_ids?: Array<string>;
+    actor_kinds?: Array<CommissionActorKind>;
+    status?: 'active' | 'inactive';
+};
+
+export type CommissionRuleListPage = {
+    data: Array<CommissionRule>;
+    next_cursor?: string;
+};
+
+export type CommissionLedgerEntry = {
+    id: string;
+    actor_id: string;
+    order_id: string;
+    rule_id?: string;
+    amount_cents: number;
+    currency?: string;
+    status: CommissionLedgerStatus;
+    note?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type CommissionLedgerListPage = {
+    data: Array<CommissionLedgerEntry>;
+    next_cursor?: string;
+};
+
+export const ReturnRequestOrigin = {
+    WEB: 'web',
+    POS: 'pos',
+    ADMIN: 'admin',
+    API: 'api'
+} as const;
+
+export type ReturnRequestOrigin = typeof ReturnRequestOrigin[keyof typeof ReturnRequestOrigin];
+
+export const ReturnRequestStatus = {
+    REQUESTED: 'requested',
+    APPROVED: 'approved',
+    REJECTED: 'rejected',
+    COMPLETED: 'completed',
+    CANCELLED: 'cancelled'
+} as const;
+
+export type ReturnRequestStatus = typeof ReturnRequestStatus[keyof typeof ReturnRequestStatus];
+
+/**
+ * store_credit credita o titular no ledger (#1109/#1258). gift_card emite um cartão ao portador com o valor da devolução (código na conclusão).
+ */
+export const ReturnResolution = {
+    REFUND: 'refund',
+    EXCHANGE: 'exchange',
+    STORE_CREDIT: 'store_credit',
+    GIFT_CARD: 'gift_card'
+} as const;
+
+/**
+ * store_credit credita o titular no ledger (#1109/#1258). gift_card emite um cartão ao portador com o valor da devolução (código na conclusão).
+ */
+export type ReturnResolution = typeof ReturnResolution[keyof typeof ReturnResolution];
+
+export type ReturnRequestLine = {
+    sku: string;
+    quantity: number;
+    order_item_id?: string;
+    reason?: string;
+};
+
+export type ReturnRequest = {
+    id: string;
+    order_id: string;
+    origin: ReturnRequestOrigin;
+    status: ReturnRequestStatus;
+    resolution: ReturnResolution;
+    /**
+     * Loja que recebe o restock
+     */
+    warehouse_id?: string;
+    lines: Array<ReturnRequestLine>;
+    reason?: string;
+    refund_id?: string;
+    exchange_order_id?: string;
+    /**
+     * Titular do crédito, resolvido SERVER-SIDE a partir do pedido (#1109) — o schema não tinha titular, então não havia para quem creditar.
+     */
+    readonly customer_id?: string;
+    readonly credit_account_id?: string;
+    /**
+     * Lançamento no ledger, para auditoria do crédito emitido.
+     */
+    readonly credit_entry_id?: string;
+    readonly credit_amount_cents?: number;
+    /**
+     * Cartão emitido quando resolution=gift_card
+     */
+    readonly gift_card_id?: string;
+    /**
+     * Código em claro só na conclusão da devolução (igual issueGiftCard)
+     */
+    readonly gift_card_code?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type ReturnRequestCreate = {
+    order_id: string;
+    origin?: ReturnRequestOrigin;
+    resolution: ReturnResolution;
+    warehouse_id?: string;
+    lines: Array<ReturnRequestLine>;
+    reason?: string;
+};
+
+export type ReturnRequestComplete = {
+    restock?: boolean;
+    /**
+     * 0 = full refund das linhas; omitir = full do pedido se resolution=refund
+     */
+    refund_amount_cents?: number;
+    skip_refund?: boolean;
+    /**
+     * Valor a creditar quando resolution=store_credit. 0/omitido = valor total das linhas (#1109).
+     */
+    credit_amount_cents?: number;
+    /**
+     * Validade do crédito; o ledger já tem entry_type `expire`.
+     */
+    credit_expires_at?: string;
+};
+
+export type ReturnRequestListPage = {
+    data: Array<ReturnRequest>;
+    next_cursor?: string;
+};
+
+export const CreditAccountKind = {
+    TRADE_CREDIT: 'trade_credit',
+    CASHBACK: 'cashback',
+    STORE_CREDIT: 'store_credit',
+    GIFT_CARD: 'gift_card'
+} as const;
+
+export type CreditAccountKind = typeof CreditAccountKind[keyof typeof CreditAccountKind];
+
+export const CreditOwnerType = { CUSTOMER: 'customer', COMPANY: 'company' } as const;
+
+export type CreditOwnerType = typeof CreditOwnerType[keyof typeof CreditOwnerType];
+
+export const CreditEntryType = {
+    CREDIT: 'credit',
+    RESERVE: 'reserve',
+    CAPTURE: 'capture',
+    RELEASE: 'release',
+    ADJUST: 'adjust',
+    EXPIRE: 'expire'
+} as const;
+
+export type CreditEntryType = typeof CreditEntryType[keyof typeof CreditEntryType];
+
+export type CreditAccount = {
+    id: string;
+    kind: CreditAccountKind;
+    owner_type: CreditOwnerType;
+    owner_id: string;
+    balance_cents: number;
+    reserved_cents: number;
+    /**
+     * balance_cents - reserved_cents
+     */
+    available_cents: number;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type CreditAccountEnsure = {
+    kind: CreditAccountKind;
+    owner_type: CreditOwnerType;
+    owner_id: string;
+};
+
+export type CreditAccountListPage = {
+    data: Array<CreditAccount>;
+    next_cursor?: string;
+};
+
+export type CreditEntry = {
+    id: string;
+    account_id: string;
+    entry_type: CreditEntryType;
+    amount_cents: number;
+    balance_after: number;
+    reserved_after: number;
+    order_id?: string;
+    note?: string;
+    created_at: string;
+};
+
+export type CreditEntryListPage = {
+    data: Array<CreditEntry>;
+    next_cursor?: string;
+};
+
+export type CreditAdjustRequest = {
+    /**
+     * Positivo credita; negativo debita (sem OTP)
+     */
+    amount_cents: number;
+    note?: string;
+};
+
+export type CreditChallengeCreate = {
+    kind: CreditAccountKind;
+    /**
+     * Default customer; trade_credit exige company
+     */
+    owner_type?: CreditOwnerType;
+    /**
+     * customer_id ou company_id
+     */
+    owner_id?: string;
+    amount_cents: number;
+    order_id?: string;
+    email: string;
+};
+
+export type CreditChallenge = {
+    id: string;
+    account_id: string;
+    amount_cents: number;
+    email: string;
+    expires_at: string;
+    status: 'pending' | 'confirmed' | 'consumed' | 'expired';
+    /**
+     * Só em ambiente de desenvolvimento
+     */
+    dev_code?: string;
+};
+
+export type CreditChallengeConfirm = {
+    code: string;
+};
+
+export type CreditChallengeConfirmed = {
+    challenge_id: string;
+    /**
+     * Único momento em que o token em claro é devolvido
+     */
+    confirmation_token: string;
+    expires_at: string;
+};
+
+export type CreditReserveRequest = {
+    confirmation_token: string;
+    order_id?: string;
+};
+
+export type CashbackSettings = {
+    enabled: boolean;
+    /**
+     * Basis points (100 = 1%)
+     */
+    percent_bps: number;
+    fixed_cents: number;
+    /**
+     * 0 = sem teto
+     */
+    max_per_order_cents: number;
+};
+
+/**
+ * Níveis de acesso B2B (acumuláveis em `roles`).
+ * `owner` implica todos os poderes (comprar, financeiro, gerir membros).
+ * `financial` — faturas/Pix + aprovar pedidos (substitui `approver`).
+ * `approver` / `viewer` — legados (alias: approver→financial; viewer→sem nível elevado).
+ *
+ */
+export const CompanyRole = {
+    OWNER: 'owner',
+    BUYER: 'buyer',
+    FINANCIAL: 'financial',
+    APPROVER: 'approver',
+    VIEWER: 'viewer'
+} as const;
+
+/**
+ * Níveis de acesso B2B (acumuláveis em `roles`).
+ * `owner` implica todos os poderes (comprar, financeiro, gerir membros).
+ * `financial` — faturas/Pix + aprovar pedidos (substitui `approver`).
+ * `approver` / `viewer` — legados (alias: approver→financial; viewer→sem nível elevado).
+ *
+ */
+export type CompanyRole = typeof CompanyRole[keyof typeof CompanyRole];
+
+/**
+ * prepaid | invoice | net_N (N dias). ADR 0137 CommercialTerms.
+ *
+ */
+export type PaymentTermsCode = string;
+
+/**
+ * Como repartir o principal entre parcelas (ADR 0140).
+ * `percent_bps` exige `percent_bps[]` somando 10000.
+ *
+ */
+export const InvoiceInstallmentPrincipalSplit = { EQUAL: 'equal', PERCENT_BPS: 'percent_bps' } as const;
+
+/**
+ * Como repartir o principal entre parcelas (ADR 0140).
+ * `percent_bps` exige `percent_bps[]` somando 10000.
+ *
+ */
+export type InvoiceInstallmentPrincipalSplit = typeof InvoiceInstallmentPrincipalSplit[keyof typeof InvoiceInstallmentPrincipalSplit];
+
+/**
+ * Opção de parcelamento faturado B2B (ADR 0140).
+ */
+export type InvoiceInstallmentOption = {
+    /**
+     * Identificador estável (ex. 1x, 3x_306090).
+     */
+    code: string;
+    label: string;
+    /**
+     * Pedido mínimo adicional para esta opção (além do MOQ da empresa).
+     */
+    min_order_cents: number;
+    principal_split: InvoiceInstallmentPrincipalSplit;
+    /**
+     * Obrigatório se principal_split=percent_bps; len = len(due_days); soma 10000.
+     */
+    percent_bps?: Array<number>;
+    /**
+     * Dias até o vencimento de cada parcela (a partir de issued_at).
+     */
+    due_days: Array<number>;
+    /**
+     * Juro simples sobre o principal em basis points (100 = 1%).
+     */
+    interest_rate_bps: number;
+    /**
+     * Multa/mora opcional — só snapshot; sem motor de cobrança na v1.
+     */
+    late_fee_rate_bps?: number;
+    late_fee_grace_days?: number;
+};
+
+/**
+ * Política de parcelamento faturado por empresa (ADR 0140).
+ * Options vazias / ausente = legado 1 título AR via payment_terms_code.
+ *
+ */
+export type InvoiceInstallmentPolicy = {
+    options?: Array<InvoiceInstallmentOption>;
+    /**
+     * code de options[] usado quando o place omite option_code.
+     */
+    default_option_code?: string;
+};
+
+export type InvoiceInstallmentPlanLine = {
+    /**
+     * 1-based.
+     */
+    index: number;
+    due_days: number;
+    amount_cents: number;
+    principal_cents?: number;
+    interest_cents?: number;
+};
+
+/**
+ * Schedule resolvido gravado no order (metadata invoice_installment_plan).
+ */
+export type InvoiceInstallmentPlan = {
+    option_code: string;
+    label: string;
+    lines: Array<InvoiceInstallmentPlanLine>;
+    principal_cents: number;
+    interest_cents: number;
+    total_cents: number;
+    interest_rate_bps?: number;
+    late_fee_rate_bps?: number;
+    late_fee_grace_days?: number;
+};
+
+export type CommercialTerms = {
+    id: string;
+    company_id: string;
+    version: number;
+    valid_from?: string;
+    valid_to?: string;
+    is_active: boolean;
+    payment_terms_code: PaymentTermsCode;
+    price_list_id?: string;
+    /**
+     * Pedido mínimo da empresa (R$ em centavos). ADR 0137 / 0140.
+     */
+    min_order_cents: number;
+    /**
+     * Se true, mesmo owner/approver precisam de aprovação
+     */
+    require_approval: boolean;
+    /**
+     * Set tipado (ex. invoicing, pre_approved). Extensível sem migration.
+     *
+     */
+    capabilities: Array<string>;
+    /**
+     * Política de parcelas faturado (ADR 0140). Null/vazio = 1× legado.
+     */
+    invoice_installment_policy?: InvoiceInstallmentPolicy;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type CommercialTermsUpdate = {
+    payment_terms_code?: PaymentTermsCode;
+    price_list_id?: string;
+    min_order_cents?: number;
+    require_approval?: boolean;
+    capabilities?: Array<string>;
+    invoice_installment_policy?: InvoiceInstallmentPolicy;
+};
+
+export type CommercialTermsListPage = {
+    data: Array<CommercialTerms>;
+    next_cursor?: string;
+};
+
+export const PriceListStatusB2b = { ACTIVE: 'active', INACTIVE: 'inactive' } as const;
+
+export type PriceListStatusB2b = typeof PriceListStatusB2b[keyof typeof PriceListStatusB2b];
+
+export type PriceListB2b = {
+    id: string;
+    name: string;
+    status: PriceListStatusB2b;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type PriceListCreate = {
+    name: string;
+    status?: PriceListStatusB2b;
+};
+
+export type PriceListUpdate = {
+    name?: string;
+    status?: PriceListStatusB2b;
+};
+
+export type PriceListItem = {
+    id: string;
+    price_list_id: string;
+    sku: string;
+    amount_cents: number;
+    currency: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type PriceListItemUpsert = {
+    sku: string;
+    amount_cents: number;
+    currency?: string;
+};
+
+export type PriceListB2bListPage = {
+    data: Array<PriceListB2b>;
+    next_cursor?: string;
+};
+
+export type PriceListItemListPage = {
+    data: Array<PriceListItem>;
+    next_cursor?: string;
+};
+
+export const CompanyStatus = {
+    ACTIVE: 'active',
+    INACTIVE: 'inactive',
+    BLOCKED: 'blocked'
+} as const;
+
+export type CompanyStatus = typeof CompanyStatus[keyof typeof CompanyStatus];
+
+export type Company = {
+    id: string;
+    legal_name: string;
+    trade_name?: string;
+    /**
+     * CNPJ digits
+     */
+    document: string;
+    invoicing_enabled: boolean;
+    pre_approved: boolean;
+    credit_limit_cents: number;
+    status: CompanyStatus;
+    /**
+     * Disponível na conta trade_credit (se existir)
+     */
+    credit_available_cents?: number;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type CompanyCreate = {
+    legal_name: string;
+    trade_name?: string;
+    document: string;
+    invoicing_enabled?: boolean;
+    pre_approved?: boolean;
+    credit_limit_cents?: number;
+};
+
+export type CompanyUpdate = {
+    legal_name?: string;
+    trade_name?: string;
+    invoicing_enabled?: boolean;
+    pre_approved?: boolean;
+    credit_limit_cents?: number;
+    status?: CompanyStatus;
+};
+
+export type CompanyListPage = {
+    data: Array<Company>;
+    next_cursor?: string;
+};
+
+export type CompanyMember = {
+    id: string;
+    company_id: string;
+    customer_id: string;
+    /**
+     * Papel primário (compat). Preferir `roles`.
+     */
+    role: CompanyRole;
+    /**
+     * Níveis acumuláveis (owner|buyer|financial). Owner implica todos os poderes.
+     */
+    roles: Array<CompanyRole>;
+    is_active: boolean;
+    /**
+     * E-mail do customer (enriquecido na listagem — #1426)
+     */
+    email?: string;
+    /**
+     * Nome do customer quando disponível (#1426)
+     */
+    name?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export const CompanyInviteStatus = {
+    PENDING: 'pending',
+    ACCEPTED: 'accepted',
+    EXPIRED: 'expired',
+    REVOKED: 'revoked'
+} as const;
+
+export type CompanyInviteStatus = typeof CompanyInviteStatus[keyof typeof CompanyInviteStatus];
+
+export type CompanyInvite = {
+    id: string;
+    company_id: string;
+    email: string;
+    role: CompanyRole;
+    status: CompanyInviteStatus;
+    created_at: string;
+    expires_at: string;
+    accepted_at?: string;
+};
+
+export type CompanyInviteCreate = {
+    email: string;
+    role: CompanyRole;
+};
+
+export type CompanyInviteAccept = {
+    token: string;
+};
+
+export type CompanyInvitePublic = {
+    company_name: string;
+    /**
+     * E-mail parcialmente mascarado (ex. j***@empresa.com)
+     */
+    email_masked?: string;
+    role: CompanyRole;
+    status: CompanyInviteStatus;
+    expires_at: string;
+};
+
+export type CompanyInviteListPage = {
+    data: Array<CompanyInvite>;
+};
+
+export type CompanyMemberCreate = {
+    customer_id: string;
+    /**
+     * Legado — se `roles` omitido, usa `[role]`.
+     */
+    role?: CompanyRole;
+    roles?: Array<CompanyRole>;
+};
+
+export type CompanyMemberUpdate = {
+    /**
+     * Legado — se `roles` omitido, substitui por `[role]`.
+     */
+    role?: CompanyRole;
+    roles?: Array<CompanyRole>;
+    is_active?: boolean;
+};
+
+export type CompanyOwnershipTransfer = {
+    /**
+     * Membro que passa a ser o único owner (o caller deixa de ser owner).
+     */
+    member_id: string;
+};
+
+export type CompanyInvoice = {
+    id: string;
+    company_id: string;
+    order_id?: string;
+    amount_cents: number;
+    paid_cents: number;
+    currency: string;
+    status: FinanceDocumentStatus;
+    due_date?: string;
+    issued_at?: string;
+};
+
+export type CompanyInvoiceListPage = {
+    data: Array<CompanyInvoice>;
+};
+
+export type CompanyInvoicePayResult = {
+    payment_method: 'pix';
+    /**
+     * embedded = QR/copia-e-cola; redirect = URL do adquirente
+     */
+    mode: 'embedded' | 'redirect';
+    checkout_url?: string;
+    qr_code?: string;
+    qr_code_base64?: string;
+    order_id?: string;
+    invoice_id?: string;
+};
+
+export type CompanyMemberListPage = {
+    data: Array<CompanyMember>;
+};
+
+export type CustomerCompanyMembership = {
+    membership: CompanyMember;
+    company: Company;
+};
+
+export type CustomerCompanyMembershipListPage = {
+    data: Array<CustomerCompanyMembership>;
+};
+
+export const CompanyCreditRequestStatus = {
+    PENDING: 'pending',
+    APPROVED: 'approved',
+    REJECTED: 'rejected',
+    BLOCKED: 'blocked'
+} as const;
+
+export type CompanyCreditRequestStatus = typeof CompanyCreditRequestStatus[keyof typeof CompanyCreditRequestStatus];
+
+/**
+ * `limit_increase` — pedido de teto (#1384).
+ * `invoice_intent` — compra faturada à espera de cadastro/crédito (#1408).
+ *
+ */
+export const CompanyCreditRequestKind = { LIMIT_INCREASE: 'limit_increase', INVOICE_INTENT: 'invoice_intent' } as const;
+
+/**
+ * `limit_increase` — pedido de teto (#1384).
+ * `invoice_intent` — compra faturada à espera de cadastro/crédito (#1408).
+ *
+ */
+export type CompanyCreditRequestKind = typeof CompanyCreditRequestKind[keyof typeof CompanyCreditRequestKind];
+
+export type CompanyCreditCartSnapshotItem = {
+    sku: string;
+    title?: string;
+    qty: number;
+    unit_price_cents?: number;
+    rental_start?: string;
+    rental_end?: string;
+};
+
+/**
+ * Snapshot do carrinho no intent faturado (storefront reconstitui após approve).
+ */
+export type CompanyCreditCartSnapshot = {
+    currency?: string;
+    items?: Array<CompanyCreditCartSnapshotItem>;
+    note?: string;
+};
+
+export type CompanyCreditRequest = {
+    id: string;
+    company_id: string;
+    customer_id: string;
+    requested_limit_cents: number;
+    kind: CompanyCreditRequestKind;
+    /**
+     * Total do carrinho no invoice_intent (centavos)
+     */
+    amount_cents?: number;
+    /**
+     * Draft/order ligado (opcional; resume via cart_snapshot se ausente)
+     */
+    order_id?: string;
+    cart_snapshot?: CompanyCreditCartSnapshot;
+    note?: string;
+    status: CompanyCreditRequestStatus;
+    decided_at?: string;
+    decided_by?: string;
+    decision_note?: string;
+    created_at: string;
+    updated_at?: string;
+};
+
+/**
+ * Bearer storefront exige `customer_id`. Portal `mc_sess`
+ * (`customerCreateCompanyCreditRequest`) ignora `customer_id` do body
+ * e usa a sessão.
+ *
+ */
+export type CompanyCreditRequestCreate = {
+    /**
+     * Obrigatório no path bearer storefront (#1408)
+     */
+    customer_id?: string;
+    kind?: CompanyCreditRequestKind;
+    /**
+     * Obrigatório em `limit_increase`. Em `invoice_intent`, se omitido,
+     * usa `amount_cents` (teto mínimo = valor do carrinho).
+     *
+     */
+    requested_limit_cents?: number;
+    /**
+     * Obrigatório em `invoice_intent`
+     */
+    amount_cents?: number;
+    cart_snapshot?: CompanyCreditCartSnapshot;
+    note?: string;
+};
+
+export type CompanyCreditRequestDecide = {
+    note?: string;
+    /**
+     * Se omitido no approve, usa requested_limit_cents
+     */
+    approved_limit_cents?: number;
+};
+
+export type CompanyCreditRequestListPage = {
+    data: Array<CompanyCreditRequest>;
+    next_cursor?: string;
+};
+
+export type TrackEventItem = {
+    /**
+     * Allowlist: page_view, product_view, add_to_cart, checkout_step, kit_builder, professional_content_view
+     */
+    type: string;
+    /**
+     * Referência curta (sku/step/section) — sem PII
+     */
+    ref?: string;
+};
+
+export type TrackEventsRequest = {
+    events: Array<TrackEventItem>;
+};
+
+export type NewsletterSubscribeRequest = {
+    email: string;
+    /**
+     * Deve ser true — opt-in explícito LGPD (sem checkbox implícito).
+     */
+    lgpd_opt_in: boolean;
+    /**
+     * Nome opcional (footer).
+     */
+    name?: string;
+    /**
+     * Origem da captura (ex. footer, landing). Default footer.
+     */
+    source?: string;
+};
+
+export type NewsletterSubscribeResult = {
+    status: 'subscribed' | 'already_subscribed';
+};
+
+export type AgentRun = {
+    id?: string;
+    agent_id?: string;
+    agent_name?: string;
+    status?: 'queued' | 'running' | 'done' | 'error';
+    tool_calls?: number;
+    summary?: string;
+    error?: string;
+    created_at?: string;
+    started_at?: string;
+    finished_at?: string;
+    transcript?: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Run pai quando esta execução veio de run_agent (ADR 0078)
+     */
+    parent_run_id?: string;
+    /**
+     * Raiz da árvore de delegação
+     */
+    root_run_id?: string;
+    /**
+     * Ordem na cadeia sob o root (0 = root)
+     */
+    delegation_index?: number;
+    /**
+     * Modo efectivo (compiled|exploratory|auto|…)
+     */
+    execution_mode?: string;
+    contract_hash?: string;
+    reliability_score?: number;
+    /**
+     * Tokens de input LLM nesta run
+     */
+    prompt_tokens?: number;
+    /**
+     * Tokens de output LLM nesta run
+     */
+    completion_tokens?: number;
+    total_tokens?: number;
+    /**
+     * Round-trips ao gateway LLM nesta run
+     */
+    llm_calls?: number;
+    /**
+     * Modelo LiteLLM efectivo
+     */
+    model?: string;
+    /**
+     * Soma prompt_tokens da árvore (preenchido no root)
+     */
+    subtree_prompt_tokens?: number;
+    subtree_completion_tokens?: number;
+    subtree_total_tokens?: number;
+    /**
+     * Resultado de NEGÓCIO, ortogonal a status (que é ciclo de vida). Sem ele, run sem efeito, run abaixo do limiar e run bem-sucedida saíam todas como `done` (#1101).
+     */
+    outcome?: AgentRunOutcome;
+    /**
+     * Tool calls com erro ou bloqueadas por guard — já era calculado e descartado.
+     */
+    tool_errors?: number;
+    /**
+     * Subconjunto de tool_calls que MUTA estado, com sucesso.
+     */
+    write_tool_calls?: number;
+    /**
+     * Envelope destinado ao CLIENTE no canal (ADR 0101), escrito só quando a run é de superfície de canal e terminou em `done`. Existe porque `result_summary` é do LOJISTA: extrair a resposta do cliente a partir dele é leniente por natureza e chegou a mandar texto interno ("teto de N rodadas atingido") para o WhatsApp. Nulo = não há nada que possa ser dito ao cliente a partir desta run (#1200 F1).
+     */
+    customer_reply?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Subconjunto de tool_errors em que o modelo pediu uma tool que não existe no catálogo — ou seja, inventou o que lhe faltava. Separado porque o runtime anexa só um subconjunto do catálogo ao prompt: aqui o sinal é "o menu não cobriu a capacidade", enquanto o resto de tool_errors é argumento inválido. Somados, a decisão sobre o teto do menu vira opinião (#1200 F0).
+     */
+    unknown_tool_attempts?: number;
+    /**
+     * Limiar VIGENTE nesta execução. Vem no payload para a UI mostrar o score em contexto sem refetchar o agente e replicar o default — "Fiabilidade 0.50" parece aceitável até se saber que o mínimo era 0.70.
+     */
+    reliability_min_score?: number;
+    /**
+     * readOnly — score abaixo do limiar da execução.
+     */
+    readonly reliability_below_threshold?: boolean;
+    /**
+     * Custo da execução em BRL (#1099), pela mesma tabela de preços que debita a wallet. null quando não há preço de venda para o modelo — zero fingido faria o teto mensal somar custo falso.
+     */
+    cost_brl?: number;
+    /**
+     * Custo da árvore de delegação, preenchido no root.
+     */
+    subtree_cost_brl?: number;
+    /**
+     * Câmbio USD→BRL aplicado, para auditoria reproduzível.
+     */
+    fx_usd_brl?: number;
+    delegation_input?: {
+        [key: string]: unknown;
+    };
+    delegation_output?: {
+        [key: string]: unknown;
+    };
+};
+
+export type AgentUsageReport = {
+    from: string;
+    to: string;
+    currency: string;
+    /**
+     * Câmbio aplicado no cálculo do período.
+     */
+    fx_usd_brl?: number;
+    total: AgentUsageTotals;
+    by_agent: Array<AgentUsageByAgent>;
+};
+
+export type AgentUsageTotals = {
+    runs: number;
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+    cost_brl: number;
+    /**
+     * Execuções sem nenhuma tool call — desperdício direto (#1097).
+     */
+    runs_no_effect?: number;
+};
+
+export type AgentUsageByAgent = {
+    agent_id: string;
+    agent_name?: string;
+    runs: number;
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens: number;
+    cost_brl: number;
+    avg_cost_per_run_brl?: number;
+    /**
+     * Teto mensal configurado no Spec do agente, quando houver.
+     */
+    budget_brl_month?: number;
+    /**
+     * Percentagem do teto já consumida no mês corrente.
+     */
+    budget_used_pct?: number;
+    runs_no_effect?: number;
+};
+
+export type AgentRunList = {
+    runs: Array<AgentRun>;
+};
+
+export type AgentPipelineStep = {
+    type: 'run_agent' | 'tool';
+    /**
+     * Obrigatório quando type=run_agent
+     */
+    agent_id?: string;
+    /**
+     * Obrigatório quando type=tool
+     */
+    tool?: string;
+    /**
+     * Args com placeholders {{shared.x}} / {{steps.N.output.y}}
+     */
+    args_template?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Campos required mínimos do output do passo
+     */
+    output_schema?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * Resultado de negócio da execução (#1101).
+ */
+export const AgentRunOutcome = {
+    ACTED: 'acted',
+    NO_EFFECT: 'no_effect',
+    BELOW_THRESHOLD: 'below_threshold',
+    PARTIAL: 'partial',
+    BLOCKED: 'blocked'
+} as const;
+
+/**
+ * Resultado de negócio da execução (#1101).
+ */
+export type AgentRunOutcome = typeof AgentRunOutcome[keyof typeof AgentRunOutcome];
+
+export type AgentReliability = {
+    /**
+     * Abaixo disto abre Task (default plataforma 0.7)
+     */
+    min_score?: number;
+    /**
+     * Janela de runs recentes para sinais (default 5)
+     */
+    window_runs?: number;
+};
+
+/**
+ * Contrato Agent Builder (ADR 0035 + 0078)
+ */
+export type AgentSpec = {
+    persona: string;
+    model?: string;
+    tools: Array<string>;
+    triggers: Array<AgentTrigger>;
+    autopilot?: boolean;
+    /**
+     * Teto de gasto do agente no mês, em BRL. É ENFORCED desde o #1100 — antes o campo era decorativo (a UI exibia o teto e nada o lia).
+     */
+    budget_brl_month?: number;
+    /**
+     * O que fazer ao atingir o teto. `warn` é o default deliberado: ligar o corte sem o lojista pedir mudaria o comportamento de agentes já em produção. `block` suprime execuções; `disable_agent` desliga o agente.
+     */
+    budget_action?: 'warn' | 'block' | 'disable_agent';
+    /**
+     * Fração do teto (0-100) que dispara a Task de aviso.
+     */
+    budget_warn_pct?: number;
+    allow_money_tools?: boolean;
+    allow_outreach?: boolean;
+    allow_web_research?: boolean;
+    /**
+     * Opt-in para tools nativas google_ads_* (ADR 0087)
+     */
+    allow_google_ads?: boolean;
+    /**
+     * Opt-in para tools nativas ga4_* (ADR 0087)
+     */
+    allow_ga4?: boolean;
+    /**
+     * Opt-in para tools api_*creative* (AI Creative Protocol, ADR 0134)
+     */
+    allow_creative?: boolean;
+    /**
+     * Pode ser chamado via run_agent (default true)
+     */
+    accept_delegation?: boolean;
+    /**
+     * auto usa pipeline se válido
+     */
+    execution_mode?: 'auto' | 'compiled' | 'exploratory';
+    pipeline?: Array<AgentPipelineStep>;
+    /**
+     * Recompilação pendente de aceite humano
+     */
+    pipeline_proposed?: Array<AgentPipelineStep>;
+    reliability?: AgentReliability;
+    /**
+     * ADR 0128. Vazio = worker. Um guardrail não faz trabalho: julga a ação dos outros agentes no boundary da tool. O core zera tools, triggers, pipeline e opt-ins de um guardrail no save — julgar não é agir.
+     */
+    agent_kind?: 'worker' | 'guardrail';
+    guardrail?: AgentGuardrail;
+    /**
+     * Overrides por fluxo (só em worker). Um guardrail com default_on já vale para todos os agentes do tenant; aqui declara-se a exceção, nos dois sentidos.
+     */
+    guardrails?: Array<AgentGuardrailBinding>;
+};
+
+/**
+ * Configuração de um agente com agent_kind=guardrail (ADR 0128)
+ */
+export type AgentGuardrail = {
+    /**
+     * Liga em todos os fluxos do tenant, salvo override por fluxo.
+     */
+    default_on?: boolean;
+    /**
+     * O que fazer ao reprovar. Default propose — bloquear em silêncio um agente já em produção lê como a plataforma a partir a loja.
+     */
+    action?: 'block' | 'propose' | 'warn';
+    scope?: AgentGuardrailScope;
+    hooks?: Array<'pre_tool'>;
+    /**
+     * Proveniência do template de fábrica; a persona é do lojista.
+     */
+    template_key?: string;
+};
+
+/**
+ * Pré-filtro determinístico — decide se vale acordar o guardrail antes de gastar LLM. Condições declaradas somam-se em AND; vazio = toda mutação.
+ */
+export type AgentGuardrailScope = {
+    tiers?: Array<'write_low' | 'write_high' | 'outreach' | 'destructive'>;
+    /**
+     * Nome exato; sufixo '*' casa por prefixo.
+     */
+    tools?: Array<string>;
+    money_only?: boolean;
+    outreach_only?: boolean;
+};
+
+export type AgentGuardrailBinding = {
+    agent_id: string;
+    enabled: boolean;
+};
+
+export type AgentTrigger = {
+    type: 'manual' | 'cron' | 'event';
+    /**
+     * Intervalo legado; ignorado se cron_expr estiver set
+     */
+    interval_minutes?: number;
+    /**
+     * Expressão cron 5-campos (prevalece sobre interval_minutes)
+     */
+    cron_expr?: string;
+    /**
+     * IANA TZ (default America/Sao_Paulo)
+     */
+    timezone?: string;
+    /**
+     * skip (default) não agenda se já houver run queued/running
+     */
+    overlap?: 'skip' | 'queue';
+    /**
+     * ID do catálogo available_triggers
+     */
+    event?: string;
+    /**
+     * Intervalo mínimo, em minutos, depois de execuções consecutivas sem efeito (#1102). O cron se espaça sozinho quando não há trabalho e volta ao normal assim que uma run age. Só vale para interval_minutes: cron_expr tem semântica de calendário e atrasá-la mudaria o contrato. 0/ausente = desligado.
+     */
+    min_interval_after_no_effect?: number;
+    /**
+     * Execuções no_effect seguidas necessárias para ligar o backoff.
+     */
+    no_effect_streak_to_backoff?: number;
+};
+
+export type BillingPeriodSummary = {
+    month: string;
+    /**
+     * open = ainda muda (recomputado do metering); closed = snapshot imutável, devolve sempre o mesmo valor.
+     */
+    status: 'open' | 'closed';
+    total_brl: number;
+    currency: string;
+    closed_at?: string;
+    /**
+     * Payload congelado do período fechado.
+     */
+    detail?: {
+        [key: string]: unknown;
+    };
+};
+
+export type BillingPeriodListPage = {
+    data: Array<BillingPeriodSummary>;
+};
+
+/**
  * Objeto JSON livre (payload documentado no handler; tipagem fina incremental)
  */
 export type JsonObject = {
@@ -50,11 +1377,59 @@ export type CampaignCreate = {
     message: CampaignMessage;
 };
 
+/**
+ * Taxonomia estável do motivo (#1112). A UI traduz o código; nunca faz parsing da mensagem de erro, que é texto livre e muda a cada refactor.
+ */
+export const CampaignRecipientReason = {
+    OPT_OUT: 'opt_out',
+    NO_CONSENT: 'no_consent',
+    RATE_LIMITED: 'rate_limited',
+    INVALID_CONTACT: 'invalid_contact',
+    TEMPLATE_DISABLED: 'template_disabled',
+    PROVIDER_ERROR: 'provider_error'
+} as const;
+
+/**
+ * Taxonomia estável do motivo (#1112). A UI traduz o código; nunca faz parsing da mensagem de erro, que é texto livre e muda a cada refactor.
+ */
+export type CampaignRecipientReason = typeof CampaignRecipientReason[keyof typeof CampaignRecipientReason];
+
+export type CampaignRecipient = {
+    /**
+     * Mascarado conforme LGPD — a***@dominio.com.
+     */
+    contact: string;
+    name?: string;
+    status: 'pending' | 'sent' | 'blocked' | 'failed';
+    reason_code?: CampaignRecipientReason;
+    /**
+     * Mensagem técnica, truncada.
+     */
+    reason_detail?: string;
+    sent_at?: string;
+    attempts?: number;
+};
+
+export type CampaignRecipientListPage = {
+    data: Array<CampaignRecipient>;
+    total?: number;
+    has_more?: boolean;
+};
+
 export type CampaignCounts = {
     pending?: number;
     sent?: number;
     blocked?: number;
     failed?: number;
+    /**
+     * Explica o agregado "Protegidos" (#1112).
+     */
+    blocked_by_reason?: {
+        [key: string]: number;
+    };
+    failed_by_reason?: {
+        [key: string]: number;
+    };
 };
 
 export type Campaign = {
@@ -87,6 +1462,1286 @@ export type CampaignDispatchResult = {
     status?: string;
 };
 
+export const GrowthCampaignObjective = {
+    AWARENESS: 'awareness',
+    TRAFFIC: 'traffic',
+    LEADS: 'leads',
+    SALES: 'sales',
+    RETENTION: 'retention'
+} as const;
+
+export type GrowthCampaignObjective = typeof GrowthCampaignObjective[keyof typeof GrowthCampaignObjective];
+
+export const GrowthCampaignStatus = {
+    DRAFT: 'draft',
+    READY: 'ready',
+    RUNNING: 'running',
+    PAUSED: 'paused',
+    COMPLETED: 'completed',
+    ARCHIVED: 'archived'
+} as const;
+
+export type GrowthCampaignStatus = typeof GrowthCampaignStatus[keyof typeof GrowthCampaignStatus];
+
+export type GrowthUtm = {
+    source?: string;
+    medium?: string;
+    campaign?: string;
+    content?: string;
+    term?: string;
+};
+
+export type GrowthBudget = {
+    currency?: string;
+    daily_cents?: number;
+    total_cents?: number;
+};
+
+export type GrowthAudience = {
+    type?: string;
+    days?: number;
+    notes?: string;
+    [key: string]: unknown;
+};
+
+export type GrowthCampaign = {
+    id?: string;
+    name?: string;
+    status?: GrowthCampaignStatus;
+    objective?: GrowthCampaignObjective;
+    audience?: GrowthAudience;
+    channels?: Array<string>;
+    budget?: GrowthBudget;
+    utm?: GrowthUtm;
+    starts_at?: string;
+    ends_at?: string;
+    created_at?: string;
+    updated_at?: string;
+    outreach_count?: number;
+    creative_count?: number;
+    ad_flight_count?: number;
+};
+
+export type GrowthCampaignCreate = {
+    name: string;
+    objective?: GrowthCampaignObjective;
+    audience?: GrowthAudience;
+    channels?: Array<string>;
+    budget?: GrowthBudget;
+    utm?: GrowthUtm;
+    starts_at?: string;
+    ends_at?: string;
+};
+
+export type GrowthCampaignUpdate = {
+    name?: string;
+    objective?: GrowthCampaignObjective;
+    audience?: GrowthAudience;
+    channels?: Array<string>;
+    budget?: GrowthBudget;
+    utm?: GrowthUtm;
+    starts_at?: string;
+    ends_at?: string;
+};
+
+export type GrowthCampaignList = {
+    campaigns?: Array<GrowthCampaign>;
+};
+
+export type GrowthStatusBody = {
+    status: GrowthCampaignStatus;
+};
+
+export type GrowthOutreachAttach = {
+    outreach_campaign_id: string;
+};
+
+export type GrowthOutreachList = {
+    outreach_campaign_ids?: Array<string>;
+    campaigns?: Array<Campaign>;
+};
+
+export type GrowthCreativeAttach = {
+    creative_id: string;
+};
+
+export type GrowthCreativeItem = {
+    id?: string;
+    provider?: string;
+    type?: string;
+    status?: string;
+    format?: string;
+    asset_url?: string;
+    campaign_id?: string;
+    created_at?: string;
+};
+
+export type GrowthCreativeList = {
+    creatives?: Array<GrowthCreativeItem>;
+};
+
+export type GrowthPaidSyncBody = {
+    provider?: 'google_ads' | 'meta_ads';
+    external_account_id?: string;
+};
+
+export type GrowthAdFlight = {
+    id?: string;
+    provider?: string;
+    external_account_id?: string;
+    external_campaign_id?: string;
+    external_adgroup_id?: string;
+    name?: string;
+    status?: string;
+    last_error?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type GrowthAdFlightList = {
+    flights?: Array<GrowthAdFlight>;
+};
+
+export type GrowthInsightRow = {
+    ad_flight_id?: string;
+    day?: string;
+    impressions?: number;
+    clicks?: number;
+    spend_micros?: number;
+    conversions?: number;
+    currency?: string;
+};
+
+export type GrowthInsightList = {
+    insights?: Array<GrowthInsightRow>;
+    totals?: {
+        impressions?: number;
+        clicks?: number;
+        spend_micros?: number;
+        conversions?: number;
+    };
+};
+
+export type GrowthPublishRequestCreate = {
+    provider: 'google_ads' | 'meta_ads';
+    ad_flight_id?: string;
+    notes?: string;
+    payload?: {
+        [key: string]: unknown;
+    };
+};
+
+export type GrowthPublishRequest = {
+    id?: string;
+    growth_campaign_id?: string;
+    ad_flight_id?: string;
+    provider?: string;
+    status?: string;
+    payload?: {
+        [key: string]: unknown;
+    };
+    result?: {
+        [key: string]: unknown;
+    };
+    requested_by?: string;
+    decided_by?: string;
+    decided_at?: string;
+    created_at?: string;
+};
+
+export type GrowthPublishRequestList = {
+    requests?: Array<GrowthPublishRequest>;
+};
+
+export type GrowthPublishDecide = {
+    decision: 'approve' | 'reject';
+    note?: string;
+};
+
+export type GrowthResults = {
+    growth_campaign_id?: string;
+    utm_campaign?: string;
+    outreach?: {
+        linked?: number;
+        sent?: number;
+        blocked?: number;
+        failed?: number;
+        pending?: number;
+    };
+    creatives?: {
+        count?: number;
+    };
+    paid?: {
+        flights?: number;
+        impressions?: number;
+        clicks?: number;
+        spend_micros?: number;
+        conversions?: number;
+    };
+    /**
+     * Performance por UTM (ADR 0130 CampaignPerformance) quando utm.campaign definido
+     */
+    attributed?: {
+        orders?: number;
+        revenue_cents?: number;
+        discount_cents?: number;
+    };
+};
+
+/**
+ * IDs do registry AI Creative (ADR 0134)
+ */
+export const CreativeProviderId = { OMNEKY: 'omneky', ADCREATIVE: 'adcreative' } as const;
+
+/**
+ * IDs do registry AI Creative (ADR 0134)
+ */
+export type CreativeProviderId = typeof CreativeProviderId[keyof typeof CreativeProviderId];
+
+export const CreativeConnectionStatus = {
+    DISCONNECTED: 'disconnected',
+    CONNECTED: 'connected',
+    ERROR: 'error'
+} as const;
+
+export type CreativeConnectionStatus = typeof CreativeConnectionStatus[keyof typeof CreativeConnectionStatus];
+
+export const CreativeJobLifecycle = {
+    PENDING: 'pending',
+    PROCESSING: 'processing',
+    COMPLETED: 'completed',
+    FAILED: 'failed'
+} as const;
+
+export type CreativeJobLifecycle = typeof CreativeJobLifecycle[keyof typeof CreativeJobLifecycle];
+
+export const CreativeAssetType = {
+    IMAGE: 'image',
+    VIDEO: 'video',
+    COPY: 'copy'
+} as const;
+
+export type CreativeAssetType = typeof CreativeAssetType[keyof typeof CreativeAssetType];
+
+/**
+ * Tipo de media a gerar (imagem ou vídeo) — escolha obrigatória no studio.
+ */
+export const CreativeMediaType = { IMAGE: 'image', VIDEO: 'video' } as const;
+
+/**
+ * Tipo de media a gerar (imagem ou vídeo) — escolha obrigatória no studio.
+ */
+export type CreativeMediaType = typeof CreativeMediaType[keyof typeof CreativeMediaType];
+
+export type CreativeCapabilities = {
+    image_generation?: boolean;
+    video_generation?: boolean;
+    copy_generation?: boolean;
+    variations?: boolean;
+    templates?: boolean;
+    catalog_ads?: boolean;
+    webhooks?: boolean;
+};
+
+export type CreativeProviderInfo = {
+    id: CreativeProviderId;
+    capabilities: CreativeCapabilities;
+};
+
+export type CreativeProviderCatalog = {
+    data: Array<CreativeProviderInfo>;
+};
+
+/**
+ * Vista segura da ligação — nunca inclui API keys (ADR 0134 §4).
+ */
+export type CreativeConnection = {
+    provider?: CreativeProviderId;
+    status: CreativeConnectionStatus;
+    account_name?: string;
+};
+
+export type CreativeConnectRequest = {
+    provider: CreativeProviderId;
+};
+
+/**
+ * Marca do anúncio (provider-agnostic; Omneky → brand_metadata).
+ */
+export type CreativeBrandInput = {
+    name?: string;
+    /**
+     * Homepage da marca (scraping / tom de voz).
+     */
+    url?: string;
+    /**
+     * Atalho — logos/imagens; preferir images[] para labels.
+     */
+    image_urls?: Array<string>;
+    /**
+     * Imagens de marca com labels (logo, lifestyle, …).
+     */
+    images?: Array<CreativeImageRef>;
+    /**
+     * Fontes da marca (ex. Inter, Playfair Display).
+     */
+    fonts?: Array<string>;
+    /**
+     * Até 3 cores da marca (primary/secondary/tertiary).
+     */
+    colors?: Array<CreativeColorSwatch>;
+};
+
+export type CreativeImageRef = {
+    url: string;
+    description?: string;
+    /**
+     * Ex. logo, lifestyle, top view
+     */
+    labels?: Array<string>;
+};
+
+export type CreativeColorSwatch = {
+    /**
+     * Ex. #FF4B00
+     */
+    hex: string;
+    /**
+     * Ex. Primary
+     */
+    label?: string;
+};
+
+/**
+ * Produto alvo (Omneky → product_metadata; imagens obrigatórias se o bloco for enviado).
+ */
+export type CreativeProductInput = {
+    /**
+     * product_id do catálogo mCommerce (opcional).
+     */
+    id?: string;
+    name?: string;
+    description?: string;
+    url?: string;
+    /**
+     * Atalho de URLs; preferir images[] quando houver labels.
+     */
+    image_urls?: Array<string>;
+    /**
+     * Imagens de referência do produto (do catálogo ou URLs).
+     */
+    images?: Array<CreativeImageRef>;
+};
+
+/**
+ * Parâmetros de geração (aspect ratio, idioma, resolução, duração vídeo).
+ */
+export type CreativeGenerationInput = {
+    /**
+     * Ex. "1:1", "4:5", "9:16", "16:9"
+     */
+    aspect_ratio?: string;
+    /**
+     * BCP-47, ex. pt-BR
+     */
+    language?: string;
+    /**
+     * Resolução de imagem (ex. 1K, 2K)
+     */
+    resolution?: string;
+    /**
+     * Gerar imagem sem texto sobreposto
+     */
+    no_text?: boolean;
+    /**
+     * Número de anúncios a gerar (imagem)
+     */
+    count?: number;
+    /**
+     * Duração alvo em segundos (vídeo, 10–15)
+     */
+    target_duration?: number;
+    /**
+     * URLs públicas de anúncios de referência de layout (imagem).
+     */
+    reference_layout_urls?: Array<string>;
+};
+
+export type CreativeAdCopyInput = {
+    type: 'headline' | 'subheadline' | 'cta' | 'offer';
+    text: string;
+    /**
+     * Preço a exibir no anúncio (opcional)
+     */
+    price?: string;
+};
+
+export type CreativeGenerateRequest = {
+    type: CreativeMediaType;
+    /**
+     * Atalho; preferir product.id quando tipado.
+     */
+    product_id?: string;
+    /**
+     * Growth campaign id — assets nascem já anexados (ADR 0138).
+     */
+    campaign_id?: string;
+    /**
+     * Ex. "1:1", "9:16" (legado; preferir generation.aspect_ratio)
+     */
+    format?: string;
+    /**
+     * Direcção criativa livre (user_direction / user_prompt)
+     */
+    brief?: string;
+    brand?: CreativeBrandInput;
+    product?: CreativeProductInput;
+    generation?: CreativeGenerationInput;
+    ad_copies?: Array<CreativeAdCopyInput>;
+    /**
+     * URLs de imagem de produto (legado; preferir product.image_urls)
+     */
+    source_urls?: Array<string>;
+    /**
+     * Escape hatch opaco — preferir brand/product/generation tipados.
+     */
+    metadata?: {
+        [key: string]: string;
+    };
+    idempotency_key?: string;
+    agent_id?: string;
+};
+
+export type CreativeVariationRequest = {
+    creative_id: string;
+    /**
+     * ID do asset no provider (se já conhecido)
+     */
+    provider_id?: string;
+    count?: number;
+    brief?: string;
+    idempotency_key?: string;
+    agent_id?: string;
+};
+
+export type CreativeCopyRequest = {
+    product_id?: string;
+    campaign_id?: string;
+    brief?: string;
+    /**
+     * Ex. pt-BR
+     */
+    locale?: string;
+    metadata?: {
+        [key: string]: string;
+    };
+    idempotency_key?: string;
+    agent_id?: string;
+};
+
+export type CreativeJob = {
+    /**
+     * ID interno do job (usar em GET /marketing/creative/jobs/{job_id})
+     */
+    id: string;
+    provider: CreativeProviderId;
+    /**
+     * Handle opaco no vendor (não usar no path da API)
+     */
+    provider_job_id?: string;
+    status: CreativeJobLifecycle;
+    operation?: string;
+    error_code?: string;
+    error_message?: string;
+    result_creative_ids?: Array<string>;
+    idempotency_key?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type CreativeAsset = {
+    id?: string;
+    provider?: CreativeProviderId;
+    provider_id?: string;
+    campaign_id?: string;
+    product_id?: string;
+    format?: string;
+    type?: CreativeAssetType;
+    status?: CreativeJobLifecycle;
+    asset_url?: string;
+    metadata?: {
+        [key: string]: string;
+    };
+    created_at?: string;
+};
+
+export type CreativeJobStatus = {
+    job: CreativeJob;
+    creatives?: Array<CreativeAsset>;
+};
+
+export const TaskStatus = {
+    OPEN: 'open',
+    IN_PROGRESS: 'in_progress',
+    DONE: 'done',
+    CANCELLED: 'cancelled'
+} as const;
+
+export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
+
+export const TaskPriority = {
+    LOW: 'low',
+    NORMAL: 'normal',
+    HIGH: 'high',
+    URGENT: 'urgent'
+} as const;
+
+export type TaskPriority = typeof TaskPriority[keyof typeof TaskPriority];
+
+export const TaskSource = { MANUAL: 'manual', AGENT: 'agent' } as const;
+
+export type TaskSource = typeof TaskSource[keyof typeof TaskSource];
+
+/**
+ * Metadados da origem (ex. agent_id, run_id, proposal_id; dedupe_key via EnsureOrComplement)
+ */
+export type TaskSourceRef = {
+    agent_id?: string;
+    run_id?: string;
+    proposal_id?: string;
+    [key: string]: unknown;
+};
+
+export type TaskSuggestedAction = {
+    label: string;
+    tool: string;
+    args: {
+        [key: string]: unknown;
+    };
+    rationale?: string;
+    risk_tier?: string;
+    confirmation_token?: string;
+};
+
+export type TaskSuggestActionsResult = {
+    actions: Array<TaskSuggestedAction>;
+    source: 'cached' | 'llm' | 'empty';
+};
+
+export type TaskExecuteActionRequest = {
+    tool: string;
+    args: {
+        [key: string]: unknown;
+    };
+    confirmation_token?: string;
+    complete_task?: boolean;
+};
+
+export type TaskExecuteActionResult = {
+    ok: boolean;
+    /**
+     * Resultado bruto da tool MCP
+     */
+    tool_result?: unknown;
+    task?: Task;
+    error?: string;
+};
+
+export type TaskCreate = {
+    title: string;
+    body?: string;
+    priority?: TaskPriority;
+    /**
+     * Responsável único. Mutuamente exclusivo com assignee_group. null/omitido sem assignee_group = fila do tenant.
+     *
+     */
+    assignee_user_id?: string;
+    /**
+     * Slug de área (`Staff.groups`). Mutuamente exclusivo com assignee_user_id.
+     *
+     */
+    assignee_group?: string;
+    due_at?: string;
+    source?: TaskSource;
+    source_ref?: TaskSourceRef;
+    suggested_actions?: Array<TaskSuggestedAction>;
+};
+
+export type TaskUpdate = {
+    title?: string;
+    body?: string;
+    priority?: TaskPriority;
+    /**
+     * UUID, null limpa user; mutuamente exclusivo com assignee_group
+     */
+    assignee_user_id?: string;
+    /**
+     * Slug de área; null limpa grupo; mutuamente exclusivo com assignee_user_id
+     */
+    assignee_group?: string;
+    due_at?: string;
+    /**
+     * Preferir complete/cancel/reopen; patch de status limitado
+     */
+    status?: TaskStatus;
+    suggested_actions?: Array<TaskSuggestedAction>;
+};
+
+export type Task = {
+    id: string;
+    tenant_id: string;
+    title: string;
+    body?: string;
+    status: TaskStatus;
+    priority: TaskPriority;
+    assignee_user_id?: string;
+    /**
+     * Slug de área (Staff.groups); mutuamente exclusivo com assignee_user_id
+     */
+    assignee_group?: string;
+    created_by_user_id?: string;
+    source: TaskSource;
+    source_ref?: TaskSourceRef;
+    suggested_actions?: Array<TaskSuggestedAction>;
+    /**
+     * Presente no getTask; listagem pode omitir ou trazer resumo
+     */
+    attachments?: Array<TaskAttachment>;
+    /**
+     * Contagem leve para listagem
+     */
+    attachment_count?: number;
+    due_at?: string;
+    completed_at?: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type TaskAttachment = {
+    id: string;
+    task_id: string;
+    filename: string;
+    content_type?: string;
+    bytes?: number;
+    created_by_user_id?: string;
+    created_at: string;
+};
+
+export type TaskAttachmentList = {
+    items: Array<TaskAttachment>;
+};
+
+export type TaskCompleteBatchRequest = {
+    ids: Array<string>;
+};
+
+export type TaskCompleteBatchResultItem = {
+    id: string;
+    ok: boolean;
+    error?: string;
+};
+
+export type TaskCompleteBatchResult = {
+    results: Array<TaskCompleteBatchResultItem>;
+};
+
+export type TaskListPage = {
+    items: Array<Task>;
+    next_cursor?: string;
+};
+
+export const CouncilSessionStatus = {
+    QUEUED: 'queued',
+    RUNNING: 'running',
+    DONE: 'done',
+    ERROR: 'error'
+} as const;
+
+export type CouncilSessionStatus = typeof CouncilSessionStatus[keyof typeof CouncilSessionStatus];
+
+export const CouncilSessionMode = {
+    CHAIR_SPECIALISTS: 'chair_specialists',
+    ROUNDTABLE: 'roundtable',
+    PARALLEL_ONLY: 'parallel_only'
+} as const;
+
+export type CouncilSessionMode = typeof CouncilSessionMode[keyof typeof CouncilSessionMode];
+
+export const CouncilSessionTriggerKind = {
+    CRON: 'cron',
+    MANUAL: 'manual',
+    ASK: 'ask'
+} as const;
+
+export type CouncilSessionTriggerKind = typeof CouncilSessionTriggerKind[keyof typeof CouncilSessionTriggerKind];
+
+export type CouncilRole = {
+    /**
+     * Slug da cadeira (estável)
+     */
+    id: string;
+    name: string;
+    description: string;
+    domains?: Array<string>;
+    source?: 'platform' | 'custom';
+    enabled?: boolean;
+    persona?: string;
+    tools?: Array<string>;
+    allow_money_tools?: boolean;
+    allow_outreach?: boolean;
+};
+
+export type CouncilRoleList = {
+    items: Array<CouncilRole>;
+};
+
+export type CouncilSeat = {
+    id: string;
+    tenant_id: string;
+    slug: string;
+    source: 'platform' | 'custom';
+    platform_role_id?: string;
+    enabled: boolean;
+    name: string;
+    description: string;
+    persona?: string;
+    domains: Array<string>;
+    tools: Array<string>;
+    allow_money_tools: boolean;
+    allow_outreach: boolean;
+    sort_order: number;
+    created_at: string;
+    updated_at: string;
+};
+
+export type CouncilSeatList = {
+    items: Array<CouncilSeat>;
+};
+
+export type CouncilSeatCreate = {
+    slug?: string;
+    name: string;
+    description?: string;
+    persona?: string;
+    domains?: Array<string>;
+    tools?: Array<string>;
+    allow_money_tools?: boolean;
+    allow_outreach?: boolean;
+    sort_order?: number;
+};
+
+export type CouncilSeatUpdate = {
+    name?: string;
+    description?: string;
+    persona?: string;
+    domains?: Array<string>;
+    tools?: Array<string>;
+    allow_money_tools?: boolean;
+    allow_outreach?: boolean;
+    sort_order?: number;
+};
+
+export type CouncilSeatEnabled = {
+    enabled: boolean;
+};
+
+export type CouncilSeatToolCatalogItem = {
+    name: string;
+    description: string;
+    risk_tier?: string;
+    external?: boolean;
+};
+
+export type CouncilSeatToolCatalog = {
+    items: Array<CouncilSeatToolCatalogItem>;
+};
+
+export type CouncilOkrKeyResult = {
+    id: string;
+    okr_id: string;
+    title: string;
+    metric_id?: string;
+    target_value?: number;
+    current_value?: number;
+    unit?: string;
+    direction: 'maximize' | 'minimize' | 'reach';
+    status: 'active' | 'paused' | 'done';
+    sort_order?: number;
+    created_at: string;
+    updated_at: string;
+};
+
+export type CouncilOkrKeyResultCreate = {
+    title: string;
+    metric_id?: string;
+    target_value?: number;
+    current_value?: number;
+    unit?: string;
+    direction?: 'maximize' | 'minimize' | 'reach';
+    status?: 'active' | 'paused' | 'done';
+    sort_order?: number;
+};
+
+export type CouncilOkrKeyResultUpdate = {
+    title?: string;
+    metric_id?: string;
+    target_value?: number;
+    current_value?: number;
+    unit?: string;
+    direction?: 'maximize' | 'minimize' | 'reach';
+    status?: 'active' | 'paused' | 'done';
+    sort_order?: number;
+};
+
+export type CouncilOkr = {
+    id: string;
+    tenant_id: string;
+    scope: 'tenant' | 'seat';
+    seat_id?: string;
+    seat_slug?: string;
+    title: string;
+    description?: string;
+    status: 'active' | 'paused' | 'done';
+    period_start?: string;
+    period_end?: string;
+    sort_order?: number;
+    key_results: Array<CouncilOkrKeyResult>;
+    created_at: string;
+    updated_at: string;
+};
+
+export type CouncilOkrList = {
+    items: Array<CouncilOkr>;
+};
+
+export type CouncilOkrCreate = {
+    scope: 'tenant' | 'seat';
+    /**
+     * Obrigatório quando scope=seat
+     */
+    seat_slug?: string;
+    title: string;
+    description?: string;
+    status?: 'active' | 'paused' | 'done';
+    period_start?: string;
+    period_end?: string;
+    sort_order?: number;
+    key_results?: Array<CouncilOkrKeyResultCreate>;
+};
+
+export type CouncilOkrUpdate = {
+    title?: string;
+    description?: string;
+    status?: 'active' | 'paused' | 'done';
+    period_start?: string;
+    period_end?: string;
+    sort_order?: number;
+};
+
+export type CouncilFindingEvidence = {
+    /**
+     * Origem factual (store_config, orders_agg, inventory_agg, council_metric, …)
+     */
+    source: string;
+    label: string;
+    /**
+     * Valor observado (string); nunca estimado
+     */
+    value?: string;
+    unit?: string;
+    as_of?: string;
+    /**
+     * Código ou id da query/métrica
+     */
+    ref?: string;
+};
+
+export type CouncilFindingImpact = {
+    kind: 'loss' | 'gain' | 'risk' | 'opportunity' | 'none';
+    /**
+     * amount_cents só é válido quando status=measured
+     */
+    status: 'measured' | 'insufficient_data' | 'not_applicable';
+    /**
+     * Omitir se status != measured
+     */
+    amount_cents?: number;
+    currency?: string;
+    window?: string;
+    /**
+     * Fórmula humana baseada só nos facts (ex. soma total_amount de N pedidos pending)
+     */
+    basis?: string;
+};
+
+export type CouncilFinding = {
+    role: string;
+    severity: string;
+    title: string;
+    detail: string;
+    code: string;
+    evidence?: Array<CouncilFindingEvidence>;
+    impact?: CouncilFindingImpact;
+    action_href?: string;
+};
+
+export type CouncilTurn = {
+    role: string;
+    briefing: string;
+    findings?: Array<CouncilFinding>;
+};
+
+export type CouncilSuggestion = {
+    key: string;
+    title: string;
+    rationale: string;
+    template_key?: string;
+    href?: string;
+    severity?: string;
+};
+
+export type CouncilSession = {
+    id: string;
+    tenant_id: string;
+    mode: CouncilSessionMode;
+    status: CouncilSessionStatus;
+    trigger_kind: CouncilSessionTriggerKind;
+    prompt?: string;
+    store_config?: {
+        [key: string]: unknown;
+    };
+    minutes_md?: string;
+    turns?: Array<CouncilTurn>;
+    task_ids?: Array<string>;
+    suggestions?: Array<CouncilSuggestion>;
+    error_message?: string;
+    started_at?: string;
+    finished_at?: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type CouncilSessionListPage = {
+    items: Array<CouncilSession>;
+    next_cursor?: string;
+};
+
+export type CouncilAskRequest = {
+    prompt: string;
+};
+
+export const ExtMcpTransport = { STREAMABLE_HTTP: 'streamable_http', SSE: 'sse' } as const;
+
+export type ExtMcpTransport = typeof ExtMcpTransport[keyof typeof ExtMcpTransport];
+
+export const ExtMcpAuthKind = {
+    BEARER: 'bearer',
+    HEADER: 'header',
+    OAUTH: 'oauth',
+    NONE: 'none'
+} as const;
+
+export type ExtMcpAuthKind = typeof ExtMcpAuthKind[keyof typeof ExtMcpAuthKind];
+
+export const ExtMcpConnectionStatus = {
+    DRAFT: 'draft',
+    READY: 'ready',
+    ERROR: 'error'
+} as const;
+
+export type ExtMcpConnectionStatus = typeof ExtMcpConnectionStatus[keyof typeof ExtMcpConnectionStatus];
+
+export type ExtMcpDiscoveredTool = {
+    name: string;
+    description?: string;
+    inputSchema?: {
+        [key: string]: unknown;
+    };
+};
+
+export type GoogleIntegrationStatus = {
+    /**
+     * google_ads | ga4
+     */
+    kind: string;
+    connected: boolean;
+    has_token: boolean;
+    expires_at?: string;
+    /**
+     * Conta gestora (MCC) por onde o acesso passa — só `google_ads`.
+     * Equivale a escolher a conta na UI do Google Ads depois do login.
+     * **Obrigatório quando a conta do cliente é gerida por um MCC** (o
+     * caso da agência); vazio quando o acesso é directo à própria conta.
+     * Sem ele a Google responde `USER_PERMISSION_DENIED`.
+     *
+     */
+    login_customer_id?: string;
+    /**
+     * Conta de anúncios vinculada ao tenant (só google_ads).
+     */
+    customer_id?: string;
+    /**
+     * Nome descritivo da conta de anúncios (só google_ads).
+     */
+    customer_name?: string;
+    /**
+     * Property GA4 vinculada ao tenant (só ga4).
+     */
+    property_id?: string;
+    /**
+     * Nome da property GA4 (só ga4).
+     */
+    property_name?: string;
+};
+
+export type GoogleAdsLoginCustomerIdRequest = {
+    /**
+     * Conta de anúncios a vincular (10 dígitos). Omitido = sem mudança; null ou "" limpa.
+     */
+    customer_id?: string;
+    /**
+     * Nome opcional para exibir na UI (gravado no vault).
+     */
+    customer_name?: string;
+    /**
+     * ID da conta gestora, com ou sem hífens (normalizado sem). Omitido = sem mudança; null ou "" limpa.
+     */
+    login_customer_id?: string;
+};
+
+export type GoogleAdsAccount = {
+    /**
+     * Customer ID (só dígitos)
+     */
+    id: string;
+    name?: string;
+    /**
+     * customers/{id}
+     */
+    resource_name?: string;
+    /**
+     * true se for conta gestora (MCC)
+     */
+    manager?: boolean;
+};
+
+export type GoogleAdsAccountList = {
+    items: Array<GoogleAdsAccount>;
+};
+
+export type Ga4PropertyBindingRequest = {
+    /**
+     * ID numérico ou properties/{id}. Omitido = sem mudança; null ou "" limpa.
+     */
+    property_id?: string;
+    /**
+     * Nome opcional para a UI.
+     */
+    property_name?: string;
+};
+
+export type Ga4Property = {
+    property_id: string;
+    property_name?: string;
+    account_id?: string;
+    account_name?: string;
+};
+
+export type Ga4PropertyList = {
+    items: Array<Ga4Property>;
+};
+
+export type GoogleIntegrationOauthAuthorizeRequest = {
+    return_url: string;
+};
+
+export type GoogleIntegrationOauthAuthorizeResult = {
+    authorize_url: string;
+    redirect_uri: string;
+};
+
+export type ExtMcpConnection = {
+    id: string;
+    tenant_id: string;
+    template_id?: string;
+    /**
+     * Via de cadastro (ADR 0064 + 0075)
+     */
+    provider: 'mira_template' | 'custom' | 'smithery';
+    smithery_qualified_name?: string;
+    /**
+     * Legado Connect (ADR 0076 A4) — sempre omitido na API
+     *
+     * @deprecated
+     */
+    smithery_connection_id?: string;
+    /**
+     * Legado Connect (ADR 0076 A4) — sempre omitido na API
+     *
+     * @deprecated
+     */
+    smithery_namespace?: string;
+    slug: string;
+    name: string;
+    base_url: string;
+    transport: ExtMcpTransport;
+    auth_kind: ExtMcpAuthKind;
+    status: ExtMcpConnectionStatus;
+    enabled: boolean;
+    discovered_tools?: Array<ExtMcpDiscoveredTool>;
+    risk_policy?: {
+        [key: string]: unknown;
+    };
+    last_error?: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type ExtMcpCatalogEntry = {
+    qualified_name: string;
+    display_name: string;
+    description: string;
+    icon_url?: string;
+    homepage?: string;
+    verified: boolean;
+    is_deployed: boolean;
+    remote: boolean;
+    use_count?: number;
+};
+
+export type ExtMcpCatalogPage = {
+    items: Array<ExtMcpCatalogEntry>;
+    page: number;
+    page_size: number;
+    total_count: number;
+    synced_at: string;
+};
+
+export type ExtMcpCatalogSyncResult = {
+    ok: boolean;
+    item_count: number;
+    synced_at: string;
+    error?: string;
+};
+
+export type ExtMcpFromCatalogCreate = {
+    /**
+     * Qualified name Smithery (ex. smithery-ai/github)
+     */
+    qualified_name: string;
+    name: string;
+    slug?: string;
+    enabled?: boolean;
+};
+
+export type ExtMcpSetupResult = {
+    connection: ExtMcpConnection;
+    /**
+     * connected | auth_required | input_required | error | disconnected
+     */
+    smithery_status: string;
+    /**
+     * Legado Connect — não preenchido (auth via vault/OAuth Mirá)
+     *
+     * @deprecated
+     */
+    setup_url?: string;
+    message?: string;
+};
+
+export type ExtMcpFromCatalogResult = {
+    connection: ExtMcpConnection;
+    smithery_status: string;
+    /**
+     * Legado Connect — não preenchido (auth via vault/OAuth Mirá)
+     *
+     * @deprecated
+     */
+    setup_url?: string;
+    message?: string;
+};
+
+export type ExtMcpConnectionList = {
+    items: Array<ExtMcpConnection>;
+};
+
+export type ExtMcpConnectionCreate = {
+    name: string;
+    slug?: string;
+    template_id?: string;
+    base_url?: string;
+    transport?: ExtMcpTransport;
+    auth_kind?: ExtMcpAuthKind;
+    auth_secret?: string;
+    auth_header_name?: string;
+    enabled?: boolean;
+};
+
+export type ExtMcpConnectionUpdate = {
+    name?: string;
+    base_url?: string;
+    transport?: ExtMcpTransport;
+    auth_kind?: ExtMcpAuthKind;
+    auth_secret?: string;
+    auth_header_name?: string;
+    enabled?: boolean;
+    risk_policy?: {
+        [key: string]: unknown;
+    };
+};
+
+export type ExtMcpTestResult = {
+    ok: boolean;
+    tool_count?: number;
+    error?: string;
+};
+
+export type ExtMcpOauthAuthorizeRequest = {
+    /**
+     * `google` | `meta` | `mcp`. Opcional: templates Ads inferem google/meta; sem provider (ou `mcp`) = discovery OAuth do MCP remoto (ADR 0076 A3, PKCE + DCR).
+     */
+    provider?: string;
+    /**
+     * BYO — opcional se app da plataforma, vault, ou DCR no AS do MCP.
+     */
+    client_id?: string;
+    /**
+     * URL do admin para redirect pós-callback.
+     */
+    return_url: string;
+    /**
+     * Override dos scopes (template ou discovery) — opcional.
+     */
+    scopes?: Array<string>;
+};
+
+export type ExtMcpOauthAuthorizeResult = {
+    authorize_url: string;
+    /**
+     * Redirect URI a cadastrar no app Google/Meta.
+     */
+    redirect_uri: string;
+};
+
+export type ExtMcpTemplate = {
+    id: string;
+    title: string;
+    description: string;
+    default_base_url?: string;
+    transport: ExtMcpTransport;
+    auth_kind: ExtMcpAuthKind;
+    scopes_hint?: Array<string>;
+    risk_defaults?: {
+        [key: string]: unknown;
+    };
+    docs_url?: string;
+    disclaimer?: string;
+};
+
+export type ExtMcpTemplateList = {
+    items: Array<ExtMcpTemplate>;
+};
+
 export const TenantStatus = { ACTIVE: 'active', DISABLED: 'disabled' } as const;
 
 export type TenantStatus = typeof TenantStatus[keyof typeof TenantStatus];
@@ -95,23 +2750,511 @@ export const ProductStatus = { ACTIVE: 'active', INACTIVE: 'inactive' } as const
 
 export type ProductStatus = typeof ProductStatus[keyof typeof ProductStatus];
 
-export const PriceChannel = {
-    ALL: 'all',
-    WHATSAPP: 'whatsapp',
-    WEB: 'web',
-    API: 'api'
+/**
+ * Facets agregados da listagem de pedidos (periodo + hoje + taxa aprovacao pgto).
+ */
+export type OrderSalesFacets = {
+    /**
+     * Soma de total_amount dos pedidos criados no período. Ver revenue_basis/excluded_statuses para a semântica exata (#1098).
+     */
+    period_total_amount: number;
+    /**
+     * Base da receita somada. Fonte canônica de receita transacional: é o único agregado que aplica escopo de tenant no servidor e respeita o fuso da loja. /analytics/execute serve exploração analítica, não KPI oficial (#1098).
+     */
+    revenue_basis: 'orders_created_total_amount';
+    /**
+     * Status de pedido excluídos da soma. Vazio = nenhum status é excluído (o cancelado do período entra em period_total_amount e aparece isolado em period_cancelled_amount).
+     */
+    excluded_statuses?: Array<string>;
+    /**
+     * Frete já embutido em total_amount. shipping_amount é coluna separada e NÃO é somada por cima.
+     */
+    shipping_included: boolean;
+    /**
+     * Frete do período, informativo — já contido em period_total_amount.
+     */
+    period_shipping_amount?: number;
+    /**
+     * Valor dos pedidos cancelados criados no período — permite reconciliar a receita bruta com a líquida sem uma segunda consulta.
+     */
+    period_cancelled_amount?: number;
+    period_order_count: number;
+    paid_today_amount: number;
+    paid_today_count: number;
+    cancelled_today_amount: number;
+    cancelled_today_count: number;
+    payment_approval_rate: number;
+    currency: string;
+    timezone: string;
+    date_from: string;
+    date_to: string;
+    generated_at: string;
+    cache_hit?: boolean;
+};
+
+/**
+ * Facet exclusivo para listagem/chips do catálogo admin
+ */
+export const ProductListFacet = {
+    TOP_SELLERS_DAY: 'top_sellers_day',
+    TOP_SELLERS_WEEK: 'top_sellers_week',
+    TOP_SELLERS_MONTH: 'top_sellers_month',
+    ACTIVE: 'active',
+    INACTIVE: 'inactive',
+    ZERO_STOCK: 'zero_stock'
 } as const;
 
-export type PriceChannel = typeof PriceChannel[keyof typeof PriceChannel];
+/**
+ * Facet exclusivo para listagem/chips do catálogo admin
+ */
+export type ProductListFacet = typeof ProductListFacet[keyof typeof ProductListFacet];
 
-export const OrderOrigin = {
-    WHATSAPP: 'whatsapp',
-    WEB: 'web',
-    API: 'api',
-    MARKETPLACE: 'marketplace'
+export type ProductFacets = {
+    active_count: number;
+    inactive_count: number;
+    /**
+     * Produtos com disponível total ≤ 0 (inclui sem inventário)
+     */
+    zero_stock_count: number;
+    /**
+     * Distinct product_ids com venda no dia civil (cap 50)
+     */
+    top_sellers_day_count: number;
+    /**
+     * Distinct product_ids com venda nos últimos 7 dias (cap 50)
+     */
+    top_sellers_week_count: number;
+    /**
+     * Distinct product_ids com venda nos últimos 30 dias (cap 50)
+     */
+    top_sellers_month_count: number;
+};
+
+export const StockTransferStatus = {
+    DRAFT: 'draft',
+    IN_TRANSIT: 'in_transit',
+    RECEIVED: 'received',
+    CANCELLED: 'cancelled'
 } as const;
 
-export type OrderOrigin = typeof OrderOrigin[keyof typeof OrderOrigin];
+export type StockTransferStatus = typeof StockTransferStatus[keyof typeof StockTransferStatus];
+
+export type StockTransferLine = {
+    product_id?: string;
+    sku?: string;
+    quantity?: number;
+};
+
+export type StockTransfer = {
+    id?: string;
+    tenant_id?: string;
+    from_warehouse_id?: string;
+    to_warehouse_id?: string;
+    status?: StockTransferStatus;
+    lines?: Array<StockTransferLine>;
+    notes?: string;
+    created_at?: string;
+    shipped_at?: string;
+    received_at?: string;
+};
+
+export type StockTransferCreate = {
+    from_warehouse_id: string;
+    to_warehouse_id: string;
+    notes?: string;
+    lines: Array<{
+        product_id: string;
+        sku?: string;
+        quantity: number;
+    }>;
+};
+
+export type StockTransferListPage = {
+    data?: Array<StockTransfer>;
+    total?: number;
+};
+
+export const ProductBarcodeKind = {
+    EAN: 'ean',
+    UPC: 'upc',
+    ALIAS: 'alias',
+    INTERNAL: 'internal'
+} as const;
+
+export type ProductBarcodeKind = typeof ProductBarcodeKind[keyof typeof ProductBarcodeKind];
+
+export type ProductBarcode = {
+    id?: string;
+    tenant_id?: string;
+    product_id?: string;
+    sku_id?: string;
+    barcode?: string;
+    kind?: ProductBarcodeKind;
+    is_primary?: boolean;
+    created_at?: string;
+};
+
+export type ProductBarcodeCreate = {
+    product_id: string;
+    sku_id?: string;
+    barcode: string;
+    kind?: ProductBarcodeKind;
+    is_primary?: boolean;
+};
+
+export type ProductBarcodeListPage = {
+    data?: Array<ProductBarcode>;
+    total?: number;
+};
+
+export type ProductBarcodeLookup = {
+    barcode?: ProductBarcode;
+    product?: Product;
+    sku?: ProductSku;
+    balance?: InventoryBalance;
+};
+
+export type PriceLabelTemplate = {
+    id?: string;
+    tenant_id?: string;
+    name?: string;
+    paper_size?: string;
+    layout?: {
+        [key: string]: unknown;
+    };
+    is_active?: boolean;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type PriceLabelTemplateCreate = {
+    name: string;
+    paper_size?: string;
+    layout?: {
+        [key: string]: unknown;
+    };
+    is_active?: boolean;
+};
+
+export type PriceLabelTemplateUpdate = {
+    name?: string;
+    paper_size?: string;
+    layout?: {
+        [key: string]: unknown;
+    };
+    is_active?: boolean;
+};
+
+export type PriceLabelTemplateListPage = {
+    data?: Array<PriceLabelTemplate>;
+    total?: number;
+};
+
+export const PriceLabelJobStatus = {
+    PENDING: 'pending',
+    PROCESSING: 'processing',
+    DONE: 'done',
+    FAILED: 'failed'
+} as const;
+
+export type PriceLabelJobStatus = typeof PriceLabelJobStatus[keyof typeof PriceLabelJobStatus];
+
+export type PriceLabelJobItem = {
+    product_id?: string;
+    sku_id?: string;
+    barcode?: string;
+    quantity?: number;
+    resolved_price?: number;
+    product_name?: string;
+    sku_code?: string;
+};
+
+export type PriceLabelJob = {
+    id?: string;
+    tenant_id?: string;
+    template_id?: string;
+    warehouse_id?: string;
+    channel?: PriceChannel;
+    status?: PriceLabelJobStatus;
+    items?: Array<PriceLabelJobItem>;
+    result_url?: string;
+    error_message?: string;
+    created_at?: string;
+    completed_at?: string;
+};
+
+export type PriceLabelJobCreate = {
+    template_id: string;
+    warehouse_id?: string;
+    channel?: PriceChannel;
+    items: Array<{
+        product_id: string;
+        sku_id?: string;
+        barcode?: string;
+        quantity?: number;
+    }>;
+};
+
+export type PriceLabelJobListPage = {
+    data?: Array<PriceLabelJob>;
+    total?: number;
+};
+
+export const PosDeviceStatus = { ACTIVE: 'active', REVOKED: 'revoked' } as const;
+
+export type PosDeviceStatus = typeof PosDeviceStatus[keyof typeof PosDeviceStatus];
+
+export type PosDevice = {
+    id?: string;
+    tenant_id?: string;
+    warehouse_id?: string;
+    name?: string;
+    device_label?: string;
+    status?: PosDeviceStatus;
+    token_id?: string;
+    last_heartbeat_at?: string;
+    created_at?: string;
+    revoked_at?: string;
+};
+
+export type PosDeviceListPage = {
+    data?: Array<PosDevice>;
+    total?: number;
+};
+
+export type PosDevicePairRequest = {
+    warehouse_id: string;
+    name: string;
+    device_label?: string;
+};
+
+export type PosDevicePaired = PosDevice & {
+    token?: AccessTokenCreated;
+};
+
+export type PosHeartbeatRequest = {
+    /**
+     * Segundos a somar a now() para pos_online_until
+     */
+    ttl_seconds?: number;
+};
+
+export type PosHeartbeatResponse = {
+    device_id: string;
+    warehouse_id: string;
+    pos_online_until: string;
+    last_heartbeat_at?: string;
+};
+
+export const PosShiftStatus = { OPEN: 'open', CLOSED: 'closed' } as const;
+
+export type PosShiftStatus = typeof PosShiftStatus[keyof typeof PosShiftStatus];
+
+export const PosShiftMovementKind = { CASH_IN: 'cash_in', CASH_OUT: 'cash_out' } as const;
+
+export type PosShiftMovementKind = typeof PosShiftMovementKind[keyof typeof PosShiftMovementKind];
+
+export type PosShiftMovement = {
+    id?: string;
+    shift_id?: string;
+    tenant_id?: string;
+    kind?: PosShiftMovementKind;
+    amount?: number;
+    reason?: string;
+    created_at?: string;
+    created_by?: string;
+};
+
+export type PosShift = {
+    id?: string;
+    tenant_id?: string;
+    warehouse_id?: string;
+    device_id?: string;
+    opened_by?: string;
+    status?: PosShiftStatus;
+    opening_float?: number;
+    closing_cash?: number;
+    opened_at?: string;
+    closed_at?: string;
+    notes?: string;
+    movements?: Array<PosShiftMovement>;
+};
+
+export type PosShiftListPage = {
+    data?: Array<PosShift>;
+    total?: number;
+};
+
+export type PosShiftOpenRequest = {
+    warehouse_id: string;
+    device_id?: string;
+    opening_float?: number;
+    notes?: string;
+};
+
+export type PosShiftCloseRequest = {
+    closing_cash: number;
+    notes?: string;
+};
+
+export type PosShiftMovementCreate = {
+    kind: PosShiftMovementKind;
+    amount: number;
+    reason?: string;
+};
+
+export type PosSyncPull = {
+    /**
+     * Versão do envelope sync (esqueleto = 1)
+     */
+    protocol_version?: number;
+    server_time?: string;
+    warehouse_id?: string;
+    pos_online_until?: string;
+    device?: PosDevice;
+    open_shift?: PosShift;
+    catalog_epoch?: string;
+    pricing_epoch?: string;
+    /**
+     * Preenchido quando #865 existir
+     */
+    barcodes?: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Perfis de periféricos (#869)
+     */
+    peripheral_profiles?: Array<PosPeripheralProfile>;
+    /**
+     * Snapshot Warehouse.fiscal_config para o POS (#868)
+     */
+    fiscal_config?: {
+        [key: string]: unknown;
+    };
+    price_label_templates?: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+export type PosSyncSaleLine = {
+    /**
+     * SKU do produto vendável (filho na rota A #907)
+     */
+    sku: string;
+    quantity: number;
+    /**
+     * Origem de estoque (hub). Omitir = warehouse do push (loja de venda). ADR 0096.
+     */
+    warehouse_id?: string;
+};
+
+export type PosSyncSale = {
+    /**
+     * Idempotência do device — reenvio com o mesmo ref não cria pedido duplicado
+     */
+    client_ref: string;
+    items: Array<PosSyncSaleLine>;
+    customer_id?: string;
+    customer_name?: string;
+    /**
+     * Split tender já cobrado no caixa; soma deve igualar o total
+     */
+    tenders?: Array<OrderTender>;
+    coupon_code?: string;
+    /**
+     * Momento da cobrança no device (UTC)
+     */
+    paid_at?: string;
+    line_overrides?: Array<OrderLineOverride>;
+    /**
+     * Desconto manual do pedido (moeda)
+     */
+    discount_amount?: number;
+    /**
+     * SalesChannel kind=pos da sessão (metadata no pedido)
+     */
+    sales_channel_id?: string;
+    /**
+     * Se preenchido, o core orquestra fulfill-pos-cross-warehouse após settle
+     */
+    fulfillment_mode?: PosCrossWarehouseFulfillMode;
+};
+
+export type PosAvailability = {
+    product_id?: string;
+    sku?: string;
+    barcode?: string;
+    balances?: Array<InventoryBalance>;
+};
+
+export const PosCrossWarehouseFulfillMode = { SHIP_FROM_SOURCE: 'ship_from_source', TRANSFER_TO_SELLING_PICKUP: 'transfer_to_selling_pickup' } as const;
+
+export type PosCrossWarehouseFulfillMode = typeof PosCrossWarehouseFulfillMode[keyof typeof PosCrossWarehouseFulfillMode];
+
+export type PosCrossWarehouseFulfillRequest = {
+    mode: PosCrossWarehouseFulfillMode;
+    /**
+     * Data alvo de retirada na loja de venda (mode transfer_to_selling_pickup)
+     */
+    pickup_ready_at?: string;
+};
+
+export type PosCrossWarehouseFulfillResult = {
+    order?: Order;
+    mode?: PosCrossWarehouseFulfillMode;
+    stock_transfer_id?: string;
+    /**
+     * true se idempotente (já orquestrado)
+     */
+    already_applied?: boolean;
+};
+
+export type PosManagerPinVerifyRequest = {
+    manager_pin: string;
+};
+
+export type PosSyncPushRequest = {
+    protocol_version: number;
+    warehouse_id: string;
+    device_id?: string;
+    client_time?: string;
+    /**
+     * Vendas offline a aplicar (create+submit+settle no core)
+     */
+    sales?: Array<PosSyncSale>;
+    /**
+     * Fatia posterior — movimentos de turno já cobertos por /pos/shifts
+     */
+    shift_events?: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+export type PosSyncPushResponse = {
+    protocol_version?: number;
+    server_time?: string;
+    accepted?: number;
+    conflicts?: Array<PosSyncConflict>;
+};
+
+export type PosSyncConflict = {
+    client_ref?: string;
+    reason?: string;
+    /**
+     * true = device deve reter a venda local (ex. stock); false = descartar/idempotente
+     */
+    held?: boolean;
+};
+
+/**
+ * `code` de um canal de venda (`core.sales_channels`, ver GET /channels), ou o literal `all` para "todos os canais". Deixou de ser enum fechado: um canal criado em /channels (ex. `instagram`) passa a poder ter preço, promoção, cupom e regra fiscal próprios. Os valores históricos (`all`, `web`, `whatsapp`, `api`, `pos`) continuam válidos.
+ */
+export type PriceChannel = string;
+
+/**
+ * `code` do canal de venda que originou o pedido (`core.sales_channels`, ver GET /channels). Deixou de ser enum fechado para acompanhar `PriceChannel`; os valores históricos (`web`, `whatsapp`, `api`, `marketplace`, `pos`) continuam válidos.
+ */
+export type OrderOrigin = string;
 
 /**
  * Projeção UX — ver docs/order-lifecycle.md
@@ -142,10 +3285,24 @@ export const PaymentMethod = {
     PIX: 'pix',
     BOLETO: 'boleto',
     MEAL_VOUCHER: 'meal_voucher',
-    FOOD_VOUCHER: 'food_voucher'
+    FOOD_VOUCHER: 'food_voucher',
+    CASH: 'cash',
+    INVOICE: 'invoice',
+    STORE_CREDIT: 'store_credit',
+    GIFT_CARD: 'gift_card'
 } as const;
 
 export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
+
+/**
+ * Meio da caução (purpose=deposit), independente do meio do aluguel (#1418). `credit_card` = hold (capture_method=manual); `pix` = cobrança liquidada em sessão separada. Boleto fora de escopo. Omitido = credit_card.
+ */
+export const DepositMethod = { CREDIT_CARD: 'credit_card', PIX: 'pix' } as const;
+
+/**
+ * Meio da caução (purpose=deposit), independente do meio do aluguel (#1418). `credit_card` = hold (capture_method=manual); `pix` = cobrança liquidada em sessão separada. Boleto fora de escopo. Omitido = credit_card.
+ */
+export type DepositMethod = typeof DepositMethod[keyof typeof DepositMethod];
 
 export type PaymentMethodConfig = {
     id: string;
@@ -443,14 +3600,132 @@ export type PlatformSecretUpsert = {
     value: string;
 };
 
+export type StaffTotpEnrolmentRequired = {
+    enrolment_required: boolean;
+    reason: string;
+    role?: StaffRole;
+    grace_period_days?: number;
+    /**
+     * Enquanto não expirar, o login segue normalmente com aviso.
+     */
+    grace_expires_at?: string;
+    /**
+     * Autoriza `/auth/staff/enrolment/totp*` — o único caminho que o utilizador tem daqui. Sem ele o 428 seria um beco: exigir 2FA de quem não tem sessão para o configurar tranca a pessoa fora do painel. Vida curta e serve só para o enrolment; não é uma sessão.
+     */
+    enrolment_token?: string;
+};
+
+/**
+ * Política de segurança do login de staff (#1126). O 2FA existia, mas era opt-in individual e sem política: quem não ativou entra só com magic link, ou seja, quem controla a caixa de e-mail controla o painel.
+ */
+export type StaffSecurityPolicy = {
+    /**
+     * Papéis que exigem 2FA. Usuário sem TOTP é levado ao ENROLMENT obrigatório, nunca recusado — recusar trancaria o owner fora.
+     */
+    require_totp_for_roles?: Array<StaffRole>;
+    /**
+     * Janela para o usuário existente configurar o TOTP depois de a política ser ativada. 0 = imediato.
+     */
+    totp_grace_period_days?: number;
+    /**
+     * Quando a política mudou — é daqui que o período de graça conta.
+     */
+    readonly updated_at?: string;
+};
+
 export type TenantSettings = {
     tenant_id: string;
+    security_policy?: StaffSecurityPolicy;
     display_name?: string;
     contact_email?: string;
     timezone?: string;
     description?: string;
     notifications_enabled?: boolean;
+    /**
+     * Compradores de teste do tenant: pedido feito com um destes
+     * e-mails nasce `is_test` e é isolado de cobrança e estatística. Leitura
+     * para o lojista saber o que está configurado; a escrita é só da
+     * plataforma (o lojista marcar os próprios pedidos como teste seria uma
+     * forma de não pagar o metering).
+     *
+     */
+    readonly test_customer_emails?: Array<string>;
+    /**
+     * IDs estáveis de itens do menu admin ocultos neste tenant (só menu —
+     * não altera RBAC). Definidos em `lib/platform-nav.ts`. O id `settings`
+     * nunca é aceite.
+     *
+     */
+    hidden_nav_module_ids?: Array<string>;
+    /**
+     * Override do cold cache in-process para `GET /products` (lista).
+     * `null` = default plataforma (300s). `0` = desliga a classe neste tenant.
+     * ADR 0066 — não afecta compose/place/resolvePrice.
+     *
+     */
+    cache_ttl_products_seconds?: number;
+    /**
+     * Override do cold cache para `GET /payment-methods` e `GET /payment-providers`.
+     * `null` = default plataforma (86400s). `0` = desliga. Invalidação via
+     * epoch no write admin (cross-réplica).
+     *
+     */
+    cache_ttl_payment_seconds?: number;
+    /**
+     * Lista JSON de URLs HTTPS de sites concorrentes deste tenant.
+     * Usada por pesquisa web / `research_competitor_prices` e configuração
+     * da loja. Só `https://`; hosts privados/SSRF são rejeitados.
+     *
+     */
+    competitor_site_urls?: Array<string>;
+    /**
+     * True se o PIN de gerente POS (#870) está definido. O valor nunca é exposto.
+     */
+    readonly pos_manager_pin_configured?: boolean;
     updated_at?: string;
+};
+
+export type DashboardLayoutWidget = {
+    /**
+     * `attention.*` | `system.*` | `report:{savedReportId}` | `setup.checklist`
+     *
+     */
+    id: string;
+    size: 'sm' | 'md' | 'lg';
+};
+
+export type DashboardLayout = {
+    version: 1;
+    period: '7d' | '30d' | 'mtd';
+    widgets: Array<DashboardLayoutWidget>;
+};
+
+export type StaffPreferences = {
+    /**
+     * null = default capability-aware (BFF home)
+     */
+    dashboard_layout: null | DashboardLayout;
+    /**
+     * Fuso IANA do operador; null = herda o do tenant.
+     */
+    timezone?: string;
+    /**
+     * Locale BCP 47 do operador; null = herda o do tenant.
+     */
+    locale?: string;
+    updated_at?: string;
+};
+
+export type StaffPreferencesUpdate = {
+    dashboard_layout: null | DashboardLayout;
+    /**
+     * Fuso IANA (ex. America/Sao_Paulo). Enviar `null` volta a herdar o do tenant. Omitir o campo deixa como está — `dashboard_layout: null` limpa só o layout e não mexe aqui.
+     */
+    timezone?: null | string;
+    /**
+     * Locale BCP 47 (ex. pt-BR). `null` volta a herdar o do tenant.
+     */
+    locale?: null | string;
 };
 
 export type TenantSettingsUpdate = {
@@ -459,6 +3734,28 @@ export type TenantSettingsUpdate = {
     timezone?: string;
     description?: string;
     notifications_enabled?: boolean;
+    /**
+     * Substitui a allowlist de compradores de teste. **Só a plataforma**
+     * pode enviar este campo (auth platform); um bearer de member recebe 403 —
+     * ver `TenantSettings.test_customer_emails`. Enviar `[]` limpa a lista.
+     *
+     */
+    test_customer_emails?: Array<string>;
+    hidden_nav_module_ids?: Array<string>;
+    cache_ttl_products_seconds?: number;
+    cache_ttl_payment_seconds?: number;
+    /**
+     * Substitui a lista completa de URLs HTTPS de sites concorrentes.
+     * Enviar `[]` limpa a lista.
+     *
+     */
+    competitor_site_urls?: Array<string>;
+    /**
+     * Política de 2FA do login de staff (#1126). Até aqui só existia em leitura: o motor aplicava-a mas nada na API a conseguia escrever, o que a tornava inalcançável na prática.
+     *
+     * Escrita restrita a owner/manager E protegida por step-up (`X-Mira-Step-Up` com purpose `change_security_policy`) — afrouxar a política de acesso de toda a equipa não pode sair de uma sessão aberta e esquecida.
+     */
+    security_policy?: StaffSecurityPolicy;
 };
 
 export type PlatformSecretStatus = {
@@ -476,11 +3773,138 @@ export type ProductAssistDescriptionRequest = {
         [key: string]: unknown;
     };
     current_description?: string;
+    /**
+     * Modelo de contrato actual (kind=contract_template)
+     */
+    current_contract?: string;
+    current_seo?: ProductSeo;
+    product_type?: CatalogProductType;
+    /**
+     * Instruções extras do lojista (tom, público, restrições)
+     */
+    prompt?: string;
+    /**
+     * Keywords de busca actuais (kind=search_keywords) — distinto de SEO
+     */
+    current_search_keywords?: Array<string>;
+    /**
+     * description = texto da ficha; contract_template = modelo de contrato (locação); seo = meta title/description/keywords (SEO + GEO); search_keywords = aliases/gírias/casos de uso para busca de catálogo (não confundir com ProductSeo.keywords).
+     *
+     */
+    kind?: 'description' | 'contract_template' | 'seo' | 'search_keywords';
 };
 
+/**
+ * Pelo menos um de description / contract_template / seo / search_keywords conforme o kind.
+ *
+ */
 export type ProductAssistDescriptionResult = {
-    description: string;
+    /**
+     * Preenchido quando kind=description (ou omitido)
+     */
+    description?: string;
+    /**
+     * Preenchido quando kind=contract_template
+     */
+    contract_template?: string;
+    /**
+     * Preenchido quando kind=seo
+     */
+    seo?: ProductSeo;
+    /**
+     * Preenchido quando kind=search_keywords (descoberta de catálogo)
+     */
+    search_keywords?: Array<string>;
     model?: string;
+};
+
+export type ProductAssistImageRequest = {
+    /**
+     * ID do produto que receberá a imagem gerada
+     */
+    product_id: string;
+    /**
+     * Instruções extras do lojista (estilo, fundo, ângulo, etc.) além do nome e da descrição já cadastrados no produto.
+     *
+     */
+    extra_prompt?: string;
+    /**
+     * Storage key de uma mídia já anexada a este produto. Quando presente, a geração usa edit/img2img (LiteLLM `/images/edits`) a partir dessa foto + `extra_prompt` — útil para outro ângulo, remover fundo ou tratamento. Sem este campo, gera do zero via `/images/generations`.
+     *
+     */
+    reference_storage_key?: string;
+};
+
+export type ProductAssistImageResult = {
+    /**
+     * Lista completa de mídia do produto após o anexo
+     */
+    media: Array<ProductMedia>;
+    /**
+     * Alias LiteLLM usado na geração
+     */
+    model?: string;
+    /**
+     * Prompt efetivo enviado ao modelo (auditoria / debug)
+     */
+    prompt?: string;
+};
+
+export type AgentAssistRequest = {
+    /**
+     * O que o lojista espera que o agente faça (linguagem natural)
+     */
+    intent: string;
+};
+
+export type AgentAssistTrigger = {
+    type: 'manual' | 'cron' | 'event';
+    interval_minutes?: number;
+    cron_expr?: string;
+    timezone?: string;
+    overlap?: 'skip' | 'queue';
+    /**
+     * ID do evento no catálogo curado (`available_triggers` em GET /agents). Ex.: order.created, payment.captured, cart.abandoned, product.created.
+     *
+     */
+    event?: string;
+};
+
+export type AgentAssistResult = {
+    name: string;
+    /**
+     * System prompt sugerido
+     */
+    persona: string;
+    /**
+     * Nomes de tools MCP do catálogo
+     */
+    tools: Array<string>;
+    /**
+     * Alias LiteLLM da allowlist (omitir = default do tenant)
+     */
+    model?: string;
+    triggers?: Array<AgentAssistTrigger>;
+    /**
+     * Breve justificação das tools escolhidas (UI)
+     */
+    rationale?: string;
+    /**
+     * Modelo que gerou a sugestão
+     */
+    llm_model?: string;
+};
+
+export type AgentModelOption = {
+    id: string;
+    label: string;
+};
+
+export type AgentRunRequest = {
+    /**
+     * Pedido pontual de teste (opcional)
+     */
+    prompt?: string;
 };
 
 export type WarehouseScheduleRules = {
@@ -582,6 +4006,20 @@ export const AccessTokenStatus = {
 
 export type AccessTokenStatus = typeof AccessTokenStatus[keyof typeof AccessTokenStatus];
 
+export const ProductGroupBy = {
+    STATUS: 'status',
+    CATEGORY: 'category',
+    PARENT: 'parent'
+} as const;
+
+export type ProductGroupBy = typeof ProductGroupBy[keyof typeof ProductGroupBy];
+
+export type ProductAggregateGroup = {
+    key: string;
+    label?: string;
+    product_count: number;
+};
+
 export type ProductListPage = {
     data: Array<Product>;
     next_cursor?: string;
@@ -590,6 +4028,8 @@ export type ProductListPage = {
      * Total estimado (opcional UX)
      */
     total?: number;
+    grouped_by?: ProductGroupBy;
+    groups?: Array<ProductAggregateGroup>;
 };
 
 export type ServiceProductListPage = {
@@ -602,6 +4042,57 @@ export type ServiceProductListPage = {
     total?: number;
 };
 
+/**
+ * Dimensão de agregação para listOrders/sales_summary.
+ * payment_* lê JSONB payment; freight_mode/carrier lê JSONB shipping.
+ *
+ */
+export const OrderGroupBy = {
+    STATUS: 'status',
+    ORIGIN: 'origin',
+    DAY: 'day',
+    WAREHOUSE_ID: 'warehouse_id',
+    PAYMENT_METHOD: 'payment_method',
+    PAYMENT_PROVIDER: 'payment_provider',
+    PAYMENT_FAILURE_CODE: 'payment_failure_code',
+    FREIGHT_MODE: 'freight_mode',
+    CARRIER: 'carrier'
+} as const;
+
+/**
+ * Dimensão de agregação para listOrders/sales_summary.
+ * payment_* lê JSONB payment; freight_mode/carrier lê JSONB shipping.
+ *
+ */
+export type OrderGroupBy = typeof OrderGroupBy[keyof typeof OrderGroupBy];
+
+export type OrderAggregateGroup = {
+    /**
+     * Valor da dimensão (ou "(none)" se ausente)
+     */
+    key: string;
+    /**
+     * Rótulo amigável quando disponível
+     */
+    label?: string;
+    /**
+     * Pedidos no grupo (todos os status do filtro)
+     */
+    order_count: number;
+    /**
+     * Pedidos no pipeline pago (confirmed…refunded)
+     */
+    paid_count: number;
+    /**
+     * Soma total_amount dos pedidos pagos do grupo
+     */
+    sales_amount: number;
+    /**
+     * paid_count / order_count * 100 (0 se order_count=0)
+     */
+    approval_rate: number;
+};
+
 export type OrderListPage = {
     data?: Array<Order>;
     next_cursor?: string;
@@ -610,6 +4101,14 @@ export type OrderListPage = {
      * Total estimado (opcional UX)
      */
     total?: number;
+    /**
+     * Presente quando a listagem veio em modo agregado
+     */
+    grouped_by?: OrderGroupBy;
+    /**
+     * Preenchido quando group_by está presente; data fica vazia
+     */
+    groups?: Array<OrderAggregateGroup>;
 };
 
 export type InventoryListPage = {
@@ -684,8 +4183,8 @@ export type ScheduleSlotListPage = {
     total?: number;
 };
 
-export type UserListPage = {
-    data?: Array<User>;
+export type StaffListPage = {
+    data?: Array<Staff>;
     /**
      * Total estimado (opcional UX)
      */
@@ -700,52 +4199,263 @@ export type AccessTokenListPage = {
     total?: number;
 };
 
+export type Category = {
+    id: string;
+    tenant_id?: string;
+    name: string;
+    /**
+     * Único por tenant; é a URL da vitrine.
+     */
+    slug: string;
+    /**
+     * null = categoria de topo. Profundidade máxima 3.
+     */
+    parent_id?: string;
+    /**
+     * Caminho materializado, para evitar N+1 na árvore.
+     */
+    readonly path?: Array<string>;
+    position?: number;
+    is_active?: boolean;
+    /**
+     * Produtos ativos ligados diretamente.
+     */
+    readonly products_count?: number;
+    created_at?: string;
+};
+
+export type CategoryCreate = {
+    name: string;
+    /**
+     * Derivado do nome quando omitido.
+     */
+    slug?: string;
+    parent_id?: string;
+    position?: number;
+    is_active?: boolean;
+};
+
+export type CategoryUpdate = {
+    name?: string;
+    slug?: string;
+    parent_id?: string;
+    position?: number;
+    is_active?: boolean;
+};
+
+export type CategoryListPage = {
+    data: Array<Category>;
+    next_cursor?: string;
+    has_more?: boolean;
+    total?: number;
+};
+
 export type Product = {
     id: string;
     tenant_id?: string;
+    /**
+     * Produto pai (agrupador de vitrine). Quando preenchido, ESTE produto é a
+     * variante vendável (rota A #907 / ADR 0092) — estoque/preço/pedido usam este id.
+     *
+     */
+    parent_product_id?: string;
+    /**
+     * Código do produto (VTEX Product RefId). Distinto do código da variante em ProductSku.sku. Unicidade por tenant (case-insensitive).
+     */
     sku: string;
     name: string;
+    /**
+     * Slug canônico do produto na vitrine (URL) — VTEX LinkId / DetailUrl.
+     * A migração de plataforma o preenche com o slug de ORIGEM para preservar
+     * SEO (F3) — resolva a PDP por `GET /products?slug=`. Só produtos raiz
+     * (agrupadores) têm slug; variantes filhas ficam sem. Único por tenant
+     * entre raízes (aplicação).
+     *
+     */
+    slug?: string;
     description?: string;
+    /**
+     * Categoria de catálogo (#1105 / ADR 0126) — VTEX CategoryId
+     */
+    category_id?: string;
+    /**
+     * Nome da categoria, mantido durante a transição para category_id (#1105 / ADR 0126). Storefronts e integrações que o leem continuam funcionando; a remoção é passo contract de uma release seguinte.
+     *
+     * @deprecated
+     */
     category?: string;
     status: ProductStatus;
     created_at?: string;
     /**
-     * EAN/GTIN operacional para WMS
+     * Marca (VTEX BrandName) — eco da spec canônica `Marca` em specifications.structured. Escrita via ProductCreate/Update.brand.
+     */
+    readonly brand?: string;
+    /**
+     * Data de lançamento (VTEX ReleaseDate). Se no futuro, o produto fica inactive até o worker de auto-publish (com gate de readiness).
+     */
+    release_date?: string;
+    /**
+     * LEGADO no agrupador. EAN/GTIN é por variante (VTEX SKU Ean) — use product_barcodes no produto filho. Mantido por WMS/migração (ADR 0023).
+     *
+     * @deprecated
      */
     ean?: string;
+    /**
+     * Fallback de localização WMS/scanner. Preferir localização por linha de inventário (aba Estoque); não faz parte da identidade do agrupador.
+     */
     location_hint?: string;
     specifications?: {
         structured?: Array<ProductSpecificationEntry>;
     };
+    /**
+     * Imagens e vídeos do agrupador (PDP). type=image|video; role= gallery|story. Vários vídeos permitidos. Capa/readiness exigem pelo menos uma imagem. Variantes (filhos) têm media própria; na PDP use variants[].effective_media (fallback para este array).
+     */
     media?: Array<ProductMedia>;
     seo?: ProductSeo;
+    /**
+     * Palavras-chave de **busca/descoberta de catálogo** (#1427) — aliases, gírias, casos de uso, marcas populares. Distinto de `ProductSeo.keywords` (meta SEO). Presente no card de PLP para o search SDK da vitrine sem GET de PDP. Normalizado em trim/lowercase na escrita.
+     *
+     */
+    search_keywords?: Array<string>;
+    /**
+     * Peso de merchandising na busca (#1427). Quanto maior, mais cedo o produto aparece nos resultados de `?search=` (e no ranking client-side da vitrine). Default 0; não afecta SEO.
+     *
+     */
+    search_weight?: number;
+    /**
+     * goods (default) | rental | digital | gift_card — ADR 0049/0130; service fica em ServiceProduct
+     */
+    product_type?: CatalogProductType;
+    rental_meta?: RentalMeta;
+    digital_meta?: DigitalMeta;
+    gift_card_meta?: GiftCardMeta;
+    /**
+     * O que falta para o produto poder ser publicado (#1106). O admin já calculava "Completude (3/6)" na tela e o produto ficava ativo à venda assim mesmo — o diagnóstico existia, faltava o gate.
+     */
+    readonly readiness?: ProductReadiness;
+};
+
+export type ProductReadiness = {
+    /**
+     * true quando blockers está vazio.
+     */
+    publishable: boolean;
+    blockers: Array<ProductReadinessBlocker>;
+    /**
+     * Inclui itens não-bloqueantes (SEO, descrição).
+     */
+    score: number;
+};
+
+export type ProductReadinessBlocker = {
+    code: 'missing_media' | 'no_sellable_sku' | 'no_price' | 'missing_category' | 'missing_rental_assets' | 'no_stock' | 'no_shipping' | 'missing_shipping_dims';
+    /**
+     * Pronto para exibição ao lojista.
+     */
+    message: string;
+    field?: string;
 };
 
 export type ProductCreate = {
+    /**
+     * Código do produto (VTEX Product RefId) — distinto do código da variante
+     */
     sku: string;
     name: string;
+    /**
+     * Slug canônico de vitrine (URL / VTEX LinkId); único por tenant entre produtos raiz
+     */
+    slug?: string;
+    /**
+     * Marca (VTEX BrandName). Grava a spec canônica `{field: "Marca", value}` — sem entidade Brand.
+     */
+    brand?: string;
+    /**
+     * Data de lançamento. Se no futuro, o produto nasce inactive e o worker publica automaticamente quando readiness permitir.
+     */
+    release_date?: string;
     description?: string;
     category: string;
     /**
-     * EAN/GTIN-13 quando aplicável (WMS — ADR 0023)
+     * Se definido, cria variante vendável filha deste pai (ADR 0092)
+     */
+    parent_product_id?: string;
+    product_type?: CatalogProductType;
+    rental_meta?: RentalMeta;
+    digital_meta?: DigitalMeta;
+    gift_card_meta?: GiftCardMeta;
+    /**
+     * LEGADO no agrupador. Prefira EAN na variante (product_barcodes no filho).
+     *
+     * @deprecated
      */
     ean?: string;
     /**
      * Localização opcional no armazém (texto livre; bin location Fase 2)
      */
     location_hint?: string;
+    /**
+     * Keywords de busca/descoberta (#1427) — distinto de ProductSeo.keywords
+     *
+     */
+    search_keywords?: Array<string>;
+    /**
+     * Peso na ordenação de busca (maior = aparece antes)
+     */
+    search_weight?: number;
 };
 
 export type ProductUpdate = {
+    /**
+     * Novo código do produto (RefId). Cascateia ProductSku/filho que tinham o código antigo igual. Conflito de unicidade → 400.
+     */
+    sku?: string;
+    /**
+     * Recategorizar (#1105). ProductUpdate não tinha campo de categoria e UpdateProduct nunca lia body.Category — a categoria de um produto era IMUTÁVEL depois da criação pela API pública.
+     */
+    category_id?: string;
     name?: string;
+    /**
+     * Slug canônico de vitrine; string vazia limpa o slug
+     */
+    slug?: string;
+    /**
+     * Marca — merge na spec `Marca`. String vazia remove a entrada.
+     */
+    brand?: string;
+    /**
+     * Data de lançamento. String/omissão parcial: enviar null limpa. Futuro → inactive até auto-publish.
+     */
+    release_date?: string;
     description?: string;
     status?: ProductStatus;
+    /**
+     * Agrupador de vitrine (ADR 0092)
+     */
+    parent_product_id?: string;
+    product_type?: CatalogProductType;
+    rental_meta?: RentalMeta;
+    digital_meta?: DigitalMeta;
+    gift_card_meta?: GiftCardMeta;
+    seo?: ProductSeo;
+    /**
+     * Keywords de busca/descoberta (#1427). Array vazio limpa. Distinto de ProductSeo.keywords (SEO).
+     *
+     */
+    search_keywords?: Array<string>;
+    /**
+     * Peso na ordenação de busca (maior = aparece antes)
+     */
+    search_weight?: number;
     media?: Array<ProductMedia>;
 };
 
 export type ProductSku = {
     id?: string;
     product_id?: string;
+    /**
+     * Código do SKU / variante (VTEX SKU RefId). Distinto do código do produto (Product.sku). O produto filho vendável usa o mesmo texto.
+     */
     sku?: string;
     name?: string;
     status?: ProductStatus;
@@ -754,6 +4464,142 @@ export type ProductSku = {
         [key: string]: string;
     };
     base_price?: number;
+    /**
+     * Peso do produto sem embalagem (kg) — alinhado a VTEX WeightKg
+     */
+    weight_kg?: number;
+    /**
+     * Comprimento do produto sem embalagem (cm)
+     */
+    length_cm?: number;
+    /**
+     * Largura do produto sem embalagem (cm)
+     */
+    width_cm?: number;
+    /**
+     * Altura do produto sem embalagem (cm)
+     */
+    height_cm?: number;
+    /**
+     * Peso com embalagem (kg) — frete; VTEX PackagedWeightKg
+     */
+    packaged_weight_kg?: number;
+    /**
+     * Comprimento embalado (cm) — frete / Correios
+     */
+    packaged_length_cm?: number;
+    /**
+     * Largura embalada (cm)
+     */
+    packaged_width_cm?: number;
+    /**
+     * Altura embalada (cm)
+     */
+    packaged_height_cm?: number;
+    /**
+     * Peso cúbico calculado (não persistido): (L×W×H)/6000 com dims
+     * embaladas, senão dims do produto. Fórmula VTEX/Correios em cm→kg.
+     *
+     */
+    readonly cubic_weight_kg?: number;
+    /**
+     * Lista JSON de URLs HTTPS de páginas de produto concorrentes
+     * associadas a este SKU (monitoria de preços por agentes).
+     * Só `https://`; hosts privados/SSRF são rejeitados.
+     *
+     */
+    competitor_product_urls?: Array<string>;
+};
+
+export type ProductSkuCreate = {
+    /**
+     * Opcional — UUID estável do seed; senão o servidor gera
+     */
+    id?: string;
+    /**
+     * Código do SKU / variante (VTEX SKU RefId)
+     */
+    sku: string;
+    name?: string;
+    status?: ProductStatus;
+    level?: number;
+    option_values?: {
+        [key: string]: string;
+    };
+    base_price?: number;
+    weight_kg?: number;
+    length_cm?: number;
+    width_cm?: number;
+    height_cm?: number;
+    packaged_weight_kg?: number;
+    packaged_length_cm?: number;
+    packaged_width_cm?: number;
+    packaged_height_cm?: number;
+    /**
+     * URLs HTTPS de páginas concorrentes para este SKU (opcional no create).
+     *
+     */
+    competitor_product_urls?: Array<string>;
+};
+
+export type ProductSkuUpdate = {
+    sku?: string;
+    name?: string;
+    status?: ProductStatus;
+    level?: number;
+    option_values?: {
+        [key: string]: string;
+    };
+    base_price?: number;
+    weight_kg?: number;
+    length_cm?: number;
+    width_cm?: number;
+    height_cm?: number;
+    packaged_weight_kg?: number;
+    packaged_length_cm?: number;
+    packaged_width_cm?: number;
+    packaged_height_cm?: number;
+    /**
+     * Substitui a lista completa de URLs de produto concorrente.
+     * Enviar `[]` limpa a lista.
+     *
+     */
+    competitor_product_urls?: Array<string>;
+};
+
+export type CompetitorProductUrlsAssistRequest = {
+    product_id: string;
+    /**
+     * Variante alvo; se omitido usa o SKU padrão / primeiro do produto
+     */
+    sku_id?: string;
+    /**
+     * Sites HTTPS adicionais só para esta busca (além do tenant)
+     */
+    extra_competitor_site_urls?: Array<string>;
+    /**
+     * Máximo de candidatos por site
+     */
+    limit?: number;
+};
+
+export type CompetitorProductUrlsAssistResult = {
+    candidates: Array<CompetitorProductUrlCandidate>;
+    sites_searched?: Array<string>;
+    /**
+     * Query textual usada na pesquisa
+     */
+    query?: string;
+};
+
+export type CompetitorProductUrlCandidate = {
+    url: string;
+    /**
+     * Host ou URL base do concorrente
+     */
+    site: string;
+    title?: string;
+    score?: number;
 };
 
 export type ServiceProduct = {
@@ -762,15 +4608,39 @@ export type ServiceProduct = {
     name?: string;
     product_type?: 'service';
     status?: ProductStatus;
-    service_meta?: {
-        duration_minutes?: number;
-        pricing_unit?: 'per_wheel' | 'flat';
-        requires_scheduling?: boolean;
-    };
+    service_meta?: ServiceMeta;
     tenant_id?: string;
     description?: string;
     category?: string;
     created_at?: string;
+};
+
+export type ServiceMeta = {
+    duration_minutes?: number;
+    pricing_unit?: 'per_wheel' | 'flat';
+    requires_scheduling?: boolean;
+};
+
+export type ServiceProductCreate = {
+    /**
+     * Opcional — UUID estável do seed
+     */
+    id?: string;
+    sku: string;
+    name: string;
+    description?: string;
+    category?: string;
+    status?: ProductStatus;
+    service_meta?: ServiceMeta;
+};
+
+export type ServiceProductUpdate = {
+    sku?: string;
+    name?: string;
+    description?: string;
+    category?: string;
+    status?: ProductStatus;
+    service_meta?: ServiceMeta;
 };
 
 export type SpecificationFieldsData = {
@@ -798,11 +4668,36 @@ export type OrderItem = {
      * Depósito de origem que atende este item (split-ready, modelo VTEX — issue #110). Resolvido server-side; hoje igual ao depósito principal do pedido, mas por item para permitir split multi-origem no futuro.
      */
     warehouse_id?: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
+    /**
+     * Início do período de locação (UTC) — ADR 0049
+     */
+    period_start?: string;
+    /**
+     * Fim do período de locação (UTC) — ADR 0049
+     */
+    period_end?: string;
+    /**
+     * Unidade física alocada (rental serializado)
+     */
+    asset_id?: string;
 };
+
+export const OrderPaymentPurpose = {
+    RENTAL: 'rental',
+    DEPOSIT: 'deposit',
+    EXTENSION: 'extension'
+} as const;
+
+export type OrderPaymentPurpose = typeof OrderPaymentPurpose[keyof typeof OrderPaymentPurpose];
 
 export type OrderPayment = {
     method?: PaymentMethod;
     status?: PaymentStatus;
+    purpose?: OrderPaymentPurpose;
     member_amount?: number;
     platform_amount?: number;
     split_pct?: number;
@@ -815,8 +4710,281 @@ export type OrderPayment = {
      * Valor total cobrado
      */
     amount?: number;
+    /**
+     * Hold/pré-auth (calção) ainda não capturado
+     */
+    authorized_amount?: number;
+    captured_amount?: number;
     rule_id?: string;
     paid_at?: string;
+    /**
+     * Motivo da recusa, normalizado entre adquirentes (#1094). Antes o status_detail do provedor era lido ao vivo e DESCARTADO — o motivo se perdia no ato da recusa e não havia como agregar.
+     */
+    failure_code?: PaymentFailureCode;
+    /**
+     * Texto legível do motivo. NUNCA contém credencial nem a resposta crua do adquirente (mesma regra de SubscriptionRun.failure_reason).
+     */
+    failure_reason?: string;
+    failure_at?: string;
+};
+
+/**
+ * Taxonomia estável de recusa, agregável em GET /orders?group_by=payment_failure_code. Provedores diferentes mapeiam para os mesmos códigos (#1094).
+ */
+export const PaymentFailureCode = {
+    INSUFFICIENT_FUNDS: 'insufficient_funds',
+    CARD_EXPIRED: 'card_expired',
+    FRAUD_SUSPECTED: 'fraud_suspected',
+    INVALID_CVV: 'invalid_cvv',
+    INVALID_CARD_DATA: 'invalid_card_data',
+    ISSUER_DECLINED: 'issuer_declined',
+    HIGH_RISK: 'high_risk',
+    LIMIT_EXCEEDED: 'limit_exceeded',
+    TIMEOUT: 'timeout',
+    CANCELLED_BY_USER: 'cancelled_by_user',
+    GATEWAY_NOT_CONFIGURED: 'gateway_not_configured',
+    OTHER: 'other'
+} as const;
+
+/**
+ * Taxonomia estável de recusa, agregável em GET /orders?group_by=payment_failure_code. Provedores diferentes mapeiam para os mesmos códigos (#1094).
+ */
+export type PaymentFailureCode = typeof PaymentFailureCode[keyof typeof PaymentFailureCode];
+
+export type CancelOrderRequest = {
+    /**
+     * Se true, confirma e conclui o cancelamento na mesma chamada (`cancelled`), sem passar por `cancellation_requested`. Use quando o lojista deu mandato explícito para cancelar (por exemplo, agente em autopilot).
+     */
+    confirm?: boolean;
+    /**
+     * Motivo registado no timeline
+     */
+    reason?: string;
+    /**
+     * Se true e o pagamento for Mercado Pago elegível, estorna o valor total antes de marcar cancellation_requested (ou cancelled com confirm=true / na confirmação).
+     */
+    refund?: boolean;
+};
+
+export type OrderPaymentRefundRequest = {
+    /**
+     * Valor em BRL a estornar. Omitir ou 0 = estorno total.
+     */
+    amount?: number;
+    /**
+     * Motivo (aparece no timeline)
+     */
+    reason?: string;
+};
+
+export type OrderPaymentRefundResult = {
+    /**
+     * ID do estorno no adquirente
+     */
+    refund_id: string;
+    status: PaymentStatus;
+    /**
+     * Valor estornado em BRL
+     */
+    amount: number;
+    order: Order;
+};
+
+export type OrderPaymentProviderDetail = {
+    provider: SplitRuleProvider;
+    gateway_payment_id: string;
+    /**
+     * Status raw do adquirente (ex. approved)
+     */
+    status?: string;
+    /**
+     * Detalhe (ex. accredited, partially_refunded)
+     */
+    status_detail?: string;
+    /**
+     * credit_card, bank_transfer (Pix), etc.
+     */
+    payment_type?: string;
+    transaction_amount?: number;
+    net_received_amount?: number;
+    paid_at?: string;
+    /**
+     * Link para o painel do adquirente
+     */
+    dashboard_url?: string;
+    synced_at?: string;
+};
+
+export type OrderAnalysisRisk = {
+    severity: 'info' | 'warning' | 'critical';
+    text: string;
+};
+
+export type OrderAnalysisNextAction = {
+    label: string;
+    hint: string;
+    /**
+     * Identificador opcional para a UI (ex. sync_payment, confirm_cancel, keep_order, start_picking, create_payment_link)
+     */
+    action_id?: string;
+};
+
+export type OrderAnalysis = {
+    summary: string;
+    risks: Array<OrderAnalysisRisk>;
+    next_actions: Array<OrderAnalysisNextAction>;
+    model: string;
+    cached: boolean;
+    generated_at: string;
+    input_hash: string;
+};
+
+export type OrderAnalysisGetResult = {
+    available: boolean;
+    analysis?: OrderAnalysis;
+};
+
+export type OrderAnalysisCreateRequest = {
+    /**
+     * Se true, regenera mesmo com cache válido
+     */
+    force?: boolean;
+};
+
+export type OrderDetailAppAlert = {
+    severity: 'info' | 'warning' | 'critical';
+    text: string;
+};
+
+export type OrderDetailAppSection = {
+    kind: 'summary' | 'items' | 'payment' | 'timeline' | 'fulfillment' | 'identity' | 'erp' | 'notes' | 'actions';
+    title: string;
+    priority: number;
+    highlight?: boolean;
+};
+
+export type OrderDetailAppAction = {
+    label: string;
+    /**
+     * Nome MCP allowlisted (ex. get_order_status, api_cancel_order)
+     */
+    tool: string;
+    args?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Tier ADR 0045: read|write_low|write_high|outreach|destructive
+     */
+    risk: string;
+    hint?: string;
+};
+
+export type OrderDetailAppViewModel = {
+    headline: string;
+    narrative: string;
+    alerts: Array<OrderDetailAppAlert>;
+    sections: Array<OrderDetailAppSection>;
+    primary_actions: Array<OrderDetailAppAction>;
+    secondary_actions: Array<OrderDetailAppAction>;
+};
+
+export type OrderDetailAppSnapshotItem = {
+    sku: string;
+    name?: string;
+    quantity: number;
+    unit_price?: number;
+    total_price?: number;
+    item_type?: string;
+};
+
+export type OrderDetailAppSnapshotTimelineEvent = {
+    status: string;
+    note?: string;
+    at?: string;
+};
+
+export type OrderDetailAppSnapshot = {
+    order_id: string;
+    order_code: string;
+    status: OrderStatus;
+    total_amount?: number;
+    payment_status?: string;
+    payment_method?: string;
+    payment_provider?: string;
+    customer_name?: string;
+    warehouse_name?: string;
+    origin?: string;
+    erp_order_id?: string;
+    /**
+     * Empresa B2B (ADR 0100)
+     */
+    company_id?: string;
+    ordered_by_customer_id?: string;
+    approved_by_customer_id?: string;
+    /**
+     * pending = aguarda titular
+     */
+    company_approval_status?: 'pending' | 'approved' | 'rejected';
+    items?: Array<OrderDetailAppSnapshotItem>;
+    timeline?: Array<OrderDetailAppSnapshotTimelineEvent>;
+};
+
+export type OrderDetailApp = {
+    view_model: OrderDetailAppViewModel;
+    /**
+     * URI do MCP Apps resource (ui://mira/order-detail.html)
+     */
+    resource_uri: string;
+    model: string;
+    cached: boolean;
+    generated_at: string;
+    input_hash: string;
+    prompt_version: string;
+    order_snapshot: OrderDetailAppSnapshot;
+};
+
+export type OrderDetailAppGetResult = {
+    available: boolean;
+    detail_app?: OrderDetailApp;
+};
+
+export type OrderDetailAppCreateRequest = {
+    /**
+     * Se true, regenera mesmo com cache válido
+     */
+    force?: boolean;
+};
+
+export type OrderDetailAppActionRequest = {
+    tool: string;
+    args?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Token one-shot para mutações sensíveis
+     */
+    confirmation_token?: string;
+    /**
+     * Sessão do host beta (default derivado do pedido)
+     */
+    session_id?: string;
+};
+
+export type OrderDetailAppActionResult = {
+    status: 'ok' | 'needs_confirmation' | 'error';
+    /**
+     * Payload da tool quando status=ok
+     */
+    result?: {
+        [key: string]: unknown;
+    };
+    confirmation_token?: string;
+    /**
+     * Resumo humano para o dialog de confirmação
+     */
+    summary?: string;
+    risk?: string;
+    error?: string;
 };
 
 export type OrderTimelineEntry = {
@@ -829,6 +4997,7 @@ export type OrderTimelineEntry = {
 };
 
 export type Order = {
+    attribution?: OrderAttribution;
     id: string;
     /**
      * Código curto e amigável do pedido (8 caracteres, alfabeto sem ambiguidades) para exibir ao cliente e ao suporte. O `id` UUID continua sendo o identificador interno.
@@ -837,14 +5006,38 @@ export type Order = {
     tenant_id?: string;
     customer_id?: string;
     customer_name?: string;
+    customer_snapshot?: OrderCustomerSnapshot;
     origin?: OrderOrigin;
     status: OrderStatus;
+    /**
+     * Pedido de e2e/smoke: nasce assim quando o comprador está na
+     * allowlist do tenant (`test_customer_emails`, escrita só pela plataforma).
+     * É cancelado automaticamente ao aprovar o pagamento — devolvendo o estoque —
+     * e fica fora de cobrança, CRM, notificações e de toda a estatística da loja.
+     *
+     */
+    readonly is_test?: boolean;
+    /**
+     * Preenchido só em pedidos de **extensão de locação**: UUID do pedido pai
+     * cuja reserva será alongada após o pagamento deste filho (ADR 0049).
+     *
+     */
+    readonly extends_order_id?: string;
     warehouse_id?: string;
     total_amount: number;
     discount_amount?: number;
     subsidy_amount?: number;
     items?: Array<OrderItem>;
     payment?: OrderPayment;
+    /**
+     * Intents do pedido (rental + deposit + extension) — ADR 0049; payment = principal
+     */
+    payments?: Array<OrderPayment>;
+    /**
+     * Meios usados no caixa (split tender) —
+     */
+    tenders?: Array<OrderTender>;
+    rental_gates?: RentalOrderGates;
     timeline?: Array<OrderTimelineEntry>;
     created_at?: string;
     updated_at?: string;
@@ -879,6 +5072,25 @@ export type Order = {
 };
 
 export type OrderCreate = {
+    campaign?: CampaignAttribution;
+    company_id?: string;
+    /**
+     * Token OTP confirmado (ADR 0099) quando o pedido usa crédito/faturado
+     */
+    credit_confirmation_token?: string;
+    /**
+     * Código da opção em CommercialTerms.invoice_installment_policy (ADR 0140).
+     * Obrigatório quando a policy activa tem ≥1 opção; ignorado se policy vazia.
+     *
+     */
+    invoice_installment_option_code?: string;
+    /**
+     * Cartões ao portador a aplicar no pedido (stacking). Cada item faz
+     * Lookup+Reserve; capture no payment_approved / release no cancel.
+     *
+     */
+    gift_card_tenders?: Array<GiftCardTender>;
+    attribution?: OrderAttribution;
     customer_id?: string;
     warehouse_id?: string;
     origin?: OrderOrigin;
@@ -899,6 +5111,18 @@ export type OrderCreate = {
      */
     shipping_method_id?: string;
     delivery_address?: DeliveryAddress;
+    /**
+     * Split tender no caixa (#870). Soma deve igualar total_amount.
+     */
+    tenders?: Array<OrderTender>;
+    /**
+     * Overrides de preço por SKU; exige manager_pin (#870).
+     */
+    line_overrides?: Array<OrderLineOverride>;
+    /**
+     * Desconto manual do pedido (requer manager_pin se > 0).
+     */
+    discount_amount?: number;
 };
 
 export type Inventory = {
@@ -908,17 +5132,43 @@ export type Inventory = {
     product_id?: string;
     quantity?: number;
     reserved?: number;
-    product_sku?: string;
-    warehouse_name?: string;
+    /**
+     * SKU do produto (read-only na listagem; JOIN em core.products).
+     */
+    readonly product_sku?: string;
+    /**
+     * Nome do produto (read-only; JOIN em core.products).
+     */
+    readonly product_name?: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
     source?: InventorySource;
     synced_at?: string;
     updated_at?: string;
     sku?: string;
+    /**
+     * Localização física neste armazém (corredor/prateleira/bin). Por linha produto×armazém.
+     */
+    location?: string;
+    /**
+     * Política de estoque desta linha (#975).
+     */
+    stock_policy?: InventoryStockPolicy;
 };
 
 export type InventoryPatch = {
-    quantity_delta: number;
+    quantity_delta?: number;
     reason?: string;
+    /**
+     * Define a localização física nesta linha (produto×armazém). String vazia ou null limpa.
+     */
+    location?: string;
+    /**
+     * Define a política de estoque desta linha (#975).
+     */
+    stock_policy?: InventoryStockPolicy;
 };
 
 export type Price = {
@@ -932,8 +5182,48 @@ export type Price = {
     currency?: string;
     source?: PriceSource;
     tenant_id?: string;
+    /**
+     * SKU do produto (read-only; JOIN em core.products).
+     */
+    readonly product_sku?: string;
+    /**
+     * Nome do produto (read-only; JOIN em core.products).
+     */
+    readonly product_name?: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses). Null = preço geral.
+     */
+    readonly warehouse_name?: string;
     updated_at?: string;
     synced_at?: string;
+};
+
+export type PriceCreate = {
+    product_id: string;
+    /**
+     * Null = preço geral (todos os armazéns)
+     */
+    warehouse_id?: string;
+    /**
+     * Default `all` se omitido
+     */
+    channel?: PriceChannel;
+    base_price: number;
+    dealer_price?: number;
+    currency?: string;
+    /**
+     * Default `manual` (plataforma). ERP usa `external_data`.
+     */
+    source?: PriceSource;
+};
+
+export type PriceUpdate = {
+    base_price?: number;
+    dealer_price?: number;
+    currency?: string;
+    channel?: PriceChannel;
+    warehouse_id?: string;
+    source?: PriceSource;
 };
 
 export type PriceResolveResult = {
@@ -947,6 +5237,174 @@ export type PriceResolveResult = {
     price_source?: PriceSource;
     promotion_applied?: boolean;
     subsidy_amount?: number;
+    /**
+     * Nome do produto (read-only; lookup por SKU).
+     */
+    readonly product_name?: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
+    /**
+     * Nome do membro (read-only; JOIN em core.members).
+     */
+    readonly member_name?: string;
+};
+
+/**
+ * Card de PLP (#1193 / #1363): o mínimo que a listagem desenha — capa única assinada, faixa de preço e estoque agregados das variantes. Sem galeria e sem description; o detalhe vive na PDP consolidada. Para rental inclui rental_meta (tiers/modifiers) e available_units (assets activos).
+ *
+ */
+export type StorefrontProductCard = {
+    product_id: string;
+    sku: string;
+    slug?: string;
+    name: string;
+    category?: string;
+    product_type?: CatalogProductType;
+    /**
+     * URL assinada da imagem de capa (primeira mídia). Uma por card.
+     */
+    cover_url?: string;
+    /**
+     * Menor preço unitário resolvido entre as variantes vendáveis. Para product_type=rental, quando não há preço goods, deriva do menor amount em rental_meta.pricing_tiers (preferindo package=daily).
+     *
+     */
+    price_min?: number;
+    price_max?: number;
+    currency?: string;
+    /**
+     * Alguma variante com saldo disponível (goods) ou asset activo (rental)
+     */
+    in_stock?: boolean;
+    /**
+     * Variantes vendáveis consideradas no agregado
+     */
+    variant_count?: number;
+    /**
+     * Meta de locação do root (#1363). Presente quando product_type=rental para montar “a partir de” / modifiers sem GET por id.
+     *
+     */
+    rental_meta?: RentalMeta;
+    /**
+     * Unidades disponíveis resumidas: soma de quantity_available (goods) ou contagem de rental assets com status=active no root+variantes.
+     *
+     */
+    available_units?: number;
+    /**
+     * Keywords de descoberta/busca (#1427) para o search SDK da vitrine (boost / sinónimos). Distinto de ProductSeo.keywords. Sem N+1 — vem no card da listagem.
+     *
+     */
+    search_keywords?: Array<string>;
+    /**
+     * Peso de merchandising na busca (#1427). Maior = aparece antes nos resultados. Default 0 quando omitido.
+     *
+     */
+    search_weight?: number;
+};
+
+/**
+ * Página de cards de PLP (#1193). Uma resposta por tela.
+ */
+export type StorefrontProductListPage = {
+    data: Array<StorefrontProductCard>;
+    has_more: boolean;
+    next_cursor?: string;
+    channel?: PriceChannel;
+    resolved_at?: string;
+    /**
+     * Igual ao ETag da resposta — use em If-None-Match.
+     */
+    version?: string;
+};
+
+/**
+ * PDP consolidada (#1187): produto agrupador + variantes vendáveis já com preço e saldo resolvidos. Uma resposta por tela.
+ *
+ */
+export type StorefrontProductDetail = {
+    product: Product;
+    /**
+     * Variantes vendáveis (produtos filhos). Vazio quando o produto não é agrupador — nesse caso o próprio produto é vendável e aparece como variante única.
+     *
+     */
+    variants: Array<StorefrontProductVariant>;
+    /**
+     * Eixos de variação derivados de `option_values` (ex.: Cor, Tamanho), na ordem de aparição, para desenhar os seletores sem parsing de nome.
+     *
+     */
+    option_axes?: Array<StorefrontOptionAxis>;
+    /**
+     * Menor preço unitário entre as variantes com preço resolvido
+     */
+    price_min?: number;
+    price_max?: number;
+    currency?: string;
+    /**
+     * Alguma variante com saldo disponível
+     */
+    in_stock?: boolean;
+    variant_count?: number;
+    channel?: PriceChannel;
+    warehouse_id?: string;
+    resolved_at?: string;
+    /**
+     * Igual ao ETag da resposta — use em If-None-Match.
+     */
+    version?: string;
+};
+
+export type StorefrontProductVariant = {
+    /**
+     * Id do produto vendável — é este que vai no pedido.
+     */
+    product_id: string;
+    sku: string;
+    ean?: string;
+    name?: string;
+    status?: ProductStatus;
+    /**
+     * goods | rental | digital — útil na PDP sem reler o Product (#1363)
+     */
+    product_type?: CatalogProductType;
+    /**
+     * Eixos estruturados (ex.: {"Cor":"TOMATE ATLANTA","Tamanho":"P"}). Vem do ProductSku correspondente; ausente quando o import não trouxe opções.
+     *
+     */
+    option_values?: {
+        [key: string]: string;
+    };
+    /**
+     * Mídia própria desta SKU/filho (pode estar vazia). Preferir `effective_media` para renderizar a galeria na PDP.
+     */
+    media?: Array<ProductMedia>;
+    /**
+     * Galeria a mostrar na PDP para esta variante: `media` da SKU se não vazia, senão `product.media` do agrupador (fallback).
+     */
+    readonly effective_media?: Array<ProductMedia>;
+    /**
+     * Meta de locação da variante vendável (#1363). Presente quando product_type=rental — tiers/modifiers/deposit sem round-trip extra.
+     *
+     */
+    rental_meta?: RentalMeta;
+    /**
+     * Preço resolvido (mesma precedência de /prices/resolve)
+     */
+    unit_price?: number;
+    /**
+     * Preço de lista quando maior que o unitário (preço riscado)
+     */
+    list_price?: number;
+    currency?: string;
+    price_source?: PriceSource;
+    promotion_applied?: boolean;
+    quantity_available?: number;
+    in_stock?: boolean;
+};
+
+export type StorefrontOptionAxis = {
+    name: string;
+    values: Array<string>;
 };
 
 export type ServicePrice = {
@@ -966,12 +5424,32 @@ export type ServicePrice = {
     updated_at?: string;
 };
 
+export type ServicePriceUpsert = {
+    service_id: string;
+    /**
+     * null = vale para todos os armazéns.
+     */
+    warehouse_id?: string;
+    channel?: PriceChannel;
+    base_price: number;
+    member_price?: number;
+    currency?: string;
+};
+
 export type PriceOverride = {
     id?: string;
     product_id?: string;
     override_price?: number;
     reason?: string;
     applied_at?: string;
+    /**
+     * Nome do produto (read-only; JOIN em core.products).
+     */
+    readonly product_name?: string;
+    /**
+     * SKU do produto (read-only; JOIN em core.products).
+     */
+    readonly product_sku?: string;
 };
 
 export type Member = {
@@ -1028,12 +5506,205 @@ export type MemberUpdate = {
     };
 };
 
+export type WishlistItem = {
+    id: string;
+    product_id: string;
+    /**
+     * Snapshot do SKU no momento do favorito (pode divergir do catálogo actual).
+     */
+    sku?: string;
+    created_at: string;
+};
+
+/**
+ * Informe `product_id` e/ou `sku`. Se ambos, `product_id` prevalece; `sku` sozinho resolve via catálogo do tenant.
+ */
+export type WishlistItemCreate = {
+    product_id?: string;
+    sku?: string;
+};
+
+export type WishlistPage = {
+    data: Array<WishlistItem>;
+    has_more: boolean;
+    next_cursor?: string;
+};
+
+/**
+ * `debit_card` (#945) — settle no core mapeia para payment method cartão
+ * (mesmo trilho que credit_card); o método fica no Order.tenders.
+ * `gift_card` — reference = código do cartão (ao portador, ADR 0130 D6).
+ *
+ */
+export const OrderTenderMethod = {
+    CASH: 'cash',
+    PIX: 'pix',
+    CREDIT_CARD: 'credit_card',
+    DEBIT_CARD: 'debit_card',
+    INVOICE: 'invoice',
+    STORE_CREDIT: 'store_credit',
+    GIFT_CARD: 'gift_card'
+} as const;
+
+/**
+ * `debit_card` (#945) — settle no core mapeia para payment method cartão
+ * (mesmo trilho que credit_card); o método fica no Order.tenders.
+ * `gift_card` — reference = código do cartão (ao portador, ADR 0130 D6).
+ *
+ */
+export type OrderTenderMethod = typeof OrderTenderMethod[keyof typeof OrderTenderMethod];
+
+export type OrderTender = {
+    method: OrderTenderMethod;
+    amount: number;
+    /**
+     * NSU / auth code / nota opcional
+     */
+    reference?: string;
+};
+
+export type OrderLineOverride = {
+    sku: string;
+    /**
+     * Preço unitário override (moeda do pedido)
+     */
+    unit_amount: number;
+};
+
+export type OrderPriceOverrideRequest = {
+    line_overrides?: Array<OrderLineOverride>;
+    discount_amount?: number;
+};
+
+export type OrderTendersRequest = {
+    tenders: Array<OrderTender>;
+};
+
+export type ConfirmOrderPickupRequest = {
+    /**
+     * Opcional — deve coincidir com order_code
+     */
+    scan_code?: string;
+};
+
+export type CustomerMergeRequest = {
+    /**
+     * Cliente que será fundido no sobrevivente do path.
+     */
+    duplicate_customer_id: string;
+};
+
+export type CustomerMergeResult = {
+    survivor_customer_id: string;
+    merged_customer_id: string;
+    /**
+     * true quando o duplicado já tinha sido fundido antes.
+     */
+    already_merged?: boolean;
+    /**
+     * Linhas repontadas por tabela.
+     */
+    moved_rows?: {
+        [key: string]: number;
+    };
+    /**
+     * Linhas do duplicado descartadas por colidirem com uma igual do sobrevivente — por exemplo o mesmo produto na lista de desejos.
+     */
+    dropped_rows?: {
+        [key: string]: number;
+    };
+};
+
+export type CustomerIdentityView = {
+    channel: 'email' | 'phone' | 'wa_bsuid' | 'wa_username';
+    /**
+     * Valor mascarado quando sensível.
+     */
+    value: string;
+    verified: boolean;
+    verified_at?: string;
+};
+
+export type CustomerAccountView = {
+    account_id: string;
+    status: 'active' | 'blocked' | 'anonymized';
+    identities?: Array<CustomerIdentityView>;
+    /**
+     * Pessoas que a conta pode representar (vínculo verificado).
+     */
+    customers?: Array<Customer>;
+};
+
+export type CustomerIdentityCreate = {
+    channel: 'email' | 'phone' | 'wa_bsuid' | 'wa_username';
+    /**
+     * Email, telefone ou "<portfolio_id>:<bsuid>" no caso do WhatsApp.
+     */
+    value: string;
+    /**
+     * Só true com prova de posse. Default false.
+     */
+    verified?: boolean;
+};
+
+export type PostalAddress = {
+    /**
+     * 8 dígitos, sem hífen.
+     */
+    zip: string;
+    /**
+     * Vazio em CEP de localidade (cidade com CEP único).
+     */
+    street?: string;
+    neighborhood?: string;
+    city: string;
+    state: string;
+    ibge_code?: string;
+    /**
+     * Origem da carga (ex. dne).
+     */
+    source?: string;
+};
+
+/**
+ * Dados do comprador **no momento da compra** (#1196). Cópia imutável: o
+ * cadastro pode mudar depois (troca de email, correção de documento) e o
+ * pedido, a nota e o pós-venda têm de continuar a refletir o que valia
+ * quando a compra foi feita. Preenchido pelo servidor a partir do cadastro
+ * — nunca do que o cliente HTTP enviou.
+ *
+ */
+export type OrderCustomerSnapshot = {
+    name?: string;
+    email?: string;
+    whatsapp?: string;
+    document_type?: CustomerDocumentType;
+    document_number?: string;
+    captured_at?: string;
+};
+
+export type CustomerLookupRequest = {
+    document_type: CustomerDocumentType;
+    document_number: string;
+};
+
+export type CustomerCreate = {
+    name: string;
+    document_type: CustomerDocumentType;
+    document_number: string;
+    email?: string;
+    whatsapp_number?: string;
+};
+
 export type Customer = {
     id?: string;
     name?: string;
     email?: string;
     whatsapp_number?: string;
-    orders_count?: number;
+    /**
+     * Agregado em tempo de leitura a partir dos pedidos do cliente (#1095). Excluem-se os status pending, cancelled, refunded, failed e cancellation_requested. Valores enviados em escrita são ignorados.
+     */
+    readonly orders_count?: number;
     created_at?: string;
     consult_token?: string;
     consult_token_expires_at?: string;
@@ -1042,8 +5713,14 @@ export type Customer = {
     addresses?: Array<{
         [key: string]: unknown;
     }>;
-    total_spent?: number;
-    last_order_at?: string;
+    /**
+     * Soma de total_amount dos pedidos do cliente, agregada em tempo de leitura com os mesmos status de orders_count (#1095). Valores enviados em escrita são ignorados.
+     */
+    readonly total_spent?: number;
+    /**
+     * created_at do pedido mais recente que conta nos agregados (#1095).
+     */
+    readonly last_order_at?: string;
     document_type?: CustomerDocumentType;
     /**
      * Valor normalizado (CPF/CNPJ só dígitos; RNE/passaporte alfanumérico).
@@ -1131,6 +5808,55 @@ export type CustomerPatch = {
     };
 };
 
+/**
+ * Endereço na projeção pública do comprador (#713).
+ */
+export type CustomerAddressPublic = {
+    id?: string;
+    label?: string;
+    street?: string;
+    number?: string;
+    complement?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    /**
+     * Alias aceite pelo storefront (mesmo valor que zip).
+     */
+    zip_code?: string;
+};
+
+/**
+ * Perfil seguro para GET/PATCH /auth/customer/me (#713).
+ * Omite consult_token, metadata, totais e campos de anonimização.
+ *
+ */
+export type CustomerPublicProfile = {
+    id?: string;
+    name?: string;
+    email?: string;
+    whatsapp_number?: string;
+    document_type?: CustomerDocumentType;
+    document_number?: string;
+    status?: CustomerStatus;
+    segment?: CustomerSegment;
+    addresses?: Array<CustomerAddressPublic>;
+};
+
+/**
+ * Campos mutáveis pelo comprador (#713). Qualquer outra chave é rejeitada/ignorada.
+ *
+ */
+export type CustomerMePatch = {
+    name?: string;
+    whatsapp_number?: string;
+    /**
+     * Replace da lista completa de endereços.
+     */
+    addresses?: Array<CustomerAddressPublic>;
+};
+
 export const CustomerFieldType = {
     TEXT: 'text',
     NUMBER: 'number',
@@ -1164,6 +5890,10 @@ export type CustomerFieldDefinition = {
     options?: Array<string>;
     description?: string;
     created_at: string;
+    /**
+     * Nome do membro (read-only; JOIN em core.members).
+     */
+    readonly member_name?: string;
 };
 
 export type CustomerFieldDefinitionCreate = {
@@ -1171,6 +5901,18 @@ export type CustomerFieldDefinitionCreate = {
     key: string;
     label: string;
     field_type: CustomerFieldType;
+    required?: boolean;
+    options?: Array<string>;
+    description?: string;
+};
+
+/**
+ * Patch parcial. namespace/key não entram — são a identidade (`namespace::key`) nos metadata do comprador.
+ *
+ */
+export type CustomerFieldDefinitionUpdate = {
+    label?: string;
+    field_type?: CustomerFieldType;
     required?: boolean;
     options?: Array<string>;
     description?: string;
@@ -1217,6 +5959,10 @@ export type Warehouse = {
         [key: string]: unknown;
     }>;
     schedule_rules?: WarehouseScheduleRules;
+    /**
+     * Heartbeat POS (#862) — loja considerada online até este instante (TTL curto).
+     */
+    pos_online_until?: string;
 };
 
 export type WarehousePatch = {
@@ -1235,6 +5981,26 @@ export type WarehousePatch = {
     }>;
 };
 
+export type WarehouseCreate = {
+    /**
+     * Nome interno do armazém
+     */
+    name: string;
+    display_name?: string;
+    is_active?: boolean;
+    is_pickup_point?: boolean;
+    is_default?: boolean;
+    phone?: string;
+    pickup_instructions?: string;
+    /**
+     * Endereço estruturado. Preferir objeto `{street, number, neighborhood, city, state, zip}`. A API também aceita string livre (ex. "Rua X, 687 – Centro") e normaliza para objeto — útil para AI Mode / operadores.
+     *
+     */
+    address?: {
+        [key: string]: unknown;
+    };
+};
+
 export type MemberBankAccount = {
     bank_name?: string;
     agency?: string;
@@ -1250,6 +6016,14 @@ export type MemberServiceOffer = {
     service_id?: string;
     warehouse_id?: string;
     is_enabled?: boolean;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
+    /**
+     * Nome do serviço (read-only; JOIN em core.services).
+     */
+    readonly service_name?: string;
 };
 
 export type MemberServiceOfferUpsert = {
@@ -1271,6 +6045,7 @@ export type Promotion = {
     target_tenants?: Array<string>;
     target_skus?: Array<string>;
     target_categories?: Array<string>;
+    target_campaign?: PromotionCampaignScope;
     usage_limit?: number;
     usage_per_customer?: number;
     usage_count?: number;
@@ -1296,6 +6071,14 @@ export type PromotionUpdate = {
     value?: number;
     ends_at?: string;
     status?: PromotionStatus;
+    /**
+     * Restringe a promoção a um canal (`code` de core.sales_channels). Omitido/null = vale em todos os canais. O literal `all` tem o mesmo efeito.
+     */
+    target_channel?: PriceChannel;
+    /**
+     * Escopo de campanha de tráfego (UTM). Null ou objecto vazio = vale para todo o tráfego. Enviar campos vazios limpa uma restrição anterior.
+     */
+    target_campaign?: PromotionCampaignScope;
 };
 
 export type CouponUpdate = {
@@ -1306,9 +6089,14 @@ export type CouponUpdate = {
     usage_limit?: number;
     usage_per_customer?: number;
     status?: CouponStatus;
+    /**
+     * Restringe a cupom a um canal (`code` de core.sales_channels). Omitido/null = vale em todos os canais. O literal `all` tem o mesmo efeito.
+     */
+    target_channel?: PriceChannel;
 };
 
 export type PromotionCreate = {
+    target_campaign?: PromotionCampaignScope;
     name: string;
     type: PromotionType;
     value: number;
@@ -1320,6 +6108,10 @@ export type PromotionCreate = {
      * Obrigatório para member — campanha local do tenant
      */
     tenant_id?: string;
+    /**
+     * Restringe a promoção a um canal (`code` de core.sales_channels). Omitido/null = vale em todos os canais. O literal `all` tem o mesmo efeito.
+     */
+    target_channel?: PriceChannel;
 };
 
 export type Coupon = {
@@ -1357,6 +6149,10 @@ export type CouponCreate = {
     ends_at?: string;
     usage_limit?: number;
     usage_per_customer?: number;
+    /**
+     * Restringe a cupom a um canal (`code` de core.sales_channels). Omitido/null = vale em todos os canais. O literal `all` tem o mesmo efeito.
+     */
+    target_channel?: PriceChannel;
 };
 
 export type Settlement = {
@@ -1424,6 +6220,25 @@ export type SplitRuleCreate = {
     tenant_id?: string;
 };
 
+/**
+ * Campos de SplitRuleCreate, todos opcionais — só o que vier é alterado (#1093). tenant_id não é editável: mover a regra de tenant mudaria o destino do dinheiro de pedidos já emitidos.
+ */
+export type SplitRuleUpdate = {
+    name?: string;
+    priority_order?: number;
+    is_active?: boolean;
+    has_split?: boolean;
+    member_pct?: number;
+    platform_pct?: number;
+    member_fixed?: number;
+    platform_fixed?: number;
+    condition_product_category?: string;
+    condition_min_amount?: number;
+    condition_max_amount?: number;
+    condition_payment_method?: PaymentMethod;
+    condition_promotion_id?: string;
+};
+
 export type ScheduleSlot = {
     id?: string;
     warehouse_id?: string;
@@ -1436,6 +6251,14 @@ export type ScheduleSlot = {
     created_at?: string;
     customer_name?: string;
     customer_whatsapp?: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
+    /**
+     * Código do pedido (read-only; JOIN em core.orders).
+     */
+    readonly order_code?: string;
 };
 
 export type ScheduleSlotCreate = {
@@ -1450,6 +6273,20 @@ export type AvailableScheduleSlot = {
     label?: string;
     warehouse_id?: string;
     duration_minutes?: number;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
+};
+
+export type ErpConnectionListPage = {
+    data: Array<ErpConnection>;
+    next_cursor?: string;
+    has_more?: boolean;
+    /**
+     * Total do conjunto FILTRADO no servidor (#1118). A UI reportava o tamanho da página como total porque filtrava depois de paginar.
+     */
+    total?: number;
 };
 
 export type ErpConnection = {
@@ -1497,9 +6334,9 @@ export type ErpWizardState = {
 
 export type ErpSyncNowRequest = {
     /**
-     * Roda só este fluxo (stock|price|catalog|order_status); vazio = todos os habilitados
+     * Roda só este fluxo operacional; vazio = preço, estoque, status e outbox pendente
      */
-    flow?: string;
+    flow?: 'stock' | 'price' | 'order_status';
 };
 
 export type ErpFlowRunResult = {
@@ -1551,6 +6388,10 @@ export type ErpOutboxEntry = {
     external_id?: string;
     last_error?: string;
     updated_at?: string;
+    /**
+     * Código do pedido (read-only; JOIN em core.orders).
+     */
+    readonly order_code?: string;
 };
 
 export type ErpOutboxList = {
@@ -1558,6 +6399,39 @@ export type ErpOutboxList = {
     counts?: {
         [key: string]: number;
     };
+};
+
+export type ErpOutboxRetryRequest = {
+    /**
+     * Se omitido/vazio, reprocessa todas as entradas `dead`. Se informado, força requeue imediato dessas entradas em `pending` ou `dead`.
+     *
+     */
+    entry_ids?: Array<string>;
+};
+
+export type OrderErpRepushRequest = {
+    /**
+     * true = cancelar no ERP (se houver id externo) e recriar com dados actuais; false = só retentar outbox pending/dead ou enfileirar pela primeira vez.
+     *
+     */
+    replace?: boolean;
+};
+
+export type OrderErpRepushResult = {
+    /**
+     * queued | sent | cancelled_and_queued
+     */
+    status: string;
+    outbox_entry_id?: string;
+    /**
+     * Id externo cancelado (quando replace)
+     */
+    previous_erp_order_id?: string;
+    /**
+     * Novo id externo se o push imediato concluiu
+     */
+    erp_order_id?: string;
+    message: string;
 };
 
 export type ErpSyncChange = {
@@ -1736,6 +6610,48 @@ export type MessageBranding = {
     signature?: string;
 };
 
+export type MessageEmailDeliverabilitySetup = {
+    /**
+     * Domínio a autenticar (default = domínio do from_email actual)
+     */
+    domain?: string;
+    /**
+     * Se definido, grava em message_branding antes do setup
+     */
+    from_email?: string;
+    from_name?: string;
+};
+
+export type MessageEmailDeliverability = {
+    domain?: string;
+    from_email?: string;
+    from_name?: string;
+    product_name?: string;
+    records: Array<MessageEmailDnsRecord>;
+    overall_status: 'pass' | 'pending' | 'incomplete';
+    authenticated_from: boolean;
+    postal_domain_ready?: boolean;
+    postal_domain_created?: boolean;
+    postal_setup_steps: Array<string>;
+    customization: MessageEmailCustomization;
+};
+
+export type MessageEmailDnsRecord = {
+    purpose: 'spf' | 'dkim' | 'dmarc' | 'return_path' | 'verification';
+    type: string;
+    name: string;
+    value: string;
+    status: 'pass' | 'fail' | 'missing' | 'unknown';
+    observed?: string;
+    help: string;
+};
+
+export type MessageEmailCustomization = {
+    admin_path: string;
+    hint: string;
+    otp_kinds: Array<string>;
+};
+
 export type ErpConnectionCreate = {
     mode: ErpConnectionMode;
     db_type?: ErpDbType;
@@ -1850,6 +6766,99 @@ export type DeveloperOpsData = {
     [key: string]: unknown;
 };
 
+export type WorkerStatus = {
+    /**
+     * Identificador estável da fila (event_outbox, erp_order_outbox, ...)
+     */
+    key: string;
+    /**
+     * Nome humano do worker/fila
+     */
+    label: string;
+    /**
+     * ok=fluindo; idle=sem trabalho; attention=itens em erro/backoff aguardando ação ou retry; stalled=backlog elegível parado além do esperado (worker possivelmente travado); unknown=não foi possível medir
+     */
+    status: 'ok' | 'idle' | 'attention' | 'stalled' | 'unknown';
+    /**
+     * Itens aguardando processamento
+     */
+    pending?: number;
+    /**
+     * Itens em estado de erro (dead/failed/held/error) que precisam de atenção
+     */
+    failed?: number;
+    /**
+     * Idade em segundos do item ELEGÍVEL mais antigo ainda não processado (já vencido o backoff)
+     */
+    oldest_pending_seconds?: number;
+    /**
+     * Último processamento com sucesso observado na fila
+     */
+    last_activity_at?: string;
+    /**
+     * Próxima retentativa agendada (quando em backoff)
+     */
+    next_retry_at?: string;
+    /**
+     * Contexto humano (ex. qual conexão está em backoff, report falhando)
+     */
+    detail?: string;
+};
+
+export type WorkerStatusList = {
+    generated_at: string;
+    /**
+     * Origem da medição. Os workers escrevem no writer: medido pela
+     * réplica, o lag de replicação envelhece last_activity_at e infla
+     * oldest_pending_seconds — um worker saudável pode aparecer como travado.
+     *
+     */
+    source?: 'writer' | 'replica';
+    workers: Array<WorkerStatus>;
+};
+
+/**
+ * Filas de background com estado terminal reprocessável (dead/failed).
+ * Subconjunto das chaves do GET /ops/workers; a wallet da plataforma fica de
+ * fora (vive no banco do console, não no do tenant).
+ *
+ */
+export const RequeueableQueue = {
+    BILLING_EVENTS: 'billing_events',
+    CRM_SYNC_OUTBOX: 'crm_sync_outbox',
+    WEB_RESEARCH_EVENTS: 'web_research_events',
+    MARKETPLACE_SHIP_ACKS: 'marketplace_ship_acks',
+    MARKETPLACE_WEBHOOK_INBOX: 'marketplace_webhook_inbox',
+    PAYMENT_RECONCILE_JOBS: 'payment_reconcile_jobs',
+    CAMPAIGN_RECIPIENTS: 'campaign_recipients',
+    ERP_ORDER_OUTBOX: 'erp_order_outbox',
+    NOTIFICATION_OUTBOX: 'notification_outbox',
+    EVENT_OUTBOX: 'event_outbox'
+} as const;
+
+/**
+ * Filas de background com estado terminal reprocessável (dead/failed).
+ * Subconjunto das chaves do GET /ops/workers; a wallet da plataforma fica de
+ * fora (vive no banco do console, não no do tenant).
+ *
+ */
+export type RequeueableQueue = typeof RequeueableQueue[keyof typeof RequeueableQueue];
+
+export type RequeueDeadLettersRequest = {
+    /**
+     * Máximo de itens a reprocessar neste chamado (default 100, teto 1000)
+     */
+    limit?: number;
+};
+
+export type RequeueDeadLettersResult = {
+    queue: string;
+    /**
+     * Itens que voltaram a pending com elegibilidade imediata
+     */
+    requeued: number;
+};
+
 /**
  * Auditoria de custo e uso LLM
  */
@@ -1878,27 +6887,127 @@ export type ExplorerTryResult = {
     error_message?: string;
 };
 
-export type User = {
+export type Staff = {
     id?: string;
     tenant_id?: string;
     email?: string;
     name?: string;
-    role?: UserRole;
-    status?: UserStatus;
+    role?: StaffRole;
+    status?: StaffStatus;
+    /**
+     * Tags livres de área/classificação (ex. financeiro, adm, logistica). Não é RBAC nem role de utilizador.
+     *
+     */
+    groups?: Array<string>;
     permissions?: {
         [key: string]: Array<string>;
     };
     totp_enabled?: boolean;
+    /**
+     * URL pública da foto de perfil, derivada em runtime da chave no
+     * object store. `null` = sem foto (a UI mostra iniciais). Escreve-se por
+     * `POST /auth/staff/me/avatar`, nunca por PATCH.
+     *
+     */
+    readonly avatar_url?: string;
     created_at?: string;
     last_login_at?: string;
     tenant_type?: 'platform' | 'member';
     tenant_name?: string;
 };
 
-export type UserCreate = {
+/**
+ * Alias de compatibilidade de contrato. Novas integrações usam Staff e /staffs.
+ *
+ * @deprecated
+ */
+export type User = Staff;
+
+/**
+ * O que não se exprime como scope: consentimentos, tecto de valor e as acções que exigem reconfirmação (step-up).
+ *
+ */
+export type PermissionGroupLimits = {
+    /**
+     * Permite tools/acções de dinheiro.
+     */
+    money?: boolean;
+    /**
+     * Permite envio ao cliente (WhatsApp/e-mail), sempre via internal/outreach.
+     */
+    outreach?: boolean;
+    /**
+     * Tecto por acção em BRL. 0 = este grupo não impõe tecto próprio. Somar grupos nunca alarga um tecto: vence o menor não-zero.
+     *
+     */
+    max_amount_brl?: number;
+    /**
+     * Scopes que exigem reconfirmação do operador.
+     */
+    requires_step_up?: Array<string>;
+};
+
+export type PermissionGroup = {
+    slug: string;
+    name: string;
+    description?: string;
+    /**
+     * `platform` vem do catálogo da Mirá (em código, igual em todos os tenants); `tenant` é linha própria e sombreia o catálogo quando partilha o slug.
+     *
+     */
+    source: 'platform' | 'tenant';
+    /**
+     * Domínio → acções. Ex.: {"orders": ["read", "write"]}
+     */
+    permissions: {
+        [key: string]: Array<string>;
+    };
+    limits?: PermissionGroupLimits;
+    /**
+     * Scopes RBAC efectivos derivados de permissions (leitura).
+     */
+    scopes?: Array<string>;
+};
+
+export type PermissionGroupList = {
+    items: Array<PermissionGroup>;
+};
+
+export type PermissionGroupUpsert = {
+    name: string;
+    description?: string;
+    permissions: {
+        [key: string]: Array<string>;
+    };
+    limits?: PermissionGroupLimits;
+};
+
+export type PrincipalGroupAssignment = {
+    principal_id?: string;
+    /**
+     * Slugs atribuídos.
+     */
+    groups: Array<string>;
+    /**
+     * Scopes efectivos resolvidos agora.
+     */
+    scopes?: Array<string>;
+    limits?: PermissionGroupLimits;
+};
+
+export type PrincipalGroupAssignmentUpdate = {
+    groups: Array<string>;
+};
+
+export type StaffCreate = {
     email: string;
     name: string;
-    role: UserRole;
+    role: StaffRole;
+    /**
+     * Tags livres de área/classificação (ex. financeiro, adm, logistica). Não é RBAC nem role de utilizador.
+     *
+     */
+    groups?: Array<string>;
     /**
      * Platform pode criar em tenant member; omitido = tenant do token
      */
@@ -1912,17 +7021,32 @@ export type UserCreate = {
     send_invite?: boolean;
 };
 
-export type UserUpdate = {
+export type StaffUpdate = {
     name?: string;
-    role?: UserRole;
-    status?: UserStatus;
+    role?: StaffRole;
+    status?: StaffStatus;
+    /**
+     * Tags livres de área/classificação (ex. financeiro, adm, logistica). Não é RBAC nem role de utilizador.
+     *
+     */
+    groups?: Array<string>;
     permissions?: {
         [key: string]: Array<string>;
     };
     totp_enabled?: boolean;
 };
 
-export type UserInviteResult = {
+/**
+ * Campos que o próprio operador pode mudar em si. Deliberadamente
+ * sem `role`, `permissions`, `groups`, `status` nem `totp_enabled` — escalada
+ * de privilégio e política de 2FA não passam por auto-edição.
+ *
+ */
+export type StaffSelfUpdate = {
+    name?: string;
+};
+
+export type StaffInviteResult = {
     sent: boolean;
     /**
      * Código magic link — apenas ambiente dev
@@ -1930,21 +7054,92 @@ export type UserInviteResult = {
     dev_code?: string;
 };
 
-export type UserCreated = {
-    user: User;
-    invite?: UserInviteResult;
+export type StaffCreated = {
+    staff: Staff;
+    invite?: StaffInviteResult;
 };
+
+/**
+ * Tipo operacional do canal. `storefront` habilita URLs/DNS e rebuild Cloudflare Pages; `marketplace` liga a adapters; `assisted` é conversacional; `api` é integração headless; `pos` é PDV/loja física (ADR 0089); `b2b_invoiced` é canal de liquidação B2B por fatura (controla métodos de settlement como Pix); `other` é fallback/genérico (ex. canal `all`).
+ *
+ */
+export const SalesChannelKind = {
+    STOREFRONT: 'storefront',
+    MARKETPLACE: 'marketplace',
+    API: 'api',
+    ASSISTED: 'assisted',
+    POS: 'pos',
+    B2B_INVOICED: 'b2b_invoiced',
+    OTHER: 'other'
+} as const;
+
+/**
+ * Tipo operacional do canal. `storefront` habilita URLs/DNS e rebuild Cloudflare Pages; `marketplace` liga a adapters; `assisted` é conversacional; `api` é integração headless; `pos` é PDV/loja física (ADR 0089); `b2b_invoiced` é canal de liquidação B2B por fatura (controla métodos de settlement como Pix); `other` é fallback/genérico (ex. canal `all`).
+ *
+ */
+export type SalesChannelKind = typeof SalesChannelKind[keyof typeof SalesChannelKind];
+
+/**
+ * Último estado conhecido do one-click DNS (só-leitura).
+ */
+export const SalesChannelDnsStatus = {
+    UNCONFIGURED: 'unconfigured',
+    PENDING: 'pending',
+    ACTIVE: 'active',
+    ERROR: 'error'
+} as const;
+
+/**
+ * Último estado conhecido do one-click DNS (só-leitura).
+ */
+export type SalesChannelDnsStatus = typeof SalesChannelDnsStatus[keyof typeof SalesChannelDnsStatus];
 
 export type SalesChannel = {
     id?: string;
     code?: string;
     name?: string;
+    kind?: SalesChannelKind;
     is_active?: boolean;
     is_default?: boolean;
     description?: string;
     supports_promotions?: boolean;
     supports_coupons?: boolean;
+    /**
+     * Deprecated — nunca foi lido na resolução de preço (a especificidade warehouse/canal já desempata em PricesForResolve). Mantido por expand/contract; removido da UI do admin. Não usar.
+     *
+     * @deprecated
+     */
     price_resolution_priority?: number;
+    /**
+     * URL pública canónica do storefront (https://loja.exemplo.com). Só relevante quando kind=storefront.
+     */
+    storefront_url?: string;
+    /**
+     * Hostnames do storefront no cluster (#885) — plataforma e/ou custom (ex. loja.exemplo.com). Verificados por POST …/configure-dns.
+     */
+    storefront_domains?: Array<string>;
+    /**
+     * Deprecated (#885) — legado Cloudflare Pages; ignorado no configure-dns (cluster OVH). Manter no schema por expand/contract.
+     *
+     * @deprecated
+     */
+    cf_pages_project?: string;
+    /**
+     * Estado do último configure-dns (só-leitura).
+     */
+    dns_status?: SalesChannelDnsStatus;
+    /**
+     * Último erro do configure-dns (só-leitura).
+     */
+    dns_error?: string;
+    /**
+     * Quando o último configure-dns concluiu com sucesso parcial/total.
+     */
+    dns_configured_at?: string;
+    /**
+     * Métodos de liquidação permitidos para faturas B2B (só relevante quando kind=b2b_invoiced). Valores possíveis: pix. null = default [pix]; array vazio = Pix desligado no admin.
+     */
+    invoice_settlement_methods?: Array<string>;
     created_at?: string;
 };
 
@@ -1954,23 +7149,140 @@ export type SalesChannelCreate = {
      */
     code: string;
     name: string;
+    kind?: SalesChannelKind;
     description?: string;
     is_active?: boolean;
     is_default?: boolean;
     supports_promotions?: boolean;
     supports_coupons?: boolean;
+    /**
+     * Deprecated — nunca foi lido na resolução de preço (a especificidade warehouse/canal já desempata em PricesForResolve). Mantido por expand/contract; removido da UI do admin. Não usar.
+     *
+     * @deprecated
+     */
     price_resolution_priority?: number;
+    storefront_url?: string;
+    storefront_domains?: Array<string>;
+    cf_pages_project?: string;
+    /**
+     * Métodos de liquidação permitidos (kind=b2b_invoiced). Valores possíveis: pix.
+     */
+    invoice_settlement_methods?: Array<string>;
 };
 
 export type SalesChannelUpdate = {
     code?: string;
     name?: string;
+    kind?: SalesChannelKind;
     description?: string;
     is_active?: boolean;
     is_default?: boolean;
     supports_promotions?: boolean;
     supports_coupons?: boolean;
+    /**
+     * Deprecated — nunca foi lido na resolução de preço (a especificidade warehouse/canal já desempata em PricesForResolve). Mantido por expand/contract; removido da UI do admin. Não usar.
+     *
+     * @deprecated
+     */
     price_resolution_priority?: number;
+    storefront_url?: string;
+    storefront_domains?: Array<string>;
+    cf_pages_project?: string;
+    /**
+     * Métodos de liquidação permitidos (kind=b2b_invoiced). Valores possíveis: pix.
+     */
+    invoice_settlement_methods?: Array<string>;
+};
+
+export type ChannelDnsDomainResult = {
+    hostname?: string;
+    /**
+     * active (aponta para o load balancer), pending (ainda não aponta ou não resolve) ou error.
+     */
+    status?: string;
+    message?: string;
+    /**
+     * Hostname do load balancer que devia estar no CNAME (ex. lb.mira-dev.tech).
+     */
+    expected?: string;
+    /**
+     * CNAME observado no momento da verificação, quando existe.
+     */
+    cname?: string;
+    /**
+     * Endereços resolvidos para o hostname (diagnóstico).
+     */
+    resolved?: Array<string>;
+    /**
+     * Activo mas frágil — por exemplo A fixo num nó OVH (sem failover) ou IP de proxy Cloudflare, que não prova a origem.
+     */
+    warning?: string;
+};
+
+/**
+ * Mapa do que referencia um canal — ver GET /channels/{channel_id}/associations.
+ */
+export type ChannelAssociations = {
+    channel_id?: string;
+    code?: string;
+    kind?: SalesChannelKind;
+    is_default?: boolean;
+    is_active?: boolean;
+    counts?: ChannelAssociationCounts;
+    /**
+     * false quando DELETE /channels/{channel_id} vai recusar (canal padrão ou já referenciado). A UI usa isto para explicar antes de o utilizador tentar.
+     */
+    deletable?: boolean;
+    /**
+     * Motivo legível quando `deletable` é false.
+     */
+    blocked_reason?: string;
+    /**
+     * Conexão de marketplace ligada a este canal, se houver.
+     */
+    marketplace_connection?: MarketplaceConnection;
+    /**
+     * Configuração de storefront, quando kind=storefront.
+     */
+    storefront?: ChannelStorefrontSummary;
+};
+
+/**
+ * Contagem de registos que referenciam o `code` do canal. O coringa `all` não conta — vale em todos os canais, não neste em particular.
+ */
+export type ChannelAssociationCounts = {
+    prices?: number;
+    promotions?: number;
+    coupons?: number;
+    tax_rules?: number;
+    orders?: number;
+};
+
+export type ChannelStorefrontSummary = {
+    storefront_url?: string;
+    storefront_domains?: Array<string>;
+    dns_status?: SalesChannelDnsStatus;
+    dns_error?: string;
+};
+
+export type ChannelDnsConfigureResult = {
+    channel_id?: string;
+    /**
+     * Hostname do load balancer para onde o CNAME do storefront deve apontar (ex. lb.mira-dev.tech). É o valor que a UI mostra ao lojista.
+     */
+    expected_target?: string;
+    /**
+     * Endereços do load balancer no momento da verificação. Só para diagnóstico e para quem precisa mesmo de registo A — o CNAME é o caminho suportado.
+     */
+    lb_addresses?: Array<string>;
+    /**
+     * Legado — repete `expected_target`. Mantido para clientes antigos.
+     *
+     * @deprecated
+     */
+    project?: string;
+    domains?: Array<ChannelDnsDomainResult>;
+    dns_status?: SalesChannelDnsStatus;
 };
 
 export const MarketplaceConnectionStatus = {
@@ -1991,20 +7303,161 @@ export const MarketplaceListingStatus = {
 
 export type MarketplaceListingStatus = typeof MarketplaceListingStatus[keyof typeof MarketplaceListingStatus];
 
+/**
+ * channel_price — usa PricesForResolve do canal;
+ * channel_price_plus_adjust — resolve + adjust_percent/fixed;
+ * list_and_sale — resolve como venda e base_price como lista (de/por).
+ *
+ */
+export const MarketplacePricingMode = {
+    CHANNEL_PRICE: 'channel_price',
+    CHANNEL_PRICE_PLUS_ADJUST: 'channel_price_plus_adjust',
+    LIST_AND_SALE: 'list_and_sale'
+} as const;
+
+/**
+ * channel_price — usa PricesForResolve do canal;
+ * channel_price_plus_adjust — resolve + adjust_percent/fixed;
+ * list_and_sale — resolve como venda e base_price como lista (de/por).
+ *
+ */
+export type MarketplacePricingMode = typeof MarketplacePricingMode[keyof typeof MarketplacePricingMode];
+
+export const MarketplaceDescriptionSource = { PRODUCT: 'product', CHANNEL_OVERRIDE: 'channel_override' } as const;
+
+export type MarketplaceDescriptionSource = typeof MarketplaceDescriptionSource[keyof typeof MarketplaceDescriptionSource];
+
+export type MarketplaceConnectionPricingConfig = {
+    mode?: MarketplacePricingMode;
+    /**
+     * Markup (+) ou desconto (−) percentual sobre o preço resolvido
+     */
+    adjust_percent?: number;
+    /**
+     * Ajuste fixo na moeda do preço
+     */
+    adjust_fixed?: number;
+    /**
+     * Quando true e o canal remoto suportar, envia preço de lista
+     */
+    push_list_price?: boolean;
+};
+
+export type MarketplaceConnectionInventoryConfig = {
+    /**
+     * Buffer global subtraído do stock publicado
+     */
+    safety_stock?: number;
+    /**
+     * Override por category id Mira
+     */
+    safety_by_category?: {
+        [key: string]: number;
+    };
+    /**
+     * Override por SKU
+     */
+    safety_by_sku?: {
+        [key: string]: number;
+    };
+    /**
+     * Pausar anúncio quando stock publicado ≤ 0 (default true)
+     */
+    pause_when_zero?: boolean;
+};
+
+export type MarketplaceConnectionOrdersConfig = {
+    /**
+     * Prefixo opcional em referências/observações do pedido
+     */
+    external_prefix?: string;
+    max_items_per_order?: number;
+    auto_acknowledge?: boolean;
+};
+
+export type MarketplaceConnectionEconomicsConfig = {
+    /**
+     * Comissão estimada do canal (margem líquida no admin)
+     */
+    commission_percent?: number;
+    rebate_percent?: number;
+};
+
+export type MarketplaceConnectionContentConfig = {
+    /**
+     * Template opcional; `{name}` e `{sku}` são substituídos
+     */
+    title_template?: string;
+    description_source?: MarketplaceDescriptionSource;
+};
+
+/**
+ * Limiares de mapping/onboarding (ADR 0132)
+ */
+export type MarketplaceConnectionMappingConfig = {
+    /**
+     * Limiar de auto-apply de maps (default plataforma 0.92)
+     */
+    auto_apply_confidence?: number;
+};
+
+/**
+ * Perfil comercial tipado da conexão (ADR 0124) + mapping (ADR 0132)
+ */
+export type MarketplaceConnectionConfig = {
+    warehouse_id?: string;
+    pricing?: MarketplaceConnectionPricingConfig;
+    inventory?: MarketplaceConnectionInventoryConfig;
+    orders?: MarketplaceConnectionOrdersConfig;
+    economics?: MarketplaceConnectionEconomicsConfig;
+    /**
+     * mapa mira_shipping_method_code → remote_method_id
+     */
+    shipping_map?: {
+        [key: string]: string;
+    };
+    content?: MarketplaceConnectionContentConfig;
+    mapping?: MarketplaceConnectionMappingConfig;
+};
+
+export type MarketplaceChannelList = {
+    data: Array<MarketplaceChannelInfo>;
+};
+
+export type MarketplaceChannelInfo = {
+    /**
+     * Código do canal, igual ao SalesChannel.Code.
+     */
+    code: string;
+    label: string;
+    /**
+     * Ex.: listings, orders, stock, price.
+     */
+    capabilities?: Array<string>;
+    regions?: Array<string>;
+    version?: string;
+    /**
+     * Já existe conexão deste tenant para o canal.
+     */
+    connected?: boolean;
+};
+
 export type MarketplaceConnection = {
     id?: string;
     tenant_id?: string;
     channel_id?: string;
     channel_code?: string;
+    /**
+     * Etiqueta da conta (multi-conexão no mesmo canal)
+     */
+    label?: string;
     seller_id?: string;
     status?: MarketplaceConnectionStatus;
     /**
      * Intervalo de sincronização em minutos
      */
     sync_interval?: number;
-    config?: {
-        [key: string]: unknown;
-    };
+    config?: MarketplaceConnectionConfig;
     error_message?: string;
     last_synced_at?: string;
     last_sync_duration_ms?: number;
@@ -2016,10 +7469,53 @@ export type MarketplaceConnection = {
 
 export type MarketplaceConnectionCreate = {
     channel_code?: string;
+    /**
+     * Etiqueta opcional para multi-conta
+     */
+    label?: string;
     sync_interval?: number;
-    config?: {
-        [key: string]: unknown;
-    };
+    config?: MarketplaceConnectionConfig;
+};
+
+export type MarketplaceConnectionUpdate = {
+    label?: string;
+    sync_interval?: number;
+    config?: MarketplaceConnectionConfig;
+    /**
+     * Só estes valores são aceites via PATCH (error é runtime)
+     */
+    status?: 'active' | 'disconnected';
+};
+
+export type MarketplacePricingPreviewRequest = {
+    sku: string;
+};
+
+export type MarketplacePricingPreview = {
+    sku?: string;
+    product_id?: string;
+    channel_code?: string;
+    list_price?: number;
+    sale_price?: number;
+    currency?: string;
+    available_stock?: number;
+    published_stock?: number;
+    safety_applied?: number;
+    would_pause?: boolean;
+    pricing_mode?: MarketplacePricingMode;
+    notes?: Array<string>;
+};
+
+export type MarketplaceSyncLogEntry = {
+    sku?: string;
+    /**
+     * create | update | pause | resume | skip | error
+     */
+    action?: string;
+    price?: number;
+    stock?: number;
+    message?: string;
+    at?: string;
 };
 
 export type MarketplaceListing = {
@@ -2034,6 +7530,138 @@ export type MarketplaceListing = {
     url?: string;
     error_message?: string;
     last_synced_at?: string;
+};
+
+export type MarketplaceMap = {
+    id?: string;
+    connection_id?: string;
+    kind?: 'category' | 'attribute' | 'brand' | 'freight' | 'status' | 'listing_bind';
+    core_key?: string;
+    external_key?: string;
+    external_path?: string;
+    confidence?: number;
+    source?: 'auto_llm' | 'human' | 'import' | 'rule';
+    version?: number;
+    active?: boolean;
+    applied_by?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type MarketplaceMapApply = {
+    kind: 'category' | 'attribute' | 'brand' | 'freight' | 'status' | 'listing_bind';
+    core_key: string;
+    external_key: string;
+    external_path?: string;
+    confidence?: number;
+    source?: 'auto_llm' | 'human' | 'import' | 'rule';
+    reason?: string;
+};
+
+export type MarketplaceOnboardResult = {
+    auto_applied?: number;
+    proposed?: Array<MarketplaceMapApply>;
+    skipped?: number;
+};
+
+export type MarketplaceMapProposal = {
+    id?: string;
+    connection_id?: string;
+    kind?: 'category' | 'attribute' | 'brand' | 'freight' | 'status' | 'listing_bind';
+    core_key?: string;
+    external_key?: string;
+    external_path?: string;
+    confidence?: number;
+    reason?: string;
+    status?: 'pending' | 'accepted' | 'rejected';
+    created_at?: string;
+    resolved_at?: string;
+    resolved_by?: string;
+};
+
+export type MarketplaceMapProposalDecide = {
+    decision: 'accept' | 'reject';
+};
+
+export type MarketplaceMappingStats = {
+    connection_id?: string;
+    /**
+     * Maps activos com source auto_llm ou rule
+     */
+    active_maps_auto?: number;
+    active_maps_human?: number;
+    pending_proposals?: number;
+    /**
+     * active_maps_auto / (auto+human); 0 se sem maps
+     */
+    auto_match_rate?: number;
+    last_onboard_at?: string;
+    last_onboard_duration_ms?: number;
+    last_onboard_auto_applied?: number;
+    last_onboard_proposed?: number;
+    last_drift_at?: string;
+    last_drift_findings?: number;
+};
+
+export type MarketplaceDriftResult = {
+    findings?: number;
+    proposed?: Array<MarketplaceMapApply>;
+};
+
+export type MarketplaceOAuthUserCodeBegin = {
+    connection_id: string;
+};
+
+export type MarketplaceOAuthUserCodeComplete = {
+    connection_id: string;
+    authorization_code: string;
+    /**
+     * State devolvido no begin (obrigatório se o canal o emitir)
+     */
+    state?: string;
+};
+
+export type MarketplaceOAuthUserCodeChallenge = {
+    user_code: string;
+    verification_url: string;
+    interval_seconds?: number;
+    expires_in_seconds?: number;
+    state?: string;
+};
+
+export type MarketplaceRequirementGap = {
+    canonical_key: string;
+    /**
+     * Label canónico PT (ADR 0132)
+     */
+    label: string;
+    severity: 'required' | 'recommended' | 'optional';
+    channel_key?: string;
+    message?: string;
+};
+
+export type ProductMarketplaceChannelStatus = {
+    connection_id: string;
+    connection_label?: string;
+    channel_code: string;
+    channel_name?: string;
+    /**
+     * unbound | pending | active | paused | error
+     */
+    listing_status: string;
+    external_item_id?: string;
+    external_url?: string;
+    readiness_score: number;
+    gaps?: Array<MarketplaceRequirementGap>;
+    published_price?: number;
+    published_stock?: number;
+    currency?: string;
+};
+
+export type ProductMarketplaceStatus = {
+    product_id: string;
+    sku: string;
+    channels: Array<ProductMarketplaceChannelStatus>;
 };
 
 export type AccessToken = {
@@ -2070,9 +7698,487 @@ export type AccessTokenCreated = AccessToken & {
     secret?: string;
 };
 
-export const OrderItemType = { GOODS: 'goods', SERVICE: 'service' } as const;
+export const OrderItemType = {
+    GOODS: 'goods',
+    SERVICE: 'service',
+    RENTAL: 'rental',
+    DIGITAL: 'digital'
+} as const;
 
 export type OrderItemType = typeof OrderItemType[keyof typeof OrderItemType];
+
+/**
+ * Tipo em core.products (service usa ServiceProduct); gift_card emite instrumento no pagamento (ADR 0130 D6)
+ */
+export const CatalogProductType = {
+    GOODS: 'goods',
+    RENTAL: 'rental',
+    DIGITAL: 'digital',
+    GIFT_CARD: 'gift_card'
+} as const;
+
+/**
+ * Tipo em core.products (service usa ServiceProduct); gift_card emite instrumento no pagamento (ADR 0130 D6)
+ */
+export type CatalogProductType = typeof CatalogProductType[keyof typeof CatalogProductType];
+
+/**
+ * Janela de meia-diária no fuso do tenant (HH:mm local)
+ */
+export type RentalDayPart = {
+    /**
+     * Ex. morning, afternoon
+     */
+    id: string;
+    /**
+     * Rótulo UI (ex. Manhã)
+     */
+    label?: string;
+    /**
+     * Início HH:mm no fuso do tenant
+     */
+    start_local: string;
+    /**
+     * Fim HH:mm no fuso do tenant (exclusive no motor se igual a start de outra part)
+     */
+    end_local: string;
+};
+
+export type RentalPricingTier = {
+    /**
+     * Usado quando billing_basis=day (default 1 se omitido)
+     */
+    min_days?: number;
+    /**
+     * null = sem teto (billing_basis=day)
+     */
+    max_days?: number;
+    /**
+     * Usado quando billing_basis=hour
+     */
+    min_hours?: number;
+    /**
+     * null = sem teto (billing_basis=hour)
+     */
+    max_hours?: number;
+    /**
+     * Preço do pacote/faixa na moeda do tenant
+     */
+    amount: number;
+    /**
+     * Ex. half_day, daily, multi_day, hourly
+     */
+    package?: string;
+};
+
+export type RentalModifier = {
+    /**
+     * Ex. height
+     */
+    key: string;
+    /**
+     * Ex. 6m / 8m
+     */
+    value?: string;
+    /**
+     * Sobretaxa percentual (ex. 20)
+     */
+    percent: number;
+};
+
+/**
+ * Configuração de locação no SKU (ADR 0049). Em PATCH /products/{id}, `rental_meta` faz merge shallow (ADR 0141 / #1416): campos omitidos preservam; `null` num campo limpa; arrays (`pricing_tiers`, `day_parts`, `modifiers`) presentes substituem o array inteiro; `rental_meta: null` limpa o objecto.
+ */
+export type RentalMeta = {
+    /**
+     * Base de cobrança — day (meia/diária/multi) ou hour. Slots de minutos ficam em product_type=service.
+     */
+    billing_basis?: 'day' | 'hour';
+    /**
+     * Janelas de meia-diária (só billing_basis=day). Ex. 07:00–12:00 e 13:00–18:00.
+     */
+    day_parts?: Array<RentalDayPart>;
+    pricing_tiers?: Array<RentalPricingTier>;
+    modifiers?: Array<RentalModifier>;
+    /**
+     * Calção fixo; 0 = sem calção (salvo deposit_percent)
+     */
+    deposit_fixed?: number;
+    /**
+     * Percentual do valor do bem (calção)
+     */
+    deposit_percent?: number;
+    /**
+     * Horas indisponíveis após period_end antes do próximo aluguel
+     */
+    maintenance_buffer_hours?: number;
+    /**
+     * Dias mínimos de aluguel (opcional). Omitido = sem mínimo.
+     */
+    min_rental_days?: number;
+    /**
+     * Dias máximos de aluguel (opcional). Omitido = sem máximo; se ambos set, max ≥ min.
+     */
+    max_rental_days?: number;
+    /**
+     * Multa por dia de atraso na devolução (moeda do tenant). Omitido = sem multa configurada. Cobrança continua manual (só sugestão em gates).
+     */
+    late_fee_per_day?: number;
+    requires_serialized_asset?: boolean;
+    /**
+     * Texto/HTML do contrato (versão no agreement)
+     */
+    contract_template?: string;
+    contract_template_version?: string;
+    manual_url?: string;
+    manual_asset_id?: string;
+    /**
+     * Exige ≥1 foto de entrega antes do dispatch/handover
+     */
+    require_delivery_photos?: boolean;
+    /**
+     * Exige ≥1 foto de devolução em confirm-return
+     */
+    require_return_photos?: boolean;
+};
+
+/**
+ * Produto digital sem estoque (ADR 0049)
+ */
+export type DigitalMeta = {
+    download_url?: string;
+    file_asset_id?: string;
+    mime_type?: string;
+};
+
+/**
+ * SKU gift card — face value / validade / PIN (emissão no payment_approved)
+ */
+export type GiftCardMeta = {
+    /**
+     * Valor fixo do cartão; se omitido, usa o preço da linha do pedido
+     */
+    face_value_cents?: number;
+    /**
+     * Comprador escolhe o valor (preço da linha = face value)
+     */
+    open_amount?: boolean;
+    /**
+     * Dias até expires_at a partir da emissão; omitido = sem validade
+     */
+    validity_days?: number;
+    require_pin?: boolean;
+    /**
+     * Mensagem opcional ao destinatário
+     */
+    message_template?: string;
+};
+
+export type RentalAsset = {
+    id: string;
+    tenant_id?: string;
+    product_id: string;
+    warehouse_id?: string;
+    code: string;
+    serial_number?: string;
+    status: 'active' | 'inactive' | 'retired';
+    maintenance_buffer_hours?: number;
+    created_at?: string;
+    /**
+     * Nome do produto (read-only; JOIN em core.products).
+     */
+    readonly product_name?: string;
+    /**
+     * SKU do produto (read-only; JOIN em core.products).
+     */
+    readonly product_sku?: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
+};
+
+export type RentalAssetCreate = {
+    product_id: string;
+    warehouse_id?: string;
+    code: string;
+    serial_number?: string;
+    maintenance_buffer_hours?: number;
+};
+
+export type RentalAssetUpdate = {
+    warehouse_id?: string;
+    code?: string;
+    serial_number?: string;
+    status?: 'active' | 'inactive' | 'retired';
+    maintenance_buffer_hours?: number;
+};
+
+export type RentalAssetListPage = {
+    data: Array<RentalAsset>;
+    next_cursor?: string;
+    has_more: boolean;
+    total?: number;
+};
+
+export type RentalAvailability = {
+    available: boolean;
+    free_count: number;
+    /**
+     * Capacidade no ledger / nº de assets activos
+     */
+    fleet_size: number;
+    free_asset_ids?: Array<string>;
+    maintenance_buffer_hours?: number;
+};
+
+export type RentalQuoteRequest = {
+    sku: string;
+    quantity?: number;
+    period_start: string;
+    period_end: string;
+    modifiers?: {
+        [key: string]: string;
+    };
+    warehouse_id?: string;
+};
+
+export type RentalQuoteLine = {
+    code?: string;
+    label?: string;
+    amount?: number;
+};
+
+export type RentalQuoteResult = {
+    rental_amount: number;
+    deposit_amount: number;
+    currency: 'BRL';
+    /**
+     * Dias civis cobrados (billing_basis=day)
+     */
+    days?: number;
+    /**
+     * Horas cobradas (billing_basis=hour), ceil da duração
+     */
+    hours?: number;
+    /**
+     * Unidades cobradas (dias ou horas conforme billing_basis)
+     */
+    billing_units?: number;
+    package?: string;
+    /**
+     * id da day_part quando package=half_day
+     */
+    matched_day_part?: string;
+    lines?: Array<RentalQuoteLine>;
+    available?: boolean;
+};
+
+export type RentalOrderGates = {
+    payment_ok?: boolean;
+    deposit_ok?: boolean;
+    contract_ok?: boolean;
+    identity_ok?: boolean;
+    /**
+     * true se todos os gates exigidos pelo SKU estão OK
+     */
+    release_ok?: boolean;
+    missing?: Array<string>;
+    /**
+     * Dias de atraso vs period_end (ceil). 0 se ainda no prazo.
+     */
+    late_days?: number;
+    /**
+     * Multa/dia configurada no SKU (quando presente)
+     */
+    late_fee_per_day?: number;
+    /**
+     * late_days × late_fee_per_day — sugestão apenas; sem cobrança automática
+     */
+    late_fee_suggested?: number;
+};
+
+export const RentalBlockReason = {
+    MAINTENANCE: 'maintenance',
+    OPERATIONAL: 'operational',
+    OTHER: 'other'
+} as const;
+
+export type RentalBlockReason = typeof RentalBlockReason[keyof typeof RentalBlockReason];
+
+export type RentalBlock = {
+    id: string;
+    asset_id: string;
+    period_start: string;
+    period_end: string;
+    reason: RentalBlockReason;
+    /**
+     * Texto livre explicando o bloqueio
+     */
+    note?: string;
+    created_at: string;
+};
+
+export type RentalBlockCreate = {
+    period_start: string;
+    period_end: string;
+    reason: RentalBlockReason;
+    /**
+     * Texto livre (recomendado; obrigatório na UI se reason=other)
+     */
+    note?: string;
+};
+
+export type RentalBlockList = {
+    data: Array<RentalBlock>;
+};
+
+export type ProductionBoardAggregate = {
+    sku: string;
+    name?: string;
+    qty: number;
+};
+
+export type ProductionBoard = {
+    date: string;
+    aggregates: Array<ProductionBoardAggregate>;
+    orders_total: number;
+    produced_count: number;
+};
+
+export type ExpeditionCompositionLine = {
+    sku: string;
+    name?: string;
+    qty: number;
+};
+
+export type ExpeditionBoardOrder = {
+    order_id: string;
+    order_code?: string;
+    customer_name?: string;
+    route_key: string;
+    delivery_address?: DeliveryAddress;
+    lines: Array<ExpeditionCompositionLine>;
+    production_status: 'pending' | 'produced';
+    expedition_status: 'pending' | 'packed' | 'dispatched';
+};
+
+export type ExpeditionBoard = {
+    date: string;
+    orders: Array<ExpeditionBoardOrder>;
+};
+
+export type OrderOpsProgress = {
+    order_id: string;
+    production_status: 'pending' | 'produced';
+    expedition_status: 'pending' | 'packed' | 'dispatched';
+    produced_at?: string;
+    packed_at?: string;
+    dispatched_at?: string;
+};
+
+export const FulfillmentEvidenceKind = {
+    DELIVERY: 'delivery',
+    RETURN: 'return',
+    DAMAGE: 'damage'
+} as const;
+
+export type FulfillmentEvidenceKind = typeof FulfillmentEvidenceKind[keyof typeof FulfillmentEvidenceKind];
+
+export type OrderFulfillmentEvidence = {
+    id: string;
+    order_id: string;
+    kind: FulfillmentEvidenceKind;
+    storage_key: string;
+    content_type?: string;
+    /**
+     * Presigned GET (TTL curto)
+     */
+    url?: string;
+    asset_id?: string;
+    note?: string;
+    created_at: string;
+};
+
+export type OrderFulfillmentEvidenceList = {
+    data: Array<OrderFulfillmentEvidence>;
+};
+
+export type FulfillmentEvidenceUploadUrlRequest = {
+    kind: FulfillmentEvidenceKind;
+    content_type?: string;
+    asset_id?: string;
+    note?: string;
+};
+
+export type FulfillmentEvidenceUploadUrl = {
+    upload_url: string;
+    storage_key: string;
+    expires_at: string;
+};
+
+export type ConfirmOrderReturnRequest = {
+    /**
+     * Se true, tenta void do calção autorizado após evidência OK
+     */
+    void_deposit?: boolean;
+    note?: string;
+};
+
+export type RentalExtendRequest = {
+    /**
+     * Novo fim da locação (deve ser posterior ao period_end actual das reservas)
+     */
+    period_end: string;
+    /**
+     * Se true, o pedido filho inclui intent de calção com o delta
+     * (cotação no período completo − calção já autorizado/pago no pai).
+     *
+     */
+    reinforce_deposit?: boolean;
+};
+
+export type RentalAgreement = {
+    id?: string;
+    order_id?: string;
+    /**
+     * Produto principal do contrato.
+     */
+    product_id?: string;
+    status?: 'pending' | 'token_sent' | 'signed' | 'void';
+    template_version?: string;
+    signed_at?: string;
+    /**
+     * Código do pedido (read-only; JOIN em core.orders).
+     */
+    readonly order_code?: string;
+    /**
+     * HTML do contrato renderizado com variáveis.
+     */
+    body_html?: string;
+    /**
+     * URL pré-assinada (15 min TTL) do PDF gerado após assinatura.
+     */
+    pdf_url?: string;
+};
+
+export type RentalAgreementStartRequest = {
+    email?: string;
+};
+
+export type RentalAgreementConfirmRequest = {
+    token: string;
+};
+
+export type OrderDownload = {
+    kind?: 'contract' | 'manual' | 'digital' | 'receipt';
+    label?: string;
+    url?: string;
+};
+
+export type OrderDownloadList = {
+    data: Array<OrderDownload>;
+};
 
 export const InventorySource = {
     EXTERNAL_DATA: 'external_data',
@@ -2081,6 +8187,20 @@ export const InventorySource = {
 } as const;
 
 export type InventorySource = typeof InventorySource[keyof typeof InventorySource];
+
+/**
+ * Política de estoque por linha warehouse×produto (#975). `strict` = bloqueia sem saldo (default); `allow_negative` = backorder (saldo pode ficar negativo); `infinite` = vende sem teto e saídas não decrementam.
+ */
+export const InventoryStockPolicy = {
+    STRICT: 'strict',
+    ALLOW_NEGATIVE: 'allow_negative',
+    INFINITE: 'infinite'
+} as const;
+
+/**
+ * Política de estoque por linha warehouse×produto (#975). `strict` = bloqueia sem saldo (default); `allow_negative` = backorder (saldo pode ficar negativo); `infinite` = vende sem teto e saídas não decrementam.
+ */
+export type InventoryStockPolicy = typeof InventoryStockPolicy[keyof typeof InventoryStockPolicy];
 
 export const InventoryMovementType = {
     ENTRADA: 'entrada',
@@ -2099,10 +8219,117 @@ export const InventoryMovementReason = {
     PACKING: 'packing',
     CHECKOUT: 'checkout',
     MANUAL: 'manual',
-    ERP_SYNC: 'erp_sync'
+    ERP_SYNC: 'erp_sync',
+    CHANGE_ORDER: 'change_order',
+    PURCHASE_RECEIVE: 'purchase_receive',
+    SALE: 'sale',
+    TRANSFER: 'transfer',
+    PRODUCTION: 'production',
+    RETURN: 'return'
 } as const;
 
 export type InventoryMovementReason = typeof InventoryMovementReason[keyof typeof InventoryMovementReason];
+
+export const ChangeOrderSettlementMode = { AUTO: 'auto', RECORD_ONLY: 'record_only' } as const;
+
+export type ChangeOrderSettlementMode = typeof ChangeOrderSettlementMode[keyof typeof ChangeOrderSettlementMode];
+
+export const ChangeOrderShippingMode = { KEEP: 'keep', REQUOTE: 'requote' } as const;
+
+export type ChangeOrderShippingMode = typeof ChangeOrderShippingMode[keyof typeof ChangeOrderShippingMode];
+
+export const OrderChangeSettlementPlan = {
+    NOOP: 'noop',
+    CAPTURE_ADJUST: 'capture_adjust',
+    PARTIAL_REFUND: 'partial_refund',
+    VOID_AND_RECAPTURE: 'void_and_recapture',
+    MANUAL_PROVIDER: 'manual_provider'
+} as const;
+
+export type OrderChangeSettlementPlan = typeof OrderChangeSettlementPlan[keyof typeof OrderChangeSettlementPlan];
+
+export const OrderChangeSettlementStatus = {
+    PENDING: 'pending',
+    SUCCEEDED: 'succeeded',
+    MANUAL_REQUIRED: 'manual_required',
+    FAILED: 'failed'
+} as const;
+
+export type OrderChangeSettlementStatus = typeof OrderChangeSettlementStatus[keyof typeof OrderChangeSettlementStatus];
+
+export type ChangeOrderLineInput = {
+    sku: string;
+    quantity: number;
+    warehouse_id?: string;
+    item_type?: OrderItemType;
+};
+
+export type ChangeOrderPreviewRequest = {
+    items: Array<ChangeOrderLineInput>;
+    shipping?: {
+        mode?: ChangeOrderShippingMode;
+        method_id?: string;
+    };
+    settlement_mode?: ChangeOrderSettlementMode;
+};
+
+export type ChangeOrderRequest = {
+    change_seal: string;
+    reason: string;
+    reason_detail?: string;
+    items: Array<ChangeOrderLineInput>;
+    shipping?: {
+        mode?: ChangeOrderShippingMode;
+        method_id?: string;
+    };
+    settlement_mode?: ChangeOrderSettlementMode;
+    notify_customer?: boolean;
+    client_change_id?: string;
+};
+
+export type OrderChangeAdvisory = {
+    code: string;
+    severity: 'info' | 'warning' | 'block';
+    message: string;
+};
+
+export type OrderChangePreview = {
+    order_id: string;
+    paid_ceiling_cents: number;
+    previous_total_cents: number;
+    new_total_cents: number;
+    delta_cents: number;
+    settlement_plan: OrderChangeSettlementPlan;
+    settlement_mode?: ChangeOrderSettlementMode;
+    items?: Array<OrderItem>;
+    advisories?: Array<OrderChangeAdvisory>;
+    change_seal: string;
+    expires_at?: string;
+    changeable: boolean;
+};
+
+export type OrderChange = {
+    id: string;
+    order_id: string;
+    change_no: number;
+    reason: string;
+    reason_detail?: string;
+    paid_ceiling_cents: number;
+    previous_total_cents: number;
+    new_total_cents: number;
+    delta_cents: number;
+    settlement_plan: OrderChangeSettlementPlan;
+    settlement_status: OrderChangeSettlementStatus;
+    actor_type?: string;
+    actor_id?: string;
+    created_at: string;
+};
+
+export type OrderChangeListPage = {
+    data: Array<OrderChange>;
+    next_cursor?: string;
+    has_more?: boolean;
+};
 
 export const WmsDraftStatus = {
     DRAFT: 'draft',
@@ -2171,13 +8398,135 @@ export const ApiScope = {
     CUSTOMERS_READ: 'customers:read',
     PRICING_READ: 'pricing:read',
     PRICING_WRITE: 'pricing:write',
-    TOKENS_MANAGE: 'tokens:manage'
+    TASKS_READ: 'tasks:read',
+    TASKS_WRITE: 'tasks:write',
+    TOKENS_MANAGE: 'tokens:manage',
+    AUDIT_READ: 'audit:read',
+    SIGN_READ: 'sign:read',
+    SIGN_WRITE: 'sign:write',
+    WEBRESEARCH_READ: 'webresearch:read',
+    RETURNS_WRITE: 'returns:write',
+    RETURNS_READ: 'returns:read',
+    COMMISSIONS_WRITE: 'commissions:write',
+    COMMISSIONS_READ: 'commissions:read',
+    POS_READ: 'pos:read',
+    POS_WRITE: 'pos:write',
+    POS_DEVICE: 'pos:device'
 } as const;
 
 /**
  * Escopo RBAC — ver docs/tenant-scope.md
  */
 export type ApiScope = typeof ApiScope[keyof typeof ApiScope];
+
+export type SignEnvelopeCreateRequest = {
+    template_id: number;
+    title?: string;
+    recipients?: Array<{
+        name?: string;
+        email?: string;
+        role?: string;
+    }>;
+    meta?: {
+        [key: string]: unknown;
+    };
+};
+
+export type SignEnvelopeSendRequest = {
+    send_email?: boolean;
+};
+
+export type SignEnvelopeResendRequest = {
+    recipient_ids?: Array<number>;
+};
+
+export const EntityAuditAction = {
+    CREATE: 'create',
+    UPDATE: 'update',
+    SOFT_DELETE: 'soft_delete',
+    HARD_DELETE: 'hard_delete',
+    RESTORE: 'restore'
+} as const;
+
+export type EntityAuditAction = typeof EntityAuditAction[keyof typeof EntityAuditAction];
+
+export const EntityAuditActorKind = {
+    STAFF: 'staff',
+    API_TOKEN: 'api_token',
+    AGENT: 'agent',
+    SYSTEM: 'system',
+    CUSTOMER: 'customer',
+    CONSOLE: 'console'
+} as const;
+
+export type EntityAuditActorKind = typeof EntityAuditActorKind[keyof typeof EntityAuditActorKind];
+
+export const EntityAuditChannel = {
+    ADMIN: 'admin',
+    API: 'api',
+    MCP: 'mcp',
+    WORKER: 'worker',
+    WEBHOOK: 'webhook',
+    CONSOLE: 'console',
+    STOREFRONT: 'storefront'
+} as const;
+
+export type EntityAuditChannel = typeof EntityAuditChannel[keyof typeof EntityAuditChannel];
+
+export type EntityAuditFieldChange = {
+    /**
+     * Valor anterior (null em create)
+     */
+    from?: unknown;
+    /**
+     * Valor novo (null em delete)
+     */
+    to?: unknown;
+};
+
+export type EntityAuditEvent = {
+    id: string;
+    tenant_id: string;
+    occurred_at: string;
+    action: EntityAuditAction;
+    entity_type: string;
+    entity_id: string;
+    /**
+     * Diff campo → {from, to} (PII redigida)
+     */
+    change_set: {
+        [key: string]: EntityAuditFieldChange;
+    };
+    snapshot_before?: {
+        [key: string]: unknown;
+    };
+    snapshot_after?: {
+        [key: string]: unknown;
+    };
+    actor_kind: EntityAuditActorKind;
+    actor_id: string;
+    actor_label?: string;
+    channel: EntityAuditChannel;
+    request_id?: string;
+    correlation_id?: string;
+    reason?: string;
+    schema_version: number;
+};
+
+/**
+ * Formato do export da trilha de auditoria (#1119).
+ */
+export const EntityAuditExportFormat = { CSV: 'csv', JSONL: 'jsonl' } as const;
+
+/**
+ * Formato do export da trilha de auditoria (#1119).
+ */
+export type EntityAuditExportFormat = typeof EntityAuditExportFormat[keyof typeof EntityAuditExportFormat];
+
+export type EntityAuditEventList = {
+    data?: Array<EntityAuditEvent>;
+    total?: number;
+};
 
 export type ProductSpecificationEntry = {
     field?: string;
@@ -2189,8 +8538,41 @@ export type ProductMedia = {
     url?: string;
     storage_key?: string;
     type?: 'image' | 'video';
+    /**
+     * gallery (default) = carrossel PDP; story = formato vertical 9:16 (live commerce / shorts). Válido em produto pai e em SKU/filho.
+     */
+    role?: 'gallery' | 'story';
     alt_text?: string;
     position?: number;
+    /**
+     * Largura em px do original normalizado (ausente = desconhecida)
+     */
+    width?: number;
+    /**
+     * Altura em px do original normalizado (ausente = desconhecida)
+     */
+    height?: number;
+    /**
+     * Duração do vídeo em ms (opcional; tipicamente só type=video)
+     */
+    duration_ms?: number;
+    /**
+     * Storage key da imagem de capa do vídeo (frame/poster)
+     */
+    poster_storage_key?: string;
+    /**
+     * URL de exibição do poster (resolvida na leitura a partir de poster_storage_key; não é fonte de verdade)
+     */
+    poster_url?: string;
+    /**
+     * Variantes redimensionadas (menor→maior), presentes só quando o serving público de mídia está configurado (ADR 0125). Calculadas na leitura, nunca persistidas como fonte de verdade.
+     */
+    variants?: Array<ProductMediaVariant>;
+};
+
+export type ProductMediaVariant = {
+    width?: number;
+    url?: string;
 };
 
 export type ProductSeo = {
@@ -2249,7 +8631,32 @@ export type OrderFiscal = {
 export type OrderItemCreate = {
     sku: string;
     quantity: number;
+    /**
+     * Origem de estoque desta linha (ADR 0096 / multi-origem #110).
+     * Quando `Order.warehouse_id` é a loja de venda (POS), use este campo
+     * para o hub. Omitir = primário do pedido.
+     *
+     */
+    warehouse_id?: string;
     item_type?: OrderItemType;
+    /**
+     * Obrigatório para SKU rental (ADR 0049)
+     */
+    period_start?: string;
+    /**
+     * Obrigatório para SKU rental (ADR 0049)
+     */
+    period_end?: string;
+    /**
+     * Ex. height=6m — aplica sobretaxa do rental_meta
+     */
+    modifiers?: {
+        [key: string]: string;
+    };
+    /**
+     * Preferência de asset (opcional; place aloca se omitido)
+     */
+    asset_id?: string;
 };
 
 export type OrderServiceLineCreate = {
@@ -2311,9 +8718,314 @@ export type StaffMagicLinkSent = {
     dev_totp_code?: string;
 };
 
+/**
+ * Sinal do browser no verify (navigator.userAgentData + hints). Opcional — ADR 0074.
+ */
+export type StaffClientSignal = {
+    /**
+     * Marcas CH / userAgentData (ex. `"Google Chrome";v="131"`)
+     */
+    brands?: string;
+    /**
+     * Plataforma (ex. macOS, Windows, Android)
+     */
+    platform?: string;
+    mobile?: boolean;
+    /**
+     * navigator.userAgent quando CH indisponível
+     */
+    ua?: string;
+};
+
+export type StaffGoogleOAuthStartRequest = {
+    /**
+     * Path relativo no admin após login (ex. /admin/dashboard)
+     */
+    return_url?: string;
+};
+
+export type StaffGoogleOAuthStartResult = {
+    authorize_url: string;
+    state: string;
+};
+
+export type StaffComplete2FaRequest = {
+    pending_token: string;
+    /**
+     * Obrigatório quando o pending exige 2FA
+     */
+    totp_code?: string;
+    client_signal?: StaffClientSignal;
+};
+
+export type StaffPasskey = {
+    id: string;
+    name: string;
+    created_at: string;
+    last_used_at?: string;
+};
+
+export type StaffSecurity = {
+    /**
+     * Há segundo fator activo, de qualquer método. Ver `second_factor` para saber QUAL — este campo sozinho não distingue o autenticador do legado por e-mail.
+     */
+    totp_enabled: boolean;
+    second_factor?: StaffSecondFactorMethod;
+    /**
+     * Códigos de resgate por usar; null quando não há autenticador.
+     */
+    backup_codes_remaining?: number;
+    google_linked: boolean;
+    google_email?: string;
+    passkeys: Array<StaffPasskey>;
+};
+
+/**
+ * Método do segundo fator.
+ *
+ * `none` — só o fator primário (código por e-mail, Google ou passkey).
+ *
+ * `authenticator` — app TOTP. É o único que satisfaz "canal diferente do primeiro" em todos os caminhos de login.
+ *
+ * `email_code` — LEGADO. Manda um segundo código para o mesmo e-mail que já recebe o código de entrada; quem controla a caixa passa nos dois. Continua a ser aceite para quem já o tinha, e só protege de facto quando o login veio por Google ou passkey.
+ */
+export const StaffSecondFactorMethod = {
+    NONE: 'none',
+    AUTHENTICATOR: 'authenticator',
+    EMAIL_CODE: 'email_code'
+} as const;
+
+/**
+ * Método do segundo fator.
+ *
+ * `none` — só o fator primário (código por e-mail, Google ou passkey).
+ *
+ * `authenticator` — app TOTP. É o único que satisfaz "canal diferente do primeiro" em todos os caminhos de login.
+ *
+ * `email_code` — LEGADO. Manda um segundo código para o mesmo e-mail que já recebe o código de entrada; quem controla a caixa passa nos dois. Continua a ser aceite para quem já o tinha, e só protege de facto quando o login veio por Google ou passkey.
+ */
+export type StaffSecondFactorMethod = typeof StaffSecondFactorMethod[keyof typeof StaffSecondFactorMethod];
+
+export type StaffTotpSetup = {
+    /**
+     * Segredo base32 — para quem digita à mão em vez de ler o QR.
+     */
+    secret: string;
+    /**
+     * URI `otpauth://totp/...` que vira o QR code.
+     */
+    otpauth_uri: string;
+    issuer?: string;
+    account?: string;
+};
+
+export type StaffTotpCode = {
+    /**
+     * Código de 6 dígitos do autenticador, ou um código de resgate.
+     */
+    code: string;
+};
+
+export type StaffTotpBackupCodes = {
+    /**
+     * Em claro apenas nesta resposta — o banco guarda só o SHA-256. Cada um serve uma vez.
+     */
+    backup_codes: Array<string>;
+};
+
+export type StaffDevice = {
+    /**
+     * Navegador e sistema (ex. "Chrome / macOS").
+     */
+    label: string;
+    /**
+     * IP com o último octeto (IPv4) ou sufixo (IPv6) removido.
+     */
+    ip_masked?: string;
+    first_seen_at: string;
+    last_seen_at: string;
+    /**
+     * Verdadeiro no dispositivo que está a fazer este pedido.
+     */
+    current?: boolean;
+};
+
+/**
+ * Acção sensível que o step-up autoriza. O token vale só para a que foi pedida — reconfirmar para remover uma passkey não abre a política do tenant.
+ *
+ * `disable_two_factor` e `regenerate_backup_codes` estão fora desta lista de propósito: essas já exigem um código do próprio autenticador no corpo do pedido, que é uma reconfirmação mais forte que o step-up.
+ */
+export const StaffStepUpPurpose = {
+    REMOVE_PASSKEY: 'remove_passkey',
+    UNLINK_GOOGLE: 'unlink_google',
+    REVOKE_SESSIONS: 'revoke_sessions',
+    CHANGE_SECURITY_POLICY: 'change_security_policy',
+    CHANGE_STAFF_ACCESS: 'change_staff_access'
+} as const;
+
+/**
+ * Acção sensível que o step-up autoriza. O token vale só para a que foi pedida — reconfirmar para remover uma passkey não abre a política do tenant.
+ *
+ * `disable_two_factor` e `regenerate_backup_codes` estão fora desta lista de propósito: essas já exigem um código do próprio autenticador no corpo do pedido, que é uma reconfirmação mais forte que o step-up.
+ */
+export type StaffStepUpPurpose = typeof StaffStepUpPurpose[keyof typeof StaffStepUpPurpose];
+
+/**
+ * `authenticator` — app TOTP; é o método preferido.
+ *
+ * `email_code` — recurso para quem ainda não tem autenticador. Mais fraco: vive no mesmo canal do fator primário. A UI diz isso.
+ */
+export const StaffStepUpMethod = { AUTHENTICATOR: 'authenticator', EMAIL_CODE: 'email_code' } as const;
+
+/**
+ * `authenticator` — app TOTP; é o método preferido.
+ *
+ * `email_code` — recurso para quem ainda não tem autenticador. Mais fraco: vive no mesmo canal do fator primário. A UI diz isso.
+ */
+export type StaffStepUpMethod = typeof StaffStepUpMethod[keyof typeof StaffStepUpMethod];
+
+export type StaffStepUpBeginRequest = {
+    purpose: StaffStepUpPurpose;
+    method?: StaffStepUpMethod;
+};
+
+export type StaffStepUpChallenge = {
+    purpose: StaffStepUpPurpose;
+    /**
+     * Métodos disponíveis para este utilizador, do mais forte ao mais fraco.
+     */
+    methods: Array<StaffStepUpMethod>;
+    /**
+     * Verdadeiro quando o código de recurso acabou de ser enviado.
+     */
+    email_code_sent?: boolean;
+    /**
+     * Código do e-mail — apenas ambiente dev.
+     */
+    dev_code?: string;
+};
+
+export type StaffStepUpFinishRequest = {
+    purpose: StaffStepUpPurpose;
+    method: StaffStepUpMethod;
+    code: string;
+};
+
+export type StaffStepUpGrant = {
+    /**
+     * Enviar em `X-Mira-Step-Up` no pedido da acção sensível.
+     */
+    step_up_token: string;
+    expires_at: string;
+};
+
+export type StaffEnrolmentTokenRequest = {
+    enrolment_token: string;
+};
+
+export type StaffEnrolmentActivateRequest = {
+    enrolment_token: string;
+    code: string;
+    client_signal?: StaffClientSignal;
+};
+
+export type StaffEnrolmentActivated = {
+    session: StaffSessionCreated;
+    backup_codes: Array<string>;
+};
+
+export type CustomerPasskey = {
+    /**
+     * Credential ID (base64url)
+     */
+    id: string;
+    name: string;
+    created_at: string;
+    last_used_at?: string;
+};
+
+export type CustomerPasskeyBeginResult = {
+    /**
+     * JSON WebAuthn (creation ou request options)
+     */
+    options: {
+        [key: string]: unknown;
+    };
+    /**
+     * ID da sessão WebAuthn a reenviar no finish
+     */
+    session_id: string;
+};
+
+export type CustomerPasskeyFinishRequest = {
+    session_id: string;
+    credential: {
+        [key: string]: unknown;
+    };
+    /**
+     * Nome amigável (só no registo)
+     */
+    name?: string;
+};
+
+export type StaffPasskeyBeginResult = {
+    /**
+     * JSON WebAuthn (creation ou request options)
+     */
+    options: {
+        [key: string]: unknown;
+    };
+    /**
+     * ID da sessão WebAuthn a reenviar no finish
+     */
+    session_id: string;
+};
+
+export type StaffPasskeyFinishRequest = {
+    session_id: string;
+    credential: {
+        [key: string]: unknown;
+    };
+    /**
+     * Nome amigável (só no registo)
+     */
+    name?: string;
+    /**
+     * Obrigatório no login begin/finish
+     */
+    email?: string;
+    client_signal?: StaffClientSignal;
+    return_url?: string;
+};
+
+export type StaffPasskeyLoginBeginRequest = {
+    email: string;
+};
+
+/**
+ * Sessão imediata ou desafio 2FA (TOTP) após Google/passkey
+ */
+export type StaffAuthFinishResult = {
+    session_token?: string;
+    expires_at?: string;
+    user?: Staff;
+    requires_totp?: boolean;
+    pending_token?: string;
+    email?: string;
+    /**
+     * Só em development
+     */
+    dev_totp_code?: string;
+};
+
 export type StaffMagicLinkVerify = {
     email: string;
     code: string;
+    /**
+     * Obrigatório quando o utilizador tem TOTP activo
+     */
+    totp_code?: string;
+    client_signal?: StaffClientSignal;
 };
 
 export type StaffSessionCreated = {
@@ -2322,7 +9034,7 @@ export type StaffSessionCreated = {
      */
     session_token: string;
     expires_at: string;
-    user: User;
+    user: Staff;
 };
 
 export type PriceOverrideCreate = {
@@ -2359,17 +9071,17 @@ export const CouponStatus = {
 
 export type CouponStatus = typeof CouponStatus[keyof typeof CouponStatus];
 
-export const UserRole = {
+export const StaffRole = {
     OWNER: 'owner',
     MANAGER: 'manager',
     OPERATOR: 'operator'
 } as const;
 
-export type UserRole = typeof UserRole[keyof typeof UserRole];
+export type StaffRole = typeof StaffRole[keyof typeof StaffRole];
 
-export const UserStatus = { ACTIVE: 'active', DISABLED: 'disabled' } as const;
+export const StaffStatus = { ACTIVE: 'active', DISABLED: 'disabled' } as const;
 
-export type UserStatus = typeof UserStatus[keyof typeof UserStatus];
+export type StaffStatus = typeof StaffStatus[keyof typeof StaffStatus];
 
 export const ErpDbType = {
     POSTGRES: 'postgres',
@@ -2405,13 +9117,126 @@ export const SplitRuleScope = { GLOBAL: 'global', MEMBER: 'member' } as const;
 
 export type SplitRuleScope = typeof SplitRuleScope[keyof typeof SplitRuleScope];
 
+export const DevicePaymentIntentStatus = {
+    PENDING: 'pending',
+    WAITING_DEVICE: 'waiting_device',
+    SUCCEEDED: 'succeeded',
+    FAILED: 'failed',
+    VOIDED: 'voided'
+} as const;
+
+export type DevicePaymentIntentStatus = typeof DevicePaymentIntentStatus[keyof typeof DevicePaymentIntentStatus];
+
+export type DevicePaymentIntent = {
+    id?: string;
+    tenant_id?: string;
+    order_id?: string;
+    /**
+     * Chave de idempotência do cliente
+     */
+    client_payment_id?: string;
+    provider?: SplitRuleProvider;
+    status?: DevicePaymentIntentStatus;
+    amount_cents?: number;
+    currency?: string;
+    terminal_id?: string;
+    terminal_serial?: string;
+    provider_intent_id?: string;
+    provider_payment_id?: string;
+    failure_reason?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type DevicePaymentIntentCreate = {
+    order_id?: string;
+    client_payment_id: string;
+    amount_cents: number;
+    currency?: string;
+    terminal_id?: string;
+    terminal_serial?: string;
+    method?: PaymentMethod;
+};
+
+export type FiscalEmitRequest = {
+    warehouse_id?: string;
+    contingency?: boolean;
+    /**
+     * NFC-e (65) ou NF-e saída (55) — ADR 0120
+     */
+    document_type?: 'nfce' | 'nfe';
+};
+
+export const PosPeripheralKind = {
+    BARCODE_SCANNER: 'barcode_scanner',
+    RECEIPT_PRINTER: 'receipt_printer',
+    FISCAL_PRINTER: 'fiscal_printer',
+    LABEL_PRINTER: 'label_printer',
+    RFID_READER: 'rfid_reader',
+    CHECKOUT_SCALE: 'checkout_scale'
+} as const;
+
+export type PosPeripheralKind = typeof PosPeripheralKind[keyof typeof PosPeripheralKind];
+
+export type PosPeripheralProfile = {
+    id?: string;
+    tenant_id?: string;
+    warehouse_id?: string;
+    device_id?: string;
+    name?: string;
+    kind?: PosPeripheralKind;
+    /**
+     * usb, bluetooth, network, hid, …
+     */
+    transport?: string;
+    /**
+     * escpos, zpl, hid_suffix, …
+     */
+    driver?: string;
+    options?: {
+        [key: string]: unknown;
+    };
+    is_active?: boolean;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type PosPeripheralProfileListPage = {
+    data?: Array<PosPeripheralProfile>;
+    total?: number;
+};
+
+export type PosPeripheralProfileCreate = {
+    warehouse_id?: string;
+    device_id?: string;
+    name: string;
+    kind: PosPeripheralKind;
+    transport?: string;
+    driver?: string;
+    options?: {
+        [key: string]: unknown;
+    };
+    is_active?: boolean;
+};
+
+export type PosPeripheralProfileUpdate = {
+    name?: string;
+    transport?: string;
+    driver?: string;
+    options?: {
+        [key: string]: unknown;
+    };
+    is_active?: boolean;
+};
+
 export const SplitRuleProvider = {
     PAGARME: 'pagarme',
     ZOOP: 'zoop',
     ADYEN: 'adyen',
     STRIPE: 'stripe',
     MERCADOPAGO: 'mercadopago',
-    FISERV: 'fiserv'
+    FISERV: 'fiserv',
+    PAGBANK: 'pagbank'
 } as const;
 
 export type SplitRuleProvider = typeof SplitRuleProvider[keyof typeof SplitRuleProvider];
@@ -2462,9 +9287,58 @@ export const ReportVisualization = {
 
 export type ReportVisualization = typeof ReportVisualization[keyof typeof ReportVisualization];
 
+export type AnalyticsBatchRequest = {
+    /**
+     * Filtros aplicados a todas as specs que não trouxerem os seus. Evita repetir o mesmo intervalo 17 vezes.
+     */
+    shared_filters?: ReportFilters;
+    specs: Array<AnalyticsBatchSpec>;
+};
+
+export type AnalyticsBatchSpec = {
+    /**
+     * Identificador do resultado no mapa de resposta.
+     */
+    key: string;
+    spec: ReportSpec;
+};
+
+export type AnalyticsBatchResult = {
+    /**
+     * Mapa key → resultado; só as specs que executaram.
+     */
+    results: {
+        [key: string]: AnalyticsExecuteResult;
+    };
+    /**
+     * Specs que falharam. A resposta continua 200 — derrubar o batch inteiro por uma métrica é o que deixava as 9 telas em skeleton infinito.
+     */
+    partial_errors?: Array<AnalyticsBatchError>;
+    generated_at: string;
+};
+
+export type AnalyticsBatchError = {
+    key: string;
+    code?: string;
+    message: string;
+};
+
 export type ReportFilters = {
+    /**
+     * Início do período, como INSTANTE (RFC 3339). Era `format: date` e o servidor reexpandia o dia no fuso da loja: um instante UTC truncado para YYYY-MM-DD virava o dia seguinte e alargava a janela em ~24h face a /orders/sales-facets (#1098). Data-only (YYYY-MM-DD) continua aceite por compatibilidade e é expandida para o início do dia no fuso da loja.
+     */
     date_from: string;
+    /**
+     * Fim do período, como INSTANTE (RFC 3339), inclusivo. Data-only (YYYY-MM-DD) continua aceite e é expandida para o fim do dia no fuso da loja (#1098).
+     */
     date_to: string;
+    /**
+     * Base de comparação (#1104). A UI já aceita change/changeLabel no MetricCard e nunca os recebia, porque a API não devolvia o dado.
+     */
+    compare_to?: ReportCompareBasis;
+    /**
+     * Ignorado para tokens member — o servidor injecta o tenant do token (defesa em profundidade, #1098). Platform pode filtrar livremente.
+     */
     tenant_id?: string;
     order_status?: string;
     order_origin?: string;
@@ -2498,15 +9372,44 @@ export type AnalyticsExecuteResult = {
     rows: Array<{
         [key: string]: string | number;
     }>;
-    summary?: {
-        metrics?: Array<{
-            label?: string;
-            value?: number;
-            format?: string;
-        }>;
+    summary?: AnalyticsSummary;
+    /**
+     * Janela usada na comparação, explicitada na resposta (#1104).
+     */
+    comparison?: {
+        date_from?: string;
+        date_to?: string;
+        basis?: ReportCompareBasis;
     };
     generated_at: string;
 };
+
+export type AnalyticsSummary = {
+    metrics?: Array<AnalyticsSummaryMetric>;
+};
+
+export type AnalyticsSummaryMetric = {
+    label?: string;
+    value?: number;
+    format?: string;
+    /**
+     * Valor no período comparativo (#1104).
+     */
+    previous_value?: number;
+    change_abs?: number;
+    /**
+     * null (não infinito) quando o período anterior é zero — um número isolado não gera decisão, e infinito muito menos.
+     */
+    change_pct?: number;
+};
+
+export const ReportCompareBasis = {
+    NONE: 'none',
+    PREVIOUS_PERIOD: 'previous_period',
+    PREVIOUS_YEAR: 'previous_year'
+} as const;
+
+export type ReportCompareBasis = typeof ReportCompareBasis[keyof typeof ReportCompareBasis];
 
 export type SavedReport = {
     id: string;
@@ -2517,6 +9420,15 @@ export type SavedReport = {
     created_at: string;
     updated_at: string;
     schedule?: ReportSchedule;
+    /**
+     * Scopes de domínio necessários para reexecutar (SQL interno não é exposto)
+     */
+    required_scopes?: Array<string>;
+    visualization?: ReportVisualization;
+    /**
+     * Motor de execução (free_sql = ADR 0080; report_spec = legado)
+     */
+    engine?: 'free_sql' | 'report_spec';
 };
 
 export type SavedReportUpdate = {
@@ -2541,10 +9453,25 @@ export type ReportSchedule = {
     recipients?: Array<string>;
     last_sent_at?: string;
     next_run_at?: string;
+    /**
+     * Falhas consecutivas de geração/envio; o scheduler re-tenta com backoff (5m→24h) sem avançar o agendamento
+     */
+    readonly consecutive_failures?: number;
+    /**
+     * Último erro de geração/envio do relatório agendado (limpo no próximo sucesso)
+     */
+    readonly last_error?: string;
 };
 
 export type SavedReportCreate = {
-    spec: ReportSpec;
+    /**
+     * Handle opaco devolvido por /analytics/ask (preferido; SQL nunca viaja no client)
+     */
+    query_handle?: string;
+    /**
+     * Legado ReportSpec (quando query_handle ausente)
+     */
+    spec?: ReportSpec;
     original_prompt?: string;
 };
 
@@ -2554,8 +9481,68 @@ export type AnalyticsAskRequest = {
 };
 
 export type AnalyticsAskResponse = {
+    /**
+     * Spec sintético para compatibilidade com ReportRenderer
+     */
     spec: ReportSpec;
     preview: AnalyticsExecuteResult;
+    /**
+     * Handle opaco para POST /analytics/reports (TTL curto)
+     */
+    query_handle?: string;
+    required_scopes?: Array<string>;
+    llm_meta: {
+        model?: string;
+        used_llm?: boolean;
+    };
+};
+
+export type CouncilMetric = {
+    id: string;
+    tenant_id: string;
+    saved_report_id: string;
+    title: string;
+    original_prompt?: string;
+    /**
+     * IDs de cadeiras do Conselho (operations, finance, …)
+     */
+    role_ids: Array<string>;
+    required_scopes?: Array<string>;
+    created_by?: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type CouncilMetricListPage = {
+    items: Array<CouncilMetric>;
+};
+
+export type CouncilMetricCreate = {
+    /**
+     * Handle de /analytics/ask ou /council/metrics/preview
+     */
+    query_handle?: string;
+    /**
+     * Alternativa a query_handle — gera SQL no servidor
+     */
+    prompt?: string;
+    role_ids: Array<string>;
+};
+
+export type CouncilMetricUpdate = {
+    role_ids?: Array<string>;
+    title?: string;
+};
+
+export type CouncilMetricPreviewRequest = {
+    prompt: string;
+};
+
+export type CouncilMetricPreviewResponse = {
+    query_handle: string;
+    title: string;
+    preview: AnalyticsExecuteResult;
+    required_scopes: Array<string>;
     llm_meta: {
         model?: string;
         used_llm?: boolean;
@@ -2684,6 +9671,25 @@ export type IntegrationTraceList = {
     total?: number;
 };
 
+/**
+ * Tipos que o dispatcher realmente emite. Strings fora desta lista são rejeitadas com 422 — não prometemos entrega de eventos não subscritos.
+ *
+ */
+export const WebhookEventType = {
+    ORDER_CREATED: 'order.created',
+    ORDER_CONFIRMED: 'order.confirmed',
+    ORDER_CANCELLED: 'order.cancelled',
+    PAYMENT_CAPTURED: 'payment.captured',
+    PAYMENT_ATTEMPT_FAILED: 'payment.attempt.failed',
+    PAYMENT_ATTEMPT_BLOCKED: 'payment.attempt.blocked'
+} as const;
+
+/**
+ * Tipos que o dispatcher realmente emite. Strings fora desta lista são rejeitadas com 422 — não prometemos entrega de eventos não subscritos.
+ *
+ */
+export type WebhookEventType = typeof WebhookEventType[keyof typeof WebhookEventType];
+
 export type WebhookEndpoint = {
     id: string;
     tenant_id: string;
@@ -2693,9 +9699,9 @@ export type WebhookEndpoint = {
     url: string;
     description?: string;
     /**
-     * Filtro de eventos; vazio = todos os tipos subscritos
+     * Filtro de eventos; vazio = todos os tipos subscritos pelo dispatcher
      */
-    event_types?: Array<string>;
+    event_types?: Array<WebhookEventType>;
     enabled: boolean;
     created_at?: string;
     updated_at?: string;
@@ -2704,7 +9710,10 @@ export type WebhookEndpoint = {
 export type WebhookEndpointCreate = {
     url: string;
     description?: string;
-    event_types?: Array<string>;
+    /**
+     * Filtro de eventos; vazio = todos os tipos subscritos pelo dispatcher
+     */
+    event_types?: Array<WebhookEventType>;
     enabled?: boolean;
     /**
      * Platform only — tenant alvo; omitir usa tenant do token
@@ -2715,7 +9724,10 @@ export type WebhookEndpointCreate = {
 export type WebhookEndpointUpdate = {
     url?: string;
     description?: string;
-    event_types?: Array<string>;
+    /**
+     * Filtro de eventos; vazio = todos os tipos subscritos pelo dispatcher
+     */
+    event_types?: Array<WebhookEventType>;
     enabled?: boolean;
 };
 
@@ -2725,6 +9737,56 @@ export type WebhookEndpointCreateResponse = {
      * Segredo HMAC — mostrado uma vez na criação
      */
     signing_secret: string;
+};
+
+export type WebhookDelivery = {
+    id: string;
+    endpoint_id?: string;
+    event_id?: string;
+    event_type: string;
+    correlation_id?: string;
+    status: string;
+    attempts?: number;
+    max_attempts?: number;
+    next_attempt_at?: string;
+    last_http_status?: number;
+    last_error?: string;
+    delivered_at?: string;
+    created_at?: string;
+    /**
+     * Prévia truncada do payload. O payload COMPLETO continua platform-only.
+     */
+    request_payload_preview?: string;
+};
+
+export type WebhookDeliveryListPage = {
+    data: Array<WebhookDelivery>;
+    total?: number;
+    has_more?: boolean;
+};
+
+export type WebhookEndpointTestRequest = {
+    event_type?: string;
+};
+
+export type WebhookEndpointTestResult = {
+    delivered: boolean;
+    http_status?: number;
+    latency_ms?: number;
+    error?: string;
+    /**
+     * Nome do header de assinatura enviado, para o tenant conferir.
+     */
+    signature_header?: string;
+};
+
+export type WebhookRotateSecretRequest = {
+    grace_period_seconds?: number;
+};
+
+export type WebhookRotateSecretResult = {
+    signing_secret: string;
+    previous_secret_valid_until?: string;
 };
 
 export type WebhookDeliveryRetryResult = {
@@ -2768,6 +9830,14 @@ export type CheckoutSession = {
     expires_at: string;
     created_at: string;
     updated_at: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
+    /**
+     * Nome do membro (read-only; JOIN em core.members).
+     */
+    readonly member_name?: string;
 };
 
 export type CheckoutSessionCreated = CheckoutSession & {
@@ -2777,11 +9847,50 @@ export type CheckoutSessionCreated = CheckoutSession & {
     session_token: string;
 };
 
+export type PlaceCheckoutOrderRequest = {
+    /**
+     * Cloudflare Turnstile token (obrigatório quando heuristics captcha_required=true).
+     */
+    captcha_token?: string;
+    /**
+     * Selo do POST /checkout/compose (ADR 0047). Ausente = comportamento legado.
+     */
+    composition_seal?: string;
+    /**
+     * Token OTP confirmado (ADR 0099) quando o pagamento usa crédito/faturado (`store_credit` / `invoice`). Obtido via POST /credits/challenges + confirm.
+     *
+     */
+    credit_confirmation_token?: string;
+    /**
+     * Empresa B2B para pedido faturado (ADR 0100); gravado em metadata.
+     */
+    company_id?: string;
+    /**
+     * Opção de parcelamento faturado (ADR 0140). Mesmo contrato de OrderCreate.
+     *
+     */
+    invoice_installment_option_code?: string;
+    deposit_method?: DepositMethod;
+    /**
+     * Cartões ao portador a aplicar no place-order (mesmo contrato de OrderCreate).
+     * Lookup+Reserve no create; capture no payment_approved.
+     *
+     */
+    gift_card_tenders?: Array<GiftCardTender>;
+};
+
 export type CheckoutPlaceOrderResponse = {
     order: Order;
     session_id: string;
     payment_status?: PaymentStatus;
+    /**
+     * URL do checkout do aluguel (purpose=rental)
+     */
     checkout_url?: string;
+    /**
+     * URL da caução (2ª sessão). Também em order.marketing_data.deposit_checkout_url (#1418).
+     */
+    deposit_checkout_url?: string;
 };
 
 export type CheckoutIdentityLookupRequest = {
@@ -2897,6 +10006,30 @@ export type CheckoutHeuristicsConfig = {
     min_checkout_total?: number;
     warehouse_selection_mode?: WarehouseSelectionMode;
     shipping_display_mode?: ShippingDisplayMode;
+    /**
+     * Quando true, place-order / initiate payment exigem captcha_token válido (Turnstile). Requer TURNSTILE_SECRET_KEY no deploy. Soft (false + secret): token presente é validado; ausência OK (#614).
+     */
+    captcha_required: boolean;
+    /**
+     * Exige 3DS em pagamentos com cartão (ADR 0013 F5). Por tenant — não usar env CHECKOUT_REQUIRE_3DS no shared API.
+     */
+    require_3ds: boolean;
+    /**
+     * Teto de desconto TOTAL do pedido, em % do subtotal (ADR 0130 D8). null = sem teto.
+     * Trava o empilhamento: um cupom de 30% sobre item já com 50% de promoção
+     * fechava o pedido a 20% do preço e nada impedia. O corte é da última linha
+     * para a primeira, por prioridade, e a linha cortada explica-se no `reason`.
+     *
+     */
+    max_discount_percent?: number;
+    /**
+     * Piso de margem do pedido, em % sobre o custo dos itens (ADR 0130 D8).
+     * null = sem piso. Só aplica quando há custo registado — item sem custo
+     * não inventa margem. Complementa `max_discount_percent`: um trava o
+     * desconto relativo, o outro protege o resultado.
+     *
+     */
+    margin_floor_percent?: number;
 };
 
 export type CheckoutHeuristicsConfigUpdate = {
@@ -2911,6 +10044,22 @@ export type CheckoutHeuristicsConfigUpdate = {
     min_checkout_total?: number;
     warehouse_selection_mode?: WarehouseSelectionMode;
     shipping_display_mode?: ShippingDisplayMode;
+    /**
+     * Quando true, place-order / initiate payment exigem captcha_token válido (Turnstile). Requer TURNSTILE_SECRET_KEY no deploy. Soft (false + secret): token presente é validado; ausência OK (#614).
+     */
+    captcha_required?: boolean;
+    /**
+     * Exige 3DS em pagamentos com cartão (ADR 0013 F5). Por tenant — não usar env CHECKOUT_REQUIRE_3DS no shared API.
+     */
+    require_3ds?: boolean;
+    /**
+     * Teto de desconto total do pedido em % do subtotal (ADR 0130 D8). null = sem teto.
+     */
+    max_discount_percent?: number;
+    /**
+     * Piso de margem do pedido em % sobre o custo (ADR 0130 D8). null = sem piso.
+     */
+    margin_floor_percent?: number;
 };
 
 /**
@@ -2964,6 +10113,7 @@ export type CheckoutQuoteServiceLine = {
 };
 
 export type CheckoutQuoteRequest = {
+    campaign?: CampaignAttribution;
     member_id: string;
     warehouse_id?: string;
     channel: PriceChannel;
@@ -2999,7 +10149,474 @@ export type CheckoutQuoteResult = {
     total: number;
     savings: number;
     express_shipping_free_applied?: boolean;
+    /**
+     * Soma das linhas rental (aluguel) — ADR 0049; 0 se só goods
+     */
+    rental_subtotal?: number;
+    /**
+     * Calção total a autorizar (não entra no total a pagar do aluguel)
+     */
+    deposit_amount?: number;
+    /**
+     * Decomposição do desconto (ADR 0130 D2/D4): o que foi dado, sobre que base
+     * e QUEM PAGOU. Inclui linhas recusadas, com `reason` — o storefront exibe,
+     * nunca calcula. Aditivo: `coupon_discount`/`promotion_lines` continuam.
+     *
+     */
+    incentive_lines?: Array<CheckoutQuoteIncentiveLine>;
     resolved_at: string;
+};
+
+/**
+ * Campanha de tráfego que trouxe o comprador (ADR 0130 — escopo de campanha).
+ * Os UTMs vêm da URL de destino do anúncio.
+ *
+ * **Entrada não-confiável**: qualquer pessoa pode colar `?utm_campaign=X` na
+ * URL. Uma promoção com escopo de campanha é, na prática, um cupom público
+ * sem código — proteja-a com `max_discount_percent` e orçamento de campanha.
+ *
+ */
+export type CampaignAttribution = {
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_content?: string;
+    utm_term?: string;
+};
+
+/**
+ * Restringe a promoção a tráfego de campanha. Campo vazio = não filtra por
+ * ele; todos vazios = vale para todo tráfego (comportamento sem campanha).
+ * `*` é curinga explícito. Comparação ignora caixa e espaços.
+ *
+ */
+export type PromotionCampaignScope = {
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_content?: string;
+    utm_term?: string;
+};
+
+export type CampaignPerformanceRow = {
+    /**
+     * Rótulo `source/medium/campaign`.
+     */
+    campaign: string;
+    orders: number;
+    /**
+     * O que a campanha custou em incentivo.
+     */
+    discount_cents: number;
+    merchant_funded_cents?: number;
+    third_party_funded_cents?: number;
+    /**
+     * Receita dos pedidos tocados pela campanha (pedido distinto).
+     */
+    revenue_cents: number;
+};
+
+export type CampaignPerformancePage = {
+    data: Array<CampaignPerformanceRow>;
+};
+
+export type IncentiveSimulationRequest = {
+    campaign?: CampaignAttribution;
+    items: Array<CheckoutQuoteCartLine>;
+    channel?: PriceChannel;
+    coupon_code?: string;
+    warehouse_id?: string;
+    policy_override?: IncentivePolicyOverride;
+};
+
+/**
+ * Política hipotética só para esta simulação. Campo ausente = o que está
+ * gravado no tenant. Nada aqui é persistido.
+ *
+ */
+export type IncentivePolicyOverride = {
+    max_discount_percent?: number;
+    margin_floor_percent?: number;
+    promotion_mode?: PromotionApplicationMode;
+    coupon_discount_scope?: CouponDiscountScope;
+};
+
+export type IncentiveSimulationResult = {
+    subtotal: number;
+    total: number;
+    discount_total: number;
+    /**
+     * Desconto sobre o subtotal — o número que o teto governa.
+     */
+    discount_percent?: number;
+    incentive_lines: Array<CheckoutQuoteIncentiveLine>;
+    /**
+     * Parcela bancada pelo lojista (abate a nota fiscal).
+     */
+    merchant_funded?: number;
+    /**
+     * Parcela bancada por terceiros (não abate; vira recebível).
+     */
+    third_party_funded?: number;
+};
+
+export type GiftCard = {
+    id: string;
+    status: 'active' | 'expired' | 'cancelled';
+    initial_amount_cents: number;
+    /**
+     * Saldo atual no ledger de crédito (o cartão aceita uso parcial).
+     */
+    balance_cents: number;
+    /**
+     * Últimos dígitos — identifica o cartão sem expor o código.
+     */
+    code_last4: string;
+    /**
+     * True se o cartão exige PIN no lookup/claim
+     */
+    has_pin?: boolean;
+    expires_at?: string;
+    issued_order_id?: string;
+    recipient_email?: string;
+    claimed_customer_id?: string;
+    claimed_at?: string;
+    note?: string;
+    created_at: string;
+};
+
+export type GiftCardListPage = {
+    data: Array<GiftCard>;
+};
+
+export type GiftCardIssue = {
+    amount_cents: number;
+    expires_at?: string;
+    recipient_email?: string;
+    note?: string;
+    /**
+     * Pedido que originou o cartão (emissão pela venda de um item).
+     */
+    order_id?: string;
+    /**
+     * Item do pedido — a emissão é idempotente por (pedido, item).
+     */
+    order_item_id?: string;
+};
+
+export type GiftCardIssued = {
+    gift_card: GiftCard;
+    /**
+     * Código em CLARO. Aparece só aqui — o servidor guarda apenas o
+     * SHA-256. Perder o código é perder o cartão, por desenho.
+     *
+     */
+    code: string;
+    /**
+     * PIN em claro se foi gerado/definido na emissão (só aqui).
+     */
+    pin?: string;
+};
+
+export type GiftCardLookup = {
+    code: string;
+    /**
+     * Obrigatório se o cartão foi emitido com PIN
+     */
+    pin?: string;
+};
+
+export type GiftCardClaim = {
+    code: string;
+    pin?: string;
+};
+
+export type GiftCardClaimed = {
+    gift_card: GiftCard;
+    credit_account_id: string;
+    amount_cents: number;
+};
+
+export type GiftCardTender = {
+    code: string;
+    pin?: string;
+    /**
+     * Se preenchido, usa o adapter HTTP do provider (`KindExtVoucher`)
+     * em vez do gift card nativo. `code` é o ref no emissor externo.
+     *
+     */
+    provider_slug?: string;
+    amount_cents: number;
+};
+
+export type GiftCardProvider = {
+    id: string;
+    slug: string;
+    display_name?: string;
+    base_url?: string;
+    credentials_ref?: string;
+    enabled: boolean;
+    created_at: string;
+    updated_at?: string;
+};
+
+export type GiftCardProviderListPage = {
+    data: Array<GiftCardProvider>;
+};
+
+export type GiftCardProviderUpsert = {
+    id?: string;
+    slug: string;
+    display_name?: string;
+    base_url?: string;
+    credentials_ref?: string;
+    enabled?: boolean;
+};
+
+/**
+ * Instrumento de valor — o que PAGA o total (ADR 0130 D6), por oposição ao
+ * incentivo, que o reduz.
+ *
+ */
+export type TenderInstrument = {
+    kind: 'cashback' | 'store_credit' | 'trade_credit' | 'gift_card' | 'external_voucher';
+    /**
+     * Identificador do instrumento no seu emissor.
+     */
+    ref: string;
+    available_cents: number;
+    label?: string;
+    /**
+     * Se o resgate exige desafio. É o INSTRUMENTO que decide: saldo nominal
+     * do comprador exige OTP; cartão ao portador não.
+     *
+     */
+    requires_otp: boolean;
+};
+
+export type CheckoutQuoteIncentiveLine = {
+    kind: 'coupon' | 'promotion' | 'cashback_accrual' | 'subsidy' | 'price_override' | 'imported';
+    /**
+     * Quem banca. Só `merchant` abate a nota fiscal.
+     */
+    funder: 'merchant' | 'platform' | 'network' | 'brand' | 'marketplace';
+    label?: string;
+    /**
+     * Valor do incentivo. 0 quando `applied=false`.
+     */
+    amount: number;
+    /**
+     * Valor sobre o qual incidiu.
+     */
+    base_amount?: number;
+    base_kind?: 'goods' | 'goods_services' | 'goods_services_shipping' | 'unit_price' | 'external';
+    applied: boolean;
+    /**
+     * Por que a linha entrou ou NÃO entrou (fora de vigência, canal errado,
+     * teto do pedido, perdeu na exclusividade, piso de margem). Existe para
+     * o front parar de adivinhar por que o cupom não aplicou.
+     *
+     */
+    reason?: string;
+};
+
+export type CheckoutComposeInclude = {
+    /**
+     * Incluir ofertas de frete/retirada.
+     */
+    fulfillment?: boolean;
+    /**
+     * Incluir meios de pagamento activos.
+     */
+    tender?: boolean;
+    /**
+     * Resolver parcelas por meio (requer tender=true; ADR 0018).
+     */
+    installments?: boolean;
+};
+
+export type CheckoutComposeItem = {
+    sku: string;
+    quantity: number;
+    express_group?: boolean;
+    category?: string;
+    /**
+     * Obrigatório para SKU rental
+     */
+    period_start?: string;
+    /**
+     * Obrigatório para SKU rental
+     */
+    period_end?: string;
+    /**
+     * Ex. height=6m para sobretaxa configurada no rental_meta
+     */
+    modifiers?: {
+        [key: string]: string;
+    };
+};
+
+export type CheckoutComposeRequest = {
+    campaign?: CampaignAttribution;
+    member_id: string;
+    warehouse_id?: string;
+    channel: PriceChannel;
+    items: Array<CheckoutComposeItem>;
+    services?: Array<CheckoutQuoteServiceLine>;
+    delivery_mode?: 'address' | 'pickup';
+    shipping_method_id?: string;
+    delivery_address?: DeliveryAddress;
+    coupon_code?: string;
+    /**
+     * Opcional — associa composição a uma checkout session.
+     */
+    session_id?: string;
+    include?: CheckoutComposeInclude;
+};
+
+export const CheckoutCompositionLineAvailability = {
+    /**
+     * Available
+     */
+    AVAILABLE: 'available',
+    /**
+     * Partial
+     */
+    PARTIAL: 'partial',
+    /**
+     * Unavailable
+     */
+    UNAVAILABLE: 'unavailable',
+    /**
+     * Unknown
+     */
+    UNKNOWN: 'unknown'
+} as const;
+
+export type CheckoutCompositionLineAvailability = typeof CheckoutCompositionLineAvailability[keyof typeof CheckoutCompositionLineAvailability];
+
+export type CheckoutCompositionLine = {
+    sku: string;
+    name?: string;
+    quantity: number;
+    /**
+     * Preço unitário autoritativo (mesma unidade que CheckoutQuoteResult).
+     */
+    unit_amount: number;
+    line_amount: number;
+    availability: CheckoutCompositionLineAvailability;
+    available_quantity?: number;
+    warehouse_id?: string;
+    express_group?: boolean;
+    category?: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
+    /**
+     * Eco do período cotado (SKU rental)
+     */
+    period_start?: string;
+    period_end?: string;
+    /**
+     * Base de cobrança do rental_meta no momento do compose
+     */
+    billing_basis?: 'day' | 'hour';
+    /**
+     * Pacote casado (half_day, daily, multi_day, hourly, …)
+     */
+    package?: string;
+    /**
+     * id da day_part quando package=half_day
+     */
+    matched_day_part?: string;
+    /**
+     * Dias civis cobrados (billing_basis=day)
+     */
+    days?: number;
+    /**
+     * Horas cobradas (billing_basis=hour)
+     */
+    hours?: number;
+    /**
+     * Unidades cobradas (dias ou horas)
+     */
+    billing_units?: number;
+    /**
+     * Calção desta linha (antes de agregados nos totais)
+     */
+    deposit_amount?: number;
+};
+
+export const CheckoutAdvisorySeverity = {
+    INFO: 'info',
+    WARNING: 'warning',
+    BLOCK: 'block'
+} as const;
+
+export type CheckoutAdvisorySeverity = typeof CheckoutAdvisorySeverity[keyof typeof CheckoutAdvisorySeverity];
+
+export type CheckoutAdvisory = {
+    /**
+     * Código estável (ex. stock_insufficient, min_checkout_total).
+     */
+    code: string;
+    severity: CheckoutAdvisorySeverity;
+    message: string;
+    sku?: string;
+};
+
+export type CheckoutFulfillmentOffer = {
+    /**
+     * shipping_method_id ou código pickup.
+     */
+    id: string;
+    label: string;
+    /**
+     * Mesma unidade monetária que CheckoutQuoteResult.
+     */
+    amount: number;
+    eta_min_hours?: number;
+    eta_max_hours?: number;
+    mode?: 'shipping' | 'pickup' | 'express';
+};
+
+export type CheckoutTenderOption = {
+    payment_method_id: string;
+    label: string;
+    kind?: 'pix' | 'boleto' | 'card' | 'wallet' | 'voucher';
+    installments?: Array<InstallmentOption>;
+};
+
+/**
+ * Espelho read-only do que o Engine aplicou.
+ */
+export type CheckoutCompositionHeuristics = {
+    warehouse_selection_mode?: string;
+    promotion_mode?: string;
+    coupon_discount_scope?: string;
+    min_checkout_total?: number;
+    express_shipping_free_applied?: boolean;
+};
+
+export type CheckoutComposition = {
+    lines: Array<CheckoutCompositionLine>;
+    totals: CheckoutQuoteResult;
+    fulfillment_offers?: Array<CheckoutFulfillmentOffer>;
+    tender_options?: Array<CheckoutTenderOption>;
+    advisories: Array<CheckoutAdvisory>;
+    heuristics_applied?: CheckoutCompositionHeuristics;
+    /**
+     * false se existir advisory severity=block.
+     */
+    placeable: boolean;
+    /**
+     * Selo opaco HMAC; enviar no place-order.
+     */
+    composition_seal?: string;
+    expires_at?: string;
+    composed_at: string;
+    currency: 'BRL';
 };
 
 export type CheckoutIdentityVerificationPublicConfig = {
@@ -3114,7 +10731,23 @@ export type InventoryMovement = {
     created_by?: string;
     created_at: string;
     readonly product_sku?: string;
+    /**
+     * Nome do produto (read-only; JOIN em core.products).
+     */
+    readonly product_name?: string;
     readonly product_ean?: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
+    /**
+     * Custo unitário em centavos (entrada/ajuste+)
+     */
+    unit_cost_cents?: number;
+    /**
+     * Custo total do movimento (CMV em saídas)
+     */
+    total_cost_cents?: number;
 };
 
 export type InventoryMovementCreate = {
@@ -3130,6 +10763,10 @@ export type InventoryMovementCreate = {
      */
     dedupe_key: string;
     note?: string;
+    /**
+     * Custo unitário em centavos (entradas); opcional
+     */
+    unit_cost_cents?: number;
 };
 
 export type InventoryMovementListPage = {
@@ -3147,9 +10784,34 @@ export type InventoryBalance = {
     quantity?: number;
     reserved?: number;
     /**
-     * quantity - reserved
+     * quantity - reserved. Null quando stock_policy=infinite (sem teto).
      */
     available?: number;
+    /**
+     * Disponível para a vitrine web (#866). 0 se o warehouse POS estiver offline (heartbeat expirado). Null quando stock_policy=infinite.
+     */
+    sellable?: number;
+    /**
+     * Política da linha consultada (#975). Agregado cross-warehouse usa a mais permissiva.
+     */
+    stock_policy?: InventoryStockPolicy;
+    /**
+     * Warehouse com heartbeat POS válido (pos_online_until > now)
+     */
+    pos_online?: boolean;
+    pos_online_until?: string;
+    /**
+     * Nome do produto (read-only; JOIN em core.products).
+     */
+    readonly product_name?: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
+    /**
+     * Localização física no armazém consultado; fallback para o location_hint do produto quando a linha não tem localização própria.
+     */
+    location?: string;
 };
 
 export type CatalogEanLookup = {
@@ -3181,6 +10843,10 @@ export type WmsProductDraft = {
     published_product_id?: string;
     created_at?: string;
     updated_at?: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
 };
 
 export type WmsProductDraftCreate = {
@@ -3245,6 +10911,10 @@ export type WmsInboundNfeDraft = {
     items?: Array<WmsInboundNfeItem>;
     created_at?: string;
     updated_at?: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
 };
 
 export type WmsInboundNfeItem = {
@@ -3259,6 +10929,14 @@ export type WmsInboundNfeItem = {
     product_id?: string;
     action?: 'entrada' | 'cadastrar_entrada';
     enrich_status?: WmsEnrichStatus;
+    /**
+     * Nome do produto (read-only; JOIN em core.products).
+     */
+    readonly product_name?: string;
+    /**
+     * SKU do produto (read-only; JOIN em core.products).
+     */
+    readonly product_sku?: string;
 };
 
 export type WmsInboundNfeDraftCreate = {
@@ -3276,6 +10954,10 @@ export type WmsInboundNfePublishRequest = {
      * Vazio = publicar todos os itens aprovados
      */
     line_numbers?: Array<number>;
+    /**
+     * PO opcional a associar (ADR 0116)
+     */
+    purchase_order_id?: string;
 };
 
 export type WmsInboundNfePublishResult = {
@@ -3394,9 +11076,13 @@ export type AiModeChatRequest = {
      */
     answer_to?: string;
     /**
-     * autoriza executar ações sensíveis neste turno (após confirmação do usuário)
+     * autoriza executar ações sensíveis neste turno (após confirmação do usuário; preferir confirmation_token)
      */
     allow_sensitive?: boolean;
+    /**
+     * token one-shot emitido no bloco question (amarra tool+args da confirmação)
+     */
+    confirmation_token?: string;
 };
 
 export type AiModeChatResponse = {
@@ -3407,6 +11093,10 @@ export type AiModeChatResponse = {
      * true quando o assistente terminou com uma pergunta ao usuário
      */
     awaiting_input?: boolean;
+    /**
+     * true quando o critic de fidelidade falhou após uma regeneração
+     */
+    guard_warning?: boolean;
 };
 
 export type AiModeMessageBlock = {
@@ -3418,6 +11108,10 @@ export type AiModeMessageBlock = {
      * id da pergunta (bloco question) para o round-trip da resposta
      */
     question_id?: string;
+    /**
+     * token one-shot para autorizar a tool sensível proposta (Confirmar)
+     */
+    confirmation_token?: string;
     /**
      * permite múltipla escolha (bloco question)
      */
@@ -3536,6 +11230,107 @@ export const ShippingQuoteProvider = {
 
 export type ShippingQuoteProvider = typeof ShippingQuoteProvider[keyof typeof ShippingQuoteProvider];
 
+export const ShippingProviderSource = {
+    BUILTIN: 'builtin',
+    EXTERNAL: 'external',
+    PLUGIN: 'plugin'
+} as const;
+
+export type ShippingProviderSource = typeof ShippingProviderSource[keyof typeof ShippingProviderSource];
+
+export const ShippingProviderStatus = {
+    /**
+     * ShippingProviderStatusReady
+     */
+    SHIPPING_PROVIDER_STATUS_READY: 'ready',
+    /**
+     * ShippingProviderStatusMissingCredentials
+     */
+    SHIPPING_PROVIDER_STATUS_MISSING_CREDENTIALS: 'missing_credentials',
+    /**
+     * ShippingProviderStatusInactive
+     */
+    SHIPPING_PROVIDER_STATUS_INACTIVE: 'inactive',
+    /**
+     * ShippingProviderStatusUnavailable
+     */
+    SHIPPING_PROVIDER_STATUS_UNAVAILABLE: 'unavailable'
+} as const;
+
+export type ShippingProviderStatus = typeof ShippingProviderStatus[keyof typeof ShippingProviderStatus];
+
+export const ShippingProviderFieldType = {
+    /**
+     * ShippingProviderFieldTypeString
+     */
+    SHIPPING_PROVIDER_FIELD_TYPE_STRING: 'string',
+    /**
+     * ShippingProviderFieldTypeNumber
+     */
+    SHIPPING_PROVIDER_FIELD_TYPE_NUMBER: 'number',
+    /**
+     * ShippingProviderFieldTypeBoolean
+     */
+    SHIPPING_PROVIDER_FIELD_TYPE_BOOLEAN: 'boolean',
+    /**
+     * ShippingProviderFieldTypeUrl
+     */
+    SHIPPING_PROVIDER_FIELD_TYPE_URL: 'url',
+    /**
+     * ShippingProviderFieldTypeSecret
+     */
+    SHIPPING_PROVIDER_FIELD_TYPE_SECRET: 'secret',
+    /**
+     * ShippingProviderFieldTypeJson
+     */
+    SHIPPING_PROVIDER_FIELD_TYPE_JSON: 'json'
+} as const;
+
+export type ShippingProviderFieldType = typeof ShippingProviderFieldType[keyof typeof ShippingProviderFieldType];
+
+export type ShippingProviderField = {
+    key: string;
+    label: string;
+    description?: string;
+    type: ShippingProviderFieldType;
+    required?: boolean;
+    /**
+     * Namespace no vault para campos de credencial.
+     */
+    namespace?: string;
+    /**
+     * Presença no vault sem revelar o valor.
+     */
+    configured?: boolean;
+    /**
+     * Valores permitidos quando o campo é enumerado.
+     */
+    options?: Array<string>;
+};
+
+export type ShippingProviderDescriptor = {
+    id: string;
+    label: string;
+    description: string;
+    source: ShippingProviderSource;
+    capabilities: Array<string>;
+    credential_fields: Array<ShippingProviderField>;
+    config_fields: Array<ShippingProviderField>;
+    status: ShippingProviderStatus;
+    /**
+     * O provider possui teste direto de conectividade/configuração.
+     */
+    supports_test: boolean;
+    /**
+     * Um provider pode originar vários métodos ou serviços.
+     */
+    supports_multi_service: boolean;
+};
+
+export type ShippingProviderList = {
+    data: Array<ShippingProviderDescriptor>;
+};
+
 /**
  * Configuração de um método de frete nativo dos Correios. As credenciais (usuário, token, cartão de postagem, contrato) ficam no vault por tenant em shipping.correios.{key} e NÃO aqui.
  */
@@ -3576,6 +11371,31 @@ export type OrderShipping = {
     method_code?: string;
     method_name?: string;
     transport_mode?: ShippingTransportMode;
+    /**
+     * Prazo mínimo de entrega em dias úteis (da cotação selecionada).
+     */
+    eta_days_min?: number;
+    /**
+     * Prazo máximo de entrega em dias úteis (da cotação selecionada).
+     */
+    eta_days_max?: number;
+    /**
+     * Número de volumes físicos da cotação (split por limites do método).
+     */
+    package_count?: number;
+    /**
+     * Volumes cotados/persistidos — preço do pedido já é a soma.
+     */
+    packages?: Array<ShippingQuotePackage>;
+    tracking_code?: string;
+    tracking_url?: string;
+    tracking_status?: ShippingTrackingStatus;
+    tracking_updated_at?: string;
+    label?: OrderShippingLabel;
+    /**
+     * Doca de expedição (ADR 0095)
+     */
+    dock_id?: string;
 };
 
 export type OrderShipmentItem = {
@@ -3599,6 +11419,109 @@ export type OrderShipment = {
     price?: number;
     eta_days_min?: number;
     eta_days_max?: number;
+    /**
+     * Volumes físicos neste segmento (mesmo CD).
+     */
+    package_count?: number;
+    packages?: Array<ShippingQuotePackage>;
+    tracking_code?: string;
+    tracking_url?: string;
+    tracking_status?: ShippingTrackingStatus;
+    tracking_updated_at?: string;
+    dock_id?: string;
+};
+
+/**
+ * Estado de rastreio do envio (ADR 0095)
+ */
+export const ShippingTrackingStatus = {
+    PENDING: 'pending',
+    IN_TRANSIT: 'in_transit',
+    DELIVERED: 'delivered',
+    EXCEPTION: 'exception',
+    UNKNOWN: 'unknown'
+} as const;
+
+/**
+ * Estado de rastreio do envio (ADR 0095)
+ */
+export type ShippingTrackingStatus = typeof ShippingTrackingStatus[keyof typeof ShippingTrackingStatus];
+
+export type ShippingDock = {
+    id: string;
+    tenant_id?: string;
+    warehouse_id: string;
+    readonly warehouse_name?: string;
+    code: string;
+    name: string;
+    is_active?: boolean;
+    /**
+     * Doca principal do warehouse (backfill)
+     */
+    is_default?: boolean;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type ShippingDockCreate = {
+    warehouse_id: string;
+    code: string;
+    name: string;
+    is_active?: boolean;
+    is_default?: boolean;
+};
+
+export type ShippingDockUpdate = {
+    name?: string;
+    code?: string;
+    is_active?: boolean;
+    is_default?: boolean;
+};
+
+export type OrderShippingLabelContentItem = {
+    /**
+     * Descrição do item na DEC
+     */
+    content: string;
+    quantity: number;
+    /**
+     * Valor unitário declarado (BRL)
+     */
+    value: number;
+    sku?: string;
+};
+
+export type OrderShippingLabel = {
+    /**
+     * Estado da pré-postagem/etiqueta
+     */
+    status?: 'none' | 'created' | 'failed';
+    prepostagem_id?: string;
+    tracking_code?: string;
+    /**
+     * URL assinada do PDF (curta duração)
+     */
+    label_url?: string;
+    /**
+     * Declaração eletrónica de conteúdo enviada aos Correios
+     */
+    content_declaration?: Array<OrderShippingLabelContentItem>;
+    error?: string;
+    created_at?: string;
+};
+
+export type CreateShippingLabelRequest = {
+    /**
+     * Override do código de serviço Correios (senão usa o método)
+     */
+    service_code?: string;
+    note?: string;
+};
+
+export type UpdateShippingTrackingRequest = {
+    tracking_code?: string;
+    tracking_url?: string;
+    tracking_status?: ShippingTrackingStatus;
 };
 
 export type ShippingCarrier = {
@@ -3632,6 +11555,44 @@ export type ShippingDistanceConfig = {
     eta_days_max?: number;
 };
 
+/**
+ * Restrições comerciais/físicas do método (ADR 0136). Ausente ou campos
+ * omissos = sem restrição. Enforcement em methodEligible no resolver.
+ *
+ */
+export type ShippingMethodEligibility = {
+    /**
+     * Pedido mínimo (subtotal bens+serviços, sem frete). Só aplica se o quote enviar subtotal.
+     */
+    min_order_value?: number;
+    /**
+     * Pedido máximo (mesma base). Só aplica se o quote enviar subtotal.
+     */
+    max_order_value?: number;
+    min_weight_kg?: number;
+    max_weight_kg?: number;
+    /**
+     * Maior lado (cm) por unidade/volume
+     */
+    max_side_cm?: number;
+    /**
+     * Soma L+W+H (cm) por unidade/volume
+     */
+    max_sum_cm?: number;
+    /**
+     * Soma das quantidades do carrinho
+     */
+    max_items?: number;
+    /**
+     * Máximo de volumes após empacotamento (quando aplicável)
+     */
+    max_packages?: number;
+    /**
+     * UFs destino permitidas (ex. SP, RJ). Vazio = todas.
+     */
+    allowed_states?: Array<string>;
+};
+
 export type ShippingExternalConfig = {
     url?: string;
     auth_namespace?: string;
@@ -3644,32 +11605,80 @@ export type ShippingMethod = {
     id: string;
     tenant_id?: string;
     carrier_id: string;
-    warehouse_id?: string;
+    /**
+     * CD/loja de origem (ADR 0082 — obrigatório)
+     */
+    warehouse_id: string;
+    /**
+     * Doca de expedição neste warehouse (ADR 0095)
+     */
+    dock_id?: string;
+    /**
+     * Nome da doca (read-only)
+     */
+    readonly dock_name?: string;
+    /**
+     * Allowlist de canais (`web`, `whatsapp`, `api`, …). Vazio = todos os
+     * canais deste warehouse (ADR 0082).
+     *
+     */
+    channels?: Array<string>;
     code: string;
     name: string;
     transport_mode: ShippingTransportMode;
     quote_mode: ShippingQuoteMode;
+    /**
+     * Provider autoritativo; quote_mode permanece por compatibilidade.
+     */
+    provider_id?: string;
+    provider_config?: {
+        [key: string]: unknown;
+    };
+    price_adjustment_percent?: number;
+    price_adjustment_fixed?: number;
+    price_adjustment_label?: string;
     fixed_price?: number;
     distance_config?: ShippingDistanceConfig;
     external_config?: ShippingExternalConfig;
     correios_config?: CorreiosConfig;
+    eligibility?: ShippingMethodEligibility;
     is_active?: boolean;
     priority?: number;
     created_at?: string;
     updated_at?: string;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
 };
 
 export type ShippingMethodCreate = {
     carrier_id: string;
-    warehouse_id?: string;
+    /**
+     * CD/loja de origem (obrigatório — ADR 0082)
+     */
+    warehouse_id: string;
+    /**
+     * Doca de expedição (ADR 0095)
+     */
+    dock_id?: string;
+    channels?: Array<string>;
     code: string;
     name: string;
     transport_mode: ShippingTransportMode;
     quote_mode: ShippingQuoteMode;
+    provider_id?: string;
+    provider_config?: {
+        [key: string]: unknown;
+    };
+    price_adjustment_percent?: number;
+    price_adjustment_fixed?: number;
+    price_adjustment_label?: string;
     fixed_price?: number;
     distance_config?: ShippingDistanceConfig;
     external_config?: ShippingExternalConfig;
     correios_config?: CorreiosConfig;
+    eligibility?: ShippingMethodEligibility;
     tenant_id?: string;
     is_active?: boolean;
     priority?: number;
@@ -3677,12 +11686,23 @@ export type ShippingMethodCreate = {
 
 export type ShippingMethodUpdate = {
     name?: string;
+    warehouse_id?: string;
+    dock_id?: string;
+    channels?: Array<string>;
     transport_mode?: ShippingTransportMode;
     quote_mode?: ShippingQuoteMode;
+    provider_id?: string;
+    provider_config?: {
+        [key: string]: unknown;
+    };
+    price_adjustment_percent?: number;
+    price_adjustment_fixed?: number;
+    price_adjustment_label?: string;
     fixed_price?: number;
     distance_config?: ShippingDistanceConfig;
     external_config?: ShippingExternalConfig;
     correios_config?: CorreiosConfig;
+    eligibility?: ShippingMethodEligibility;
     is_active?: boolean;
     priority?: number;
 };
@@ -3720,10 +11740,46 @@ export type FreightTableUpdate = {
     is_active?: boolean;
 };
 
+/**
+ * Um volume físico resultante do empacotamento (limites do método/provedor).
+ */
+export type ShippingQuotePackage = {
+    /**
+     * Peso do volume (kg)
+     */
+    weight_kg?: number;
+    length_cm?: number;
+    width_cm?: number;
+    height_cm?: number;
+    /**
+     * Preço deste volume antes do ajuste comercial do método (quando cotado à parte)
+     */
+    price?: number;
+    /**
+     * SKUs/qty neste volume (opcional; útil no pedido)
+     */
+    items?: Array<OrderShipmentItem>;
+};
+
 export type ShippingQuoteItem = {
     sku: string;
     quantity: number;
+    /**
+     * Peso unitário (kg). Se omitido, o resolver preenche a partir do ProductSku — preferindo packaged_weight_kg, senão weight_kg.
+     */
     weight_kg?: number;
+    /**
+     * Comprimento unitário (cm); preferindo packaged_length_cm do ProductSku
+     */
+    length_cm?: number;
+    /**
+     * Largura unitária (cm); preferindo packaged_width_cm do ProductSku
+     */
+    width_cm?: number;
+    /**
+     * Altura unitária (cm); preferindo packaged_height_cm do ProductSku
+     */
+    height_cm?: number;
 };
 
 export type ShippingQuoteRequest = {
@@ -3732,6 +11788,12 @@ export type ShippingQuoteRequest = {
     destination: DeliveryAddress;
     items: Array<ShippingQuoteItem>;
     channel?: PriceChannel;
+    /**
+     * Subtotal bens+serviços (sem frete) para regras min/max_order_value
+     * (ADR 0136). Omisso = regras de valor não eliminam o método (legado).
+     *
+     */
+    subtotal?: number;
     /**
      * Quando definido, devolve só esse método (validação de pedido)
      */
@@ -3746,10 +11808,31 @@ export type ShippingQuoteOption = {
     method_name: string;
     transport_mode?: ShippingTransportMode;
     price: number;
+    base_price?: number;
+    breakdown?: ShippingPriceBreakdown;
     currency?: string;
     eta_days_min?: number;
     eta_days_max?: number;
     provider?: ShippingQuoteProvider;
+    provider_id?: string;
+    source_plugin_id?: string;
+    /**
+     * Volumes físicos após split por limites do provedor/método
+     */
+    package_count?: number;
+    /**
+     * Detalhe por volume; price da opção = soma dos volumes (+ ajuste comercial)
+     */
+    packages?: Array<ShippingQuotePackage>;
+};
+
+export type ShippingPriceBreakdown = {
+    base_price: number;
+    adjustment_percent: number;
+    adjustment_fixed: number;
+    adjustment_amount: number;
+    adjustment_label?: string;
+    final_price: number;
 };
 
 export type ShippingQuoteResult = {
@@ -3763,6 +11846,21 @@ export type ShippingQuoteResult = {
      * Alocação por item — qual depósito atende cada item (split-ready, modelo VTEX).
      */
     allocation?: Array<FulfillmentItemAllocation>;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
+};
+
+export type ShippingQuoteNoOptions = {
+    /**
+     * Mensagem estável (`no shipping options available`).
+     */
+    error: string;
+    /**
+     * Motivos por método/canal/geocode que eliminaram opções (#1461).
+     */
+    reasons?: Array<string>;
 };
 
 export type FulfillmentItemAllocation = {
@@ -3772,6 +11870,10 @@ export type FulfillmentItemAllocation = {
      * O depósito tem estoque suficiente do item.
      */
     covered: boolean;
+    /**
+     * Nome do armazém (read-only; JOIN em core.warehouses).
+     */
+    readonly warehouse_name?: string;
 };
 
 export type ShippingExternalTestResult = {
@@ -3955,9 +12057,18 @@ export type TaxLineBreakdown = {
 };
 
 export const TaxQuoteProvider = {
-    RULES: 'rules',
-    EXTERNAL: 'external',
-    HOOK: 'hook'
+    /**
+     * TaxQuoteProviderRules
+     */
+    TAX_QUOTE_PROVIDER_RULES: 'rules',
+    /**
+     * TaxQuoteProviderExternal
+     */
+    TAX_QUOTE_PROVIDER_EXTERNAL: 'external',
+    /**
+     * TaxQuoteProviderHook
+     */
+    TAX_QUOTE_PROVIDER_HOOK: 'hook'
 } as const;
 
 export type TaxQuoteProvider = typeof TaxQuoteProvider[keyof typeof TaxQuoteProvider];
@@ -4023,6 +12134,10 @@ export type Subscription = {
      * `locked` congela o preço da adesão; `current` reprecifica a cada ciclo
      */
     price_policy?: 'locked' | 'current';
+    /**
+     * Se true, cada ciclo fica `awaiting_customer` até o comprador confirmar composição + agenda na loja (fluxo B / #520). Default false = payment link imediato (comportamento clássico ADR 0039).
+     */
+    renewal_completion_required?: boolean;
     payment_method_id?: string;
     /**
      * Adquirente que detém o token do meio de pagamento
@@ -4057,11 +12172,22 @@ export type SubscriptionCreate = {
     next_run_at?: string;
     price_policy?: 'locked' | 'current';
     /**
+     * Opt-in ao fluxo B (#520): comprador edita composição + agenda antes do payment link. Persistido em `metadata.renewal_completion_required`.
+     */
+    renewal_completion_required?: boolean;
+    /**
      * Referência ao meio de pagamento tokenizado no adquirente (nunca PAN)
      */
     payment_method_id?: string;
     payment_provider?: string;
+    /**
+     * Pedido pago que originou a adesão. Quando presente, o core exige pagamento liquidado e `metadata.checkout_session_id` no pedido (#370). Omitir só para adesão manual (admin).
+     */
     source_order_id?: string;
+    /**
+     * Sessão de checkout (`cks_…`) que gerou o `source_order_id`. Opcional; se enviado, tem de coincidir com `order.metadata.checkout_session_id`.
+     */
+    checkout_session_id?: string;
     items: Array<SubscriptionItem>;
     metadata?: {
         [key: string]: unknown;
@@ -4075,12 +12201,88 @@ export type SubscriptionUpdate = {
     frequency_days?: number;
     price_policy?: 'locked' | 'current';
     /**
+     * Liga/desliga o fluxo B (#520) na assinatura
+     */
+    renewal_completion_required?: boolean;
+    /**
      * Troca do meio de pagamento (referência opaca do adquirente)
      */
     payment_method_id?: string;
     metadata?: {
         [key: string]: unknown;
     };
+};
+
+export type SubscriptionRenewalLine = {
+    sku: string;
+    quantity: number;
+    unit_price?: number;
+    total_price?: number;
+    /**
+     * `package` = base locked; `extra` = soma ao total
+     */
+    role?: 'package' | 'extra';
+};
+
+/**
+ * Estado editável do ciclo antes do payment link (#520). Presente só com run `awaiting_customer` e `renewal_completion_pending`.
+ */
+export type SubscriptionRenewal = {
+    subscription_id: string;
+    run: SubscriptionRun;
+    order_id?: string;
+    /**
+     * Total base da assinatura (snapshot locked) — imutável por troca de pacote
+     */
+    locked_base?: number;
+    package_items?: Array<SubscriptionRenewalLine>;
+    extra_items?: Array<SubscriptionRenewalLine>;
+    scheduled_for?: string;
+    /**
+     * Total do pedido (base locked + extras + frete/imposto se houver)
+     */
+    total_amount?: number;
+    renewal_completion_pending: boolean;
+    /**
+     * Código do pedido (read-only; JOIN em core.orders).
+     */
+    readonly order_code?: string;
+};
+
+export type SubscriptionRenewalItemsReplace = {
+    /**
+     * Nova composição do pacote (role ignora-se — tudo vira package)
+     */
+    items: Array<SubscriptionRenewalLine>;
+};
+
+export type SubscriptionRenewalExtrasAdd = {
+    /**
+     * Extras a acrescentar (preço do dia)
+     */
+    items: Array<SubscriptionRenewalLine>;
+};
+
+export type SubscriptionRenewalScheduleSet = {
+    scheduled_for: string;
+    warehouse_id?: string;
+};
+
+/**
+ * Resultado do confirm — pedido submetido + payment link
+ */
+export type SubscriptionRenewalConfirm = {
+    run: SubscriptionRun;
+    order_id?: string;
+    /**
+     * URL com o token em claro — só nesta resposta (nunca em logs)
+     */
+    payment_link_url: string;
+    total_amount?: number;
+    /**
+     * Código do pedido (read-only; JOIN em core.orders).
+     */
+    readonly order_code?: string;
 };
 
 /**
@@ -4095,7 +12297,10 @@ export type SubscriptionRun = {
      * auto | link — `auto` = cobrado no adquirente; `link` = pedido + payment link enviado. Vazio enquanto o ciclo não decidiu a via de cobrança.
      */
     charge_mode?: string;
-    status?: 'pending' | 'awaiting_payment' | 'paid' | 'held' | 'failed' | 'expired' | 'skipped';
+    /**
+     * `awaiting_customer` = pedido rascunho pronto; comprador ainda não confirmou composição+agenda (#520). Depois do confirm → `awaiting_payment`.
+     */
+    status?: 'pending' | 'awaiting_customer' | 'awaiting_payment' | 'paid' | 'held' | 'failed' | 'expired' | 'skipped';
     /**
      * Motivo legível da falha do ciclo — nunca inclui credencial nem resposta crua do adquirente
      */
@@ -4103,6 +12308,10 @@ export type SubscriptionRun = {
     scheduled_for?: string;
     created_at?: string;
     updated_at?: string;
+    /**
+     * Código do pedido (read-only; JOIN em core.orders).
+     */
+    readonly order_code?: string;
 };
 
 export type SubscriptionListPage = {
@@ -4146,11 +12355,15 @@ export type PaymentLink = {
      * URL pronta a enviar ao cliente (contém o `token`) — devolvida APENAS na criação (201)
      */
     readonly url?: string;
+    /**
+     * Código do pedido (read-only; JOIN em core.orders).
+     */
+    readonly order_code?: string;
 };
 
 export type PaymentLinkCreate = {
     /**
-     * Pedido a cobrar — tem de pertencer ao tenant do token
+     * Pedido a cobrar (UUID interno ou `order_code`) — tem de pertencer ao tenant do token.
      */
     order_id: string;
     source?: 'subscription_renewal' | 'abandoned_cart' | 'manual' | 'b2b';
@@ -4194,6 +12407,1844 @@ export type PaymentLinkListPage = {
     has_more: boolean;
 };
 
+/**
+ * Estado da surface (agregada; a versão viva é `current_release`).
+ */
+export const ExperienceSurfaceStatus = {
+    /**
+     * ExperienceSurfaceDraft
+     */
+    EXPERIENCE_SURFACE_DRAFT: 'draft',
+    /**
+     * ExperienceSurfacePublished
+     */
+    EXPERIENCE_SURFACE_PUBLISHED: 'published',
+    /**
+     * ExperienceSurfaceArchived
+     */
+    EXPERIENCE_SURFACE_ARCHIVED: 'archived'
+} as const;
+
+/**
+ * Estado da surface (agregada; a versão viva é `current_release`).
+ */
+export type ExperienceSurfaceStatus = typeof ExperienceSurfaceStatus[keyof typeof ExperienceSurfaceStatus];
+
+/**
+ * Estado de uma release editorial. Published é imutável.
+ */
+export const ExperienceReleaseStatus = {
+    /**
+     * ExperienceReleaseDraft
+     */
+    EXPERIENCE_RELEASE_DRAFT: 'draft',
+    /**
+     * ExperienceReleaseInReview
+     */
+    EXPERIENCE_RELEASE_IN_REVIEW: 'in_review',
+    /**
+     * ExperienceReleaseScheduled
+     */
+    EXPERIENCE_RELEASE_SCHEDULED: 'scheduled',
+    /**
+     * ExperienceReleasePublished
+     */
+    EXPERIENCE_RELEASE_PUBLISHED: 'published',
+    /**
+     * ExperienceReleaseArchived
+     */
+    EXPERIENCE_RELEASE_ARCHIVED: 'archived'
+} as const;
+
+/**
+ * Estado de uma release editorial. Published é imutável.
+ */
+export type ExperienceReleaseStatus = typeof ExperienceReleaseStatus[keyof typeof ExperienceReleaseStatus];
+
+/**
+ * Um storefront do tenant no registry (#885 / ADR 0090)
+ */
+export type StorefrontSummary = {
+    /**
+     * Slug do storefront (ns/workload storefront-<slug>)
+     */
+    slug: string;
+    /**
+     * Repo GitHub — sempre mira-dev-tech/storefront-<slug>
+     */
+    repo: string;
+    /**
+     * Hosts servidos (plataforma primeiro; custom depois)
+     */
+    hosts: Array<string>;
+    /**
+     * True para o storefront principal do tenant
+     */
+    default: boolean;
+};
+
+export type StorefrontsList = {
+    storefronts: Array<StorefrontSummary>;
+};
+
+/**
+ * Colaborador GitHub no repo do storefront (#885)
+ */
+export type StorefrontCollaborator = {
+    login: string;
+    /**
+     * pull | triage | push | maintain | admin
+     */
+    permission: string;
+    /**
+     * True se o convite ainda está pendente
+     */
+    pending?: boolean;
+};
+
+export type StorefrontCollaboratorList = {
+    collaborators: Array<StorefrontCollaborator>;
+};
+
+export type StorefrontCollaboratorCreate = {
+    /**
+     * Login GitHub (sem @)
+     */
+    username: string;
+    /**
+     * Default push (pull | triage | push | maintain | admin)
+     */
+    permission?: string;
+};
+
+export type StorefrontStudioBootstrap = {
+    /**
+     * True quando STOREFRONT_STUDIO_ENABLED=1
+     */
+    enabled: boolean;
+    /**
+     * Texto obrigatório de aviso de débito wallet
+     */
+    cost_notice: string;
+    models: {
+        plan: string;
+        code: string;
+        fix: string;
+    };
+    /**
+     * Disponibilidade por fase (ADR 0088 — sessions=engine ligado; deploy=F2d)
+     */
+    phases: {
+        /**
+         * True com STOREFRONT_STUDIO_ENABLED + STOREFRONT_STUDIO_ENGINE_URL
+         */
+        sessions: boolean;
+        /**
+         * Publicação one-click (F2d) disponível
+         */
+        deploy: boolean;
+    };
+    /**
+     * Lembrete de que conteúdo editorial fica no Experiences
+     */
+    experiences_boundary?: string;
+};
+
+export type StorefrontStudioSessionCreate = {
+    /**
+     * Storefront do tenant (GET /storefronts)
+     */
+    storefront_slug: string;
+    /**
+     * Pedido estrutural inicial (opcional)
+     */
+    initial_prompt?: string;
+};
+
+/**
+ * Sessão do Studio — 1 conversation OpenHands (ADR 0088)
+ */
+export type StorefrontStudioSession = {
+    id: string;
+    storefront_slug: string;
+    /**
+     * paused = idle-pause (runtime desligado, trabalho preservado; mensagem/resume religam)
+     */
+    status: 'starting' | 'active' | 'paused' | 'stopped' | 'error';
+    /**
+     * Estado do runtime no engine (ex. STATUS$READY)
+     */
+    runtime_status?: string;
+    /**
+     * Hosts de preview expostos pelo runtime (web-hosts)
+     */
+    preview_urls?: Array<string>;
+    /**
+     * Identidade do actor que abriu a sessão (ex. staff:<userId> ou id do token API)
+     */
+    created_by?: string;
+    /**
+     * Nome legível do actor (staff) ou fallback curto
+     */
+    created_by_name?: string;
+    created_at: string;
+    /**
+     * Última mensagem/publish/resume na sessão
+     */
+    last_activity_at: string;
+    ended_at?: string;
+    /**
+     * URL do Pull Request aberto ao publicar (quando o gate o detectou)
+     */
+    pr_url?: string;
+    /**
+     * Estado conhecido do PR da sessão (sem poll de merge nesta onda)
+     */
+    pr_state?: 'open' | 'blocked' | 'closed';
+};
+
+export type StorefrontStudioSessionList = {
+    sessions: Array<StorefrontStudioSession>;
+};
+
+export type StorefrontStudioSessionMessage = {
+    content: string;
+    /**
+     * Modo da mensagem (default agent). agent executa a mudança; plan responde um plano do que mudaria SEM editar nada (a execução é aprovada numa mensagem seguinte em modo agent); ask só responde perguntas sobre a loja/código, sem editar nada. Soft-enforced por instruções ao agente — a fronteira dura continua no publish (PR + CI), nunca no chat.
+     */
+    mode?: 'agent' | 'plan' | 'ask';
+};
+
+export type StorefrontStudioMessageAck = {
+    accepted: boolean;
+};
+
+export type StorefrontStudioSessionConflict = {
+    error: string;
+    message: string;
+    /**
+     * Sessão viva existente do tenant (para retomar)
+     */
+    session_id: string;
+};
+
+export type StorefrontStudioPublishRequest = {
+    /**
+     * Contexto opcional para o título/descrição do PR
+     */
+    note?: string;
+};
+
+/**
+ * Evento normalizado da conversation (chat, ação, estado). Os campos estruturados (action/path/command/detail/exit_code) alimentam a timeline de progresso do chat — a tradução para linguagem de lojista é da UI; aqui vai o dado técnico cru.
+ */
+export type StorefrontStudioEvent = {
+    /**
+     * Sequência monotónica por sessão (cursor do long-poll)
+     */
+    seq: number;
+    /**
+     * message | action | agent_state | error | system
+     */
+    kind: string;
+    /**
+     * user | agent | system
+     */
+    source?: string;
+    message?: string;
+    timestamp?: string;
+    /**
+     * Verbo técnico (kind=action): run | run_result | edit | write | read | read_result | edit_result | browse | think | finish | recall | condensation
+     */
+    action?: string;
+    /**
+     * Alvo da ação — path de ficheiro no repo do storefront, ou URL (browse)
+     */
+    path?: string;
+    /**
+     * Comando shell (action=run | run_result)
+     */
+    command?: string;
+    /**
+     * Detalhe técnico truncado — output de comando, diff de edição, pensamento
+     */
+    detail?: string;
+    /**
+     * Código de saída do comando (action=run_result)
+     */
+    exit_code?: number;
+    /**
+     * Modo da mensagem do lojista (agent | plan | ask), ecoado no evento kind=message source=user
+     */
+    mode?: string;
+};
+
+export type StorefrontStudioEventList = {
+    events: Array<StorefrontStudioEvent>;
+    last_seq: number;
+};
+
+/**
+ * Manifest de capabilities do storefront do tenant. Só existe UMA linha por tenant. `strict=true` faz o admin rejeitar placement/block/routes fora do allowlist.
+ */
+export type ExperienceCapabilities = {
+    strict?: boolean;
+    surfaces: Array<{
+        key: string;
+        title?: string;
+        placements: Array<string>;
+    }>;
+    block_types: Array<string>;
+    routes_allowlist?: Array<string>;
+    external_hosts_allowlist?: Array<string>;
+    readonly updated_at?: string;
+};
+
+export type ExperienceSurface = {
+    id: string;
+    key: string;
+    title?: string;
+    status: ExperienceSurfaceStatus;
+    current_release_id?: string;
+    readonly created_at?: string;
+    readonly updated_at?: string;
+};
+
+export type ExperienceSurfaceList = {
+    data: Array<ExperienceSurface>;
+};
+
+export type ExperienceSurfaceCreate = {
+    key: string;
+    title?: string;
+};
+
+export type ExperienceReleaseCreate = {
+    name?: string;
+    notes?: string;
+    /**
+     * Se informado, clona placements+blocks daquela release (edição = clonar).
+     */
+    from_release_id?: string;
+    starts_at?: string;
+    ends_at?: string;
+};
+
+export type ExperienceReleaseUpdate = {
+    name?: string;
+    notes?: string;
+    starts_at?: string;
+    ends_at?: string;
+};
+
+export type ExperienceReleaseSchedule = {
+    publish_at: string;
+};
+
+export type ExperienceRollback = {
+    target_release_id: string;
+    reason?: string;
+};
+
+export type ExperiencePlacementInput = {
+    key: string;
+    position?: number;
+    blocks: Array<ExperienceBlockInput>;
+};
+
+export type ExperienceBlockInput = {
+    /**
+     * Tipo canónico (`banner`, `carousel`, `tile_grid`, `benefits_bar`, `announcement`, `category_grid`, `product_collection`, `spacer`).
+     */
+    type: string;
+    title?: string;
+    position?: number;
+    variant_id?: string;
+    audience_rule_id?: string;
+    data?: JsonObject;
+};
+
+export type ExperiencePlacementGraph = {
+    placements: Array<ExperiencePlacementInput>;
+};
+
+export type ExperienceBlock = {
+    id: string;
+    placement_id?: string;
+    type: string;
+    title?: string;
+    position: number;
+    variant_id?: string;
+    audience_rule_id?: string;
+    data?: JsonObject;
+};
+
+export type ExperiencePlacement = {
+    id: string;
+    key: string;
+    position: number;
+    blocks: Array<ExperienceBlock>;
+};
+
+export type ExperienceRelease = {
+    id: string;
+    surface_id: string;
+    surface_key: string;
+    name?: string;
+    notes?: string;
+    status: ExperienceReleaseStatus;
+    starts_at?: string;
+    ends_at?: string;
+    publish_at?: string;
+    published_at?: string;
+    readonly created_at?: string;
+    readonly updated_at?: string;
+    /**
+     * Hidratado apenas em GET single / após PUT placements.
+     */
+    placements?: Array<ExperiencePlacement>;
+};
+
+export type ExperienceReleaseList = {
+    data: Array<ExperienceRelease>;
+};
+
+export type ExperiencePreviewTokenCreate = {
+    release_id: string;
+    ttl_minutes?: number;
+    /**
+     * Se true, o token autoriza PUT placements na rota pública de preview (editor in-site). Requer `experiences:write` no emit.
+     */
+    can_write?: boolean;
+};
+
+export type ExperiencePreviewTokenCreated = {
+    /**
+     * Token em claro — aparece **APENAS** aqui. Guardar do lado do editor e usar em `/storefront/experiences/preview/{token}`. O banco só tem SHA-256.
+     */
+    token: string;
+    release_id: string;
+    surface_key?: string;
+    expires_at: string;
+    /**
+     * Espelha o pedido — true só se o token permitir gravação in-site.
+     */
+    can_write: boolean;
+    /**
+     * URL absoluta do storefront. Só-leitura usa `experience_preview=`; com can_write usa `mira_edit=` (TENANT_STOREFRONT_URLS). Omitida se o tenant não estiver no mapa.
+     */
+    preview_url?: string;
+};
+
+export type MerchandisingCollection = {
+    id: string;
+    key: string;
+    title?: string;
+    kind: 'manual' | 'rule';
+    rule?: JsonObject;
+    product_refs?: Array<string>;
+    cache_ttl_seconds?: number;
+    readonly created_at?: string;
+    readonly updated_at?: string;
+};
+
+export type MerchandisingCollectionList = {
+    data: Array<MerchandisingCollection>;
+};
+
+export type MerchandisingCollectionCreate = {
+    key: string;
+    title?: string;
+    kind: 'manual' | 'rule';
+    rule?: JsonObject;
+    product_refs?: Array<string>;
+    cache_ttl_seconds?: number;
+};
+
+export type MerchandisingCollectionUpdate = {
+    title?: string;
+    kind?: 'manual' | 'rule';
+    rule?: JsonObject;
+    product_refs?: Array<string>;
+    cache_ttl_seconds?: number;
+};
+
+export type ExperienceAsset = {
+    id: string;
+    kind: 'image' | 'video' | 'other';
+    storage_key: string;
+    /**
+     * URL estável do proxy público GET /storefront/experiences/media/{id} (preencher em image_url dos blocks).
+     */
+    readonly url?: string;
+    content_type?: string;
+    width_px?: number;
+    height_px?: number;
+    checksum?: string;
+    bytes?: number;
+    readonly created_at?: string;
+};
+
+export type ExperienceAssetList = {
+    data: Array<ExperienceAsset>;
+};
+
+export type ExperienceAssetCreate = {
+    kind: 'image' | 'video' | 'other';
+    storage_key: string;
+    content_type?: string;
+    width_px?: number;
+    height_px?: number;
+    checksum?: string;
+    bytes?: number;
+};
+
+export type ExperienceResolveRequest = {
+    surface: string;
+    placements?: Array<string>;
+    channel?: 'web' | 'app' | 'kiosk';
+    locale?: string;
+    device?: 'mobile' | 'tablet' | 'desktop';
+    resolve?: 'none' | 'products';
+    segment?: JsonObject;
+};
+
+/**
+ * Projeção editorial de produto (sem preço). Preço/estoque vêm do runtime de catálogo.
+ */
+export type ExperienceResolvedProduct = {
+    id: string;
+    slug?: string;
+    name?: string;
+    image_url?: string;
+};
+
+export type ExperienceResolvedResources = {
+    products?: Array<ExperienceResolvedProduct>;
+    collections?: Array<MerchandisingCollection>;
+};
+
+export type ExperienceResolved = {
+    surface: string;
+    release_id: string;
+    status: ExperienceReleaseStatus;
+    /**
+     * Identificador do snapshot (para cache/etag).
+     */
+    version?: string;
+    placements: Array<ExperiencePlacement>;
+    resources?: ExperienceResolvedResources;
+    rendered_at?: string;
+};
+
+/**
+ * Estado da sessão WhatsApp no Connect (Evolution atrás).
+ */
+export const WhatsAppInstanceStatus = {
+    PENDING: 'pending',
+    CONNECTED: 'connected',
+    DISCONNECTED: 'disconnected'
+} as const;
+
+/**
+ * Estado da sessão WhatsApp no Connect (Evolution atrás).
+ */
+export type WhatsAppInstanceStatus = typeof WhatsAppInstanceStatus[keyof typeof WhatsAppInstanceStatus];
+
+export type WhatsAppInstance = {
+    inbox_id: number;
+    organization_id?: number;
+    status: WhatsAppInstanceStatus;
+    /**
+     * Chave idempotente no Connect (ex. commerce:niva:uuid)
+     */
+    external_ref?: string;
+    embed_base_url?: string;
+    /**
+     * Rótulo opcional na UI (derivado do external_ref)
+     */
+    label?: string;
+};
+
+export type WhatsAppInstanceUsage = {
+    /**
+     * Contagem OpenMeter whatsapp_active_instances (mês)
+     */
+    instances?: number;
+    price_instance?: number;
+    instances_brl?: number;
+    source?: 'openmeter' | 'vault' | 'connect';
+};
+
+export type WhatsAppInstanceList = {
+    data: Array<WhatsAppInstance>;
+    usage?: WhatsAppInstanceUsage;
+    /**
+     * Origem da lista (connect|vault)
+     */
+    source?: 'connect' | 'vault';
+};
+
+export type WhatsAppInstanceCreateRequest = {
+    /**
+     * Rótulo opcional; não altera external_ref gerado
+     */
+    label?: string;
+};
+
+export type WhatsAppInstanceDeactivateResponse = {
+    ok: boolean;
+    inbox_id: number;
+    /**
+     * Instâncias ainda no vault após desactivar
+     */
+    remaining?: number;
+};
+
+export type WhatsAppInstancePairing = {
+    inbox_id: number;
+    status: WhatsAppInstanceStatus;
+    embed_base_url: string;
+    organization_id?: number;
+    /**
+     * Copy para a UI (ligar QR no iframe Connect)
+     */
+    hint?: string;
+};
+
+export type InventoryCost = {
+    tenant_id: string;
+    warehouse_id: string;
+    product_id: string;
+    qty_on_hand: number;
+    unit_cost_cents: number;
+    total_cost_cents: number;
+    updated_at?: string;
+    readonly product_sku?: string;
+    readonly product_name?: string;
+};
+
+export type InventoryCostListPage = {
+    data?: Array<InventoryCost>;
+    next_cursor?: string;
+    has_more?: boolean;
+};
+
+export type InventoryCostMargin = {
+    product_id: string;
+    warehouse_id?: string;
+    product_sku?: string;
+    product_name?: string;
+    unit_cost_cents: number;
+    list_price_cents?: number;
+    margin_cents?: number;
+    /**
+     * basis points (10000 = 100%)
+     */
+    margin_bps?: number;
+};
+
+export type InventoryCostMarginListPage = {
+    data?: Array<InventoryCostMargin>;
+    next_cursor?: string;
+    has_more?: boolean;
+};
+
+export const SupplierStatus = { ACTIVE: 'active', INACTIVE: 'inactive' } as const;
+
+export type SupplierStatus = typeof SupplierStatus[keyof typeof SupplierStatus];
+
+export type Supplier = {
+    id: string;
+    tenant_id: string;
+    name: string;
+    document?: string;
+    email?: string;
+    phone?: string;
+    status: SupplierStatus;
+    notes?: string;
+    created_at: string;
+    updated_at?: string;
+};
+
+export type SupplierCreate = {
+    name: string;
+    document?: string;
+    email?: string;
+    phone?: string;
+    notes?: string;
+};
+
+export type SupplierUpdate = {
+    name?: string;
+    document?: string;
+    email?: string;
+    phone?: string;
+    status?: SupplierStatus;
+    notes?: string;
+};
+
+export type SupplierListPage = {
+    data?: Array<Supplier>;
+    next_cursor?: string;
+    has_more?: boolean;
+};
+
+export const PurchaseOrderStatus = {
+    DRAFT: 'draft',
+    ORDERED: 'ordered',
+    PARTIALLY_RECEIVED: 'partially_received',
+    RECEIVED: 'received',
+    CLOSED: 'closed',
+    CANCELLED: 'cancelled'
+} as const;
+
+export type PurchaseOrderStatus = typeof PurchaseOrderStatus[keyof typeof PurchaseOrderStatus];
+
+export type PurchaseOrderItem = {
+    id: string;
+    product_id: string;
+    sku?: string;
+    quantity: number;
+    qty_received?: number;
+    unit_cost_cents: number;
+};
+
+export type PurchaseOrderItemInput = {
+    product_id: string;
+    sku?: string;
+    quantity: number;
+    unit_cost_cents: number;
+};
+
+export type PurchaseOrder = {
+    id: string;
+    tenant_id: string;
+    supplier_id: string;
+    warehouse_id: string;
+    status: PurchaseOrderStatus;
+    currency: string;
+    notes?: string;
+    items: Array<PurchaseOrderItem>;
+    ordered_at?: string;
+    received_at?: string;
+    created_at: string;
+    updated_at?: string;
+    ap_document_id?: string;
+};
+
+export type PurchaseOrderCreate = {
+    supplier_id: string;
+    warehouse_id: string;
+    notes?: string;
+    items: Array<PurchaseOrderItemInput>;
+};
+
+export type PurchaseOrderUpdate = {
+    notes?: string;
+    items?: Array<PurchaseOrderItemInput>;
+};
+
+export type PurchaseOrderReceiveLine = {
+    product_id: string;
+    quantity: number;
+    unit_cost_cents?: number;
+};
+
+export type PurchaseOrderReceive = {
+    lines: Array<PurchaseOrderReceiveLine>;
+    /**
+     * Gerar título AP pelo valor recebido
+     */
+    create_ap?: boolean;
+    due_days?: number;
+};
+
+export type PurchaseOrderListPage = {
+    data?: Array<PurchaseOrder>;
+    next_cursor?: string;
+    has_more?: boolean;
+};
+
+export const FinanceDocumentStatus = {
+    OPEN: 'open',
+    PARTIALLY_PAID: 'partially_paid',
+    PAID: 'paid',
+    CANCELLED: 'cancelled',
+    WRITTEN_OFF: 'written_off'
+} as const;
+
+export type FinanceDocumentStatus = typeof FinanceDocumentStatus[keyof typeof FinanceDocumentStatus];
+
+export type FinanceAllocateRequest = {
+    amount_cents: number;
+    method?: string;
+    reference?: string;
+    allocated_at?: string;
+};
+
+export type FinanceAgingBucket = {
+    label: string;
+    amount_cents: number;
+    count: number;
+};
+
+export type FinanceAgingReport = {
+    as_of?: string;
+    buckets: Array<FinanceAgingBucket>;
+    total_open_cents: number;
+};
+
+export type ArDocument = {
+    id: string;
+    tenant_id: string;
+    customer_id?: string;
+    order_id?: string;
+    company_id?: string;
+    status: FinanceDocumentStatus;
+    description?: string;
+    amount_cents: number;
+    paid_cents: number;
+    currency: string;
+    due_date?: string;
+    issued_at?: string;
+    paid_at?: string;
+    created_at: string;
+    updated_at?: string;
+};
+
+export type ArDocumentCreate = {
+    customer_id?: string;
+    order_id?: string;
+    description?: string;
+    amount_cents: number;
+    currency?: string;
+    due_date?: string;
+};
+
+export type ArDocumentListPage = {
+    data?: Array<ArDocument>;
+    next_cursor?: string;
+    has_more?: boolean;
+};
+
+export type ApDocument = {
+    id: string;
+    tenant_id: string;
+    supplier_id?: string;
+    purchase_order_id?: string;
+    status: FinanceDocumentStatus;
+    description?: string;
+    amount_cents: number;
+    paid_cents: number;
+    currency: string;
+    due_date?: string;
+    issued_at?: string;
+    paid_at?: string;
+    created_at: string;
+    updated_at?: string;
+};
+
+export type ApDocumentCreate = {
+    supplier_id?: string;
+    purchase_order_id?: string;
+    description?: string;
+    amount_cents: number;
+    currency?: string;
+    due_date?: string;
+};
+
+export type ApDocumentListPage = {
+    data?: Array<ApDocument>;
+    next_cursor?: string;
+    has_more?: boolean;
+};
+
+export const TreasuryAccountKind = {
+    BANK: 'bank',
+    CASH: 'cash',
+    ACQUIRER: 'acquirer'
+} as const;
+
+export type TreasuryAccountKind = typeof TreasuryAccountKind[keyof typeof TreasuryAccountKind];
+
+export type TreasuryAccount = {
+    id: string;
+    tenant_id: string;
+    name: string;
+    kind: TreasuryAccountKind;
+    currency: string;
+    opening_balance_cents: number;
+    warehouse_id?: string;
+    active: boolean;
+    balance_cents?: number;
+    created_at: string;
+    updated_at?: string;
+};
+
+export type TreasuryAccountCreate = {
+    name: string;
+    kind?: TreasuryAccountKind;
+    currency?: string;
+    opening_balance_cents?: number;
+    warehouse_id?: string;
+};
+
+export type TreasuryAccountListPage = {
+    data?: Array<TreasuryAccount>;
+    has_more?: boolean;
+};
+
+export const TreasuryDirection = { IN: 'in', OUT: 'out' } as const;
+
+export type TreasuryDirection = typeof TreasuryDirection[keyof typeof TreasuryDirection];
+
+export type TreasuryTransaction = {
+    id: string;
+    tenant_id: string;
+    account_id: string;
+    direction: TreasuryDirection;
+    amount_cents: number;
+    description?: string;
+    occurred_at: string;
+    ar_document_id?: string;
+    ap_document_id?: string;
+    external_ref?: string;
+    created_at: string;
+};
+
+export type TreasuryTransactionCreate = {
+    account_id: string;
+    direction: TreasuryDirection;
+    amount_cents: number;
+    description?: string;
+    occurred_at?: string;
+    ar_document_id?: string;
+    ap_document_id?: string;
+    external_ref?: string;
+};
+
+export type TreasuryTransactionListPage = {
+    data?: Array<TreasuryTransaction>;
+    has_more?: boolean;
+};
+
+export type TreasuryReconciliation = {
+    id: string;
+    tenant_id: string;
+    account_id: string;
+    transaction_id: string;
+    ar_document_id?: string;
+    ap_document_id?: string;
+    note?: string;
+    reconciled_at: string;
+    created_at: string;
+};
+
+export type TreasuryReconciliationCreate = {
+    account_id: string;
+    transaction_id: string;
+    ar_document_id?: string;
+    ap_document_id?: string;
+    note?: string;
+};
+
+export type TreasuryCashflowBucket = {
+    date: string;
+    inflow_cents: number;
+    outflow_cents: number;
+    balance_cents: number;
+};
+
+export type TreasuryCashflowReport = {
+    as_of: string;
+    opening_balance_cents: number;
+    buckets: Array<TreasuryCashflowBucket>;
+};
+
+export const AccountingExportStatus = {
+    PENDING: 'pending',
+    READY: 'ready',
+    FAILED: 'failed'
+} as const;
+
+export type AccountingExportStatus = typeof AccountingExportStatus[keyof typeof AccountingExportStatus];
+
+export type AccountingExport = {
+    id: string;
+    tenant_id: string;
+    status: AccountingExportStatus;
+    period_from: string;
+    period_to: string;
+    artifact_kind: string;
+    manifest_json?: string;
+    error_message?: string;
+    created_at: string;
+    ready_at?: string;
+};
+
+export type AccountingExportCreate = {
+    period_from: string;
+    period_to: string;
+};
+
+export type AccountingExportListPage = {
+    data?: Array<AccountingExport>;
+    has_more?: boolean;
+};
+
+export type AccountingExportDownload = {
+    export_id: string;
+    filename: string;
+    content_base64: string;
+    content_type: string;
+};
+
+export type InboundNfePoMatchRequest = {
+    purchase_order_id: string;
+};
+
+export type InboundNfePoMatchLine = {
+    line_number: number;
+    status: 'matched' | 'qty_diff' | 'cost_diff' | 'missing_on_po' | 'extra_on_po';
+    product_id?: string;
+    nfe_qty?: number;
+    po_qty?: number;
+    nfe_unit_cost_cents?: number;
+    po_unit_cost_cents?: number;
+    message?: string;
+};
+
+export type InboundNfePoMatchReport = {
+    draft_id: string;
+    purchase_order_id: string;
+    ok: boolean;
+    accepted?: boolean;
+    lines: Array<InboundNfePoMatchLine>;
+};
+
+export const TreasuryImportFormat = { CSV: 'csv', OFX: 'ofx' } as const;
+
+export type TreasuryImportFormat = typeof TreasuryImportFormat[keyof typeof TreasuryImportFormat];
+
+export type TreasuryImportRequest = {
+    account_id: string;
+    format: TreasuryImportFormat;
+    /**
+     * Texto CSV ou OFX
+     */
+    content: string;
+};
+
+export type TreasuryImportResult = {
+    imported_count: number;
+    skipped_count: number;
+    transaction_ids?: Array<string>;
+};
+
+export type TreasuryMatchSuggestion = {
+    transaction_id: string;
+    amount_cents: number;
+    direction: TreasuryDirection;
+    ar_document_id?: string;
+    ap_document_id?: string;
+    score?: number;
+    reason?: string;
+};
+
+export type TreasuryMatchSuggestionList = {
+    data?: Array<TreasuryMatchSuggestion>;
+};
+
+export const ChartOfAccountKind = {
+    ASSET: 'asset',
+    LIABILITY: 'liability',
+    EQUITY: 'equity',
+    REVENUE: 'revenue',
+    COGS: 'cogs',
+    EXPENSE: 'expense'
+} as const;
+
+export type ChartOfAccountKind = typeof ChartOfAccountKind[keyof typeof ChartOfAccountKind];
+
+export type ChartOfAccount = {
+    id: string;
+    tenant_id: string;
+    code: string;
+    name: string;
+    kind: ChartOfAccountKind;
+    active: boolean;
+    created_at: string;
+};
+
+export type ChartOfAccountCreate = {
+    code: string;
+    name: string;
+    kind: ChartOfAccountKind;
+    /**
+     * Se true
+     */
+    seed_default?: boolean;
+};
+
+export type ChartOfAccountListPage = {
+    data?: Array<ChartOfAccount>;
+    has_more?: boolean;
+};
+
+export type JournalLine = {
+    id?: string;
+    account_id: string;
+    account_code?: string;
+    debit_cents: number;
+    credit_cents: number;
+};
+
+export type JournalEntry = {
+    id: string;
+    tenant_id: string;
+    entry_date: string;
+    memo: string;
+    source_type: string;
+    source_id: string;
+    lines: Array<JournalLine>;
+    created_at: string;
+};
+
+export type JournalEntryListPage = {
+    data?: Array<JournalEntry>;
+    has_more?: boolean;
+};
+
+export type AccountingDreLine = {
+    label: string;
+    kind: ChartOfAccountKind;
+    amount_cents: number;
+};
+
+export type AccountingDreReport = {
+    period_from: string;
+    period_to: string;
+    lines: Array<AccountingDreLine>;
+    revenue_cents: number;
+    cogs_cents: number;
+    expense_cents: number;
+    net_cents: number;
+};
+
+export type BomItem = {
+    id?: string;
+    component_product_id: string;
+    quantity: number;
+};
+
+export type Bom = {
+    id: string;
+    tenant_id: string;
+    finished_product_id: string;
+    name: string;
+    active: boolean;
+    items: Array<BomItem>;
+    created_at: string;
+    updated_at?: string;
+};
+
+export type BomCreate = {
+    finished_product_id: string;
+    name: string;
+    items: Array<BomItem>;
+};
+
+export type BomListPage = {
+    data?: Array<Bom>;
+    has_more?: boolean;
+};
+
+export const WorkOrderStatus = {
+    PLANNED: 'planned',
+    IN_PROGRESS: 'in_progress',
+    DONE: 'done',
+    CANCELLED: 'cancelled'
+} as const;
+
+export type WorkOrderStatus = typeof WorkOrderStatus[keyof typeof WorkOrderStatus];
+
+export type WorkOrder = {
+    id: string;
+    tenant_id: string;
+    bom_id: string;
+    warehouse_id: string;
+    quantity: number;
+    status: WorkOrderStatus;
+    order_id?: string;
+    started_at?: string;
+    completed_at?: string;
+    created_at: string;
+    updated_at?: string;
+};
+
+export type WorkOrderCreate = {
+    bom_id: string;
+    warehouse_id: string;
+    quantity: number;
+    order_id?: string;
+};
+
+export type WorkOrderListPage = {
+    data?: Array<WorkOrder>;
+    has_more?: boolean;
+};
+
+export const SalesTargetMetric = {
+    REVENUE: 'revenue',
+    UNITS: 'units',
+    MARGIN: 'margin'
+} as const;
+
+export type SalesTargetMetric = typeof SalesTargetMetric[keyof typeof SalesTargetMetric];
+
+export const SalesTargetPeriodKind = {
+    MONTH: 'month',
+    QUARTER: 'quarter',
+    CUSTOM: 'custom'
+} as const;
+
+export type SalesTargetPeriodKind = typeof SalesTargetPeriodKind[keyof typeof SalesTargetPeriodKind];
+
+export const SalesTargetSource = {
+    MANUAL: 'manual',
+    LLM_SUGGESTED: 'llm_suggested',
+    IMPORTED: 'imported'
+} as const;
+
+export type SalesTargetSource = typeof SalesTargetSource[keyof typeof SalesTargetSource];
+
+export const SalesTargetProgressStatus = {
+    ON_TRACK: 'on_track',
+    AT_RISK: 'at_risk',
+    BEHIND: 'behind',
+    HIT: 'hit',
+    NO_DATA: 'no_data'
+} as const;
+
+export type SalesTargetProgressStatus = typeof SalesTargetProgressStatus[keyof typeof SalesTargetProgressStatus];
+
+export type SalesTarget = {
+    id: string;
+    tenant_id: string;
+    product_id: string;
+    sku?: string;
+    /**
+     * all ou code de SalesChannel
+     */
+    channel_code: string;
+    channel_id?: string;
+    warehouse_id?: string;
+    period_kind: SalesTargetPeriodKind;
+    period_start: string;
+    period_end: string;
+    metric: SalesTargetMetric;
+    target_value: number;
+    currency: string;
+    use_for_replenishment: boolean;
+    safety_days?: number;
+    lead_time_days?: number;
+    source: SalesTargetSource;
+    notes?: string;
+    created_by?: string;
+    created_at: string;
+    updated_at?: string;
+};
+
+export type SalesTargetCreate = {
+    product_id: string;
+    sku?: string;
+    channel_code?: string;
+    channel_id?: string;
+    warehouse_id?: string;
+    period_kind?: SalesTargetPeriodKind;
+    period_start: string;
+    period_end: string;
+    metric?: SalesTargetMetric;
+    target_value: number;
+    currency?: string;
+    use_for_replenishment?: boolean;
+    safety_days?: number;
+    lead_time_days?: number;
+    source?: SalesTargetSource;
+    notes?: string;
+};
+
+export type SalesTargetUpdate = {
+    sku?: string;
+    channel_code?: string;
+    channel_id?: string;
+    warehouse_id?: string;
+    period_kind?: SalesTargetPeriodKind;
+    period_start?: string;
+    period_end?: string;
+    metric?: SalesTargetMetric;
+    target_value?: number;
+    currency?: string;
+    use_for_replenishment?: boolean;
+    safety_days?: number;
+    lead_time_days?: number;
+    source?: SalesTargetSource;
+    notes?: string;
+};
+
+export type SalesTargetListPage = {
+    data?: Array<SalesTarget>;
+    has_more?: boolean;
+    next_cursor?: string;
+};
+
+export type SalesTargetMatrixCell = {
+    id?: string;
+    product_id: string;
+    sku?: string;
+    channel_code?: string;
+    channel_id?: string;
+    warehouse_id?: string;
+    target_value: number;
+    use_for_replenishment?: boolean;
+    safety_days?: number;
+    lead_time_days?: number;
+    currency?: string;
+    notes?: string;
+};
+
+export type SalesTargetMatrixPut = {
+    period_kind?: SalesTargetPeriodKind;
+    period_start: string;
+    period_end: string;
+    metric?: SalesTargetMetric;
+    cells: Array<SalesTargetMatrixCell>;
+};
+
+export type SalesTargetMatrixPutResult = {
+    data?: Array<SalesTarget>;
+};
+
+export type SalesTargetProgressRow = {
+    target: SalesTarget;
+    actual_value: number;
+    gap_value: number;
+    attainment_pct?: number;
+    status: SalesTargetProgressStatus;
+    days_left?: number;
+    pace_needed_per_day?: number;
+    sparkline?: Array<number>;
+};
+
+export type SalesTargetProgress = {
+    items?: Array<SalesTargetProgressRow>;
+};
+
+export type SalesTargetBreakdownRow = {
+    label?: string;
+    actual_value?: number;
+};
+
+export type SalesTargetBreakdown = {
+    sales_target_id: string;
+    metric: SalesTargetMetric;
+    target_value: number;
+    actual_value: number;
+    gap_value: number;
+    attainment_pct?: number;
+    rows?: Array<SalesTargetBreakdownRow>;
+};
+
+export type SalesTargetReplenishmentLine = {
+    product_id: string;
+    sku?: string;
+    quantity: number;
+    warehouse_id?: string;
+    sales_target_id?: string;
+    on_hand?: number;
+    inbound?: number;
+    reserved?: number;
+    demand?: number;
+    /**
+     * ex. missing_supplier, missing_warehouse
+     */
+    blocked_reason?: string;
+    unit_cost_cents?: number;
+};
+
+export type SalesTargetReplenishmentPreviewRequest = {
+    sales_target_ids: Array<string>;
+    warehouse_id?: string;
+    supplier_id?: string;
+};
+
+export type SalesTargetReplenishmentPreview = {
+    draft_lines?: Array<SalesTargetReplenishmentLine>;
+    notes?: string;
+};
+
+export type SalesTargetReplenishmentApplyRequest = {
+    sales_target_ids: Array<string>;
+    supplier_id: string;
+    warehouse_id: string;
+    notes?: string;
+};
+
+export type SalesTargetReplenishmentApplyResult = {
+    purchase_orders: Array<PurchaseOrder>;
+    skipped?: Array<SalesTargetReplenishmentLine>;
+};
+
+export type SalesTargetAssistSuggestRequest = {
+    product_id?: string;
+    period_start?: string;
+    period_end?: string;
+    period_kind?: SalesTargetPeriodKind;
+    context?: string;
+};
+
+export type SalesTargetAssistSuggestResult = {
+    suggestions?: Array<SalesTargetCreate>;
+    explanation?: string;
+    model?: string;
+};
+
+export type SalesTargetAssistExplainRequest = {
+    sales_target_id?: string;
+    question?: string;
+};
+
+export type SalesTargetAssistExplainResult = {
+    explanation?: string;
+    model?: string;
+};
+
+export type KbTopic = {
+    id: string;
+    slug: string;
+    title: string;
+    description?: string;
+    keywords?: Array<string>;
+    is_active: boolean;
+    position: number;
+    created_at: string;
+    updated_at: string;
+};
+
+export type KbTopicCreate = {
+    slug: string;
+    title: string;
+    description?: string;
+    keywords?: Array<string>;
+    is_active?: boolean;
+    position?: number;
+};
+
+export type KbTopicUpdate = {
+    slug?: string;
+    title?: string;
+    description?: string;
+    keywords?: Array<string>;
+    is_active?: boolean;
+    position?: number;
+};
+
+export type KbTopicListPage = {
+    data: Array<KbTopic>;
+    next_cursor?: string;
+    has_more?: boolean;
+    total?: number;
+};
+
+export type KbAsset = {
+    id: string;
+    entry_id: string;
+    /**
+     * URL estável GET /kb/media/{id}
+     */
+    readonly url: string;
+    content_type?: string;
+    alt_text?: string;
+    bytes?: number;
+    created_at: string;
+};
+
+export type KbEntry = {
+    id: string;
+    topic_id: string;
+    title: string;
+    /**
+     * Texto puro (markdown permitido)
+     */
+    body: string;
+    is_active: boolean;
+    position: number;
+    assets?: Array<KbAsset>;
+    created_at: string;
+    updated_at: string;
+};
+
+export type KbEntryCreate = {
+    topic_id: string;
+    title: string;
+    body?: string;
+    is_active?: boolean;
+    position?: number;
+};
+
+export type KbEntryUpdate = {
+    title?: string;
+    body?: string;
+    is_active?: boolean;
+    position?: number;
+};
+
+export type KbEntryListPage = {
+    data: Array<KbEntry>;
+    next_cursor?: string;
+    has_more?: boolean;
+    total?: number;
+};
+
+export type KbSearchHit = {
+    topic: KbTopic;
+    entry?: KbEntry;
+    score?: number;
+};
+
+export type KbSearchResult = {
+    data: Array<KbSearchHit>;
+    /**
+     * Como os hits foram obtidos
+     */
+    method?: 'lexical' | 'llm';
+};
+
+export type KbClassifyRequest = {
+    query: string;
+    max_topics?: number;
+    include_entries?: boolean;
+};
+
+export type KbClassifyMatchedTopic = {
+    topic: KbTopic;
+    score: number;
+    reason?: string;
+    entries?: Array<KbEntry>;
+};
+
+export type KbClassifyResult = {
+    query: string;
+    topics: Array<KbClassifyMatchedTopic>;
+    method: 'llm' | 'lexical';
+};
+
+export const SalesQuoteStatus = {
+    DRAFT: 'draft',
+    SENT: 'sent',
+    ACCEPTED: 'accepted',
+    REJECTED: 'rejected',
+    CANCELLED: 'cancelled'
+} as const;
+
+export type SalesQuoteStatus = typeof SalesQuoteStatus[keyof typeof SalesQuoteStatus];
+
+export type SalesQuoteItem = {
+    id: string;
+    quote_id: string;
+    sku: string;
+    title: string;
+    qty: number;
+    unit_price_cents: number;
+    line_total_cents: number;
+};
+
+export type SalesQuoteItemCreate = {
+    sku: string;
+    title?: string;
+    qty: number;
+    unit_price_cents: number;
+};
+
+export type SalesQuote = {
+    id: string;
+    company_id: string;
+    customer_id?: string;
+    status: SalesQuoteStatus;
+    currency: string;
+    subtotal_cents: number;
+    total_cents: number;
+    notes?: string;
+    valid_until?: string;
+    terms_snapshot?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Preenchido após accept
+     */
+    order_id?: string;
+    items: Array<SalesQuoteItem>;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type SalesQuoteCreate = {
+    company_id: string;
+    customer_id?: string;
+    currency?: string;
+    notes?: string;
+    valid_until?: string;
+    items?: Array<SalesQuoteItemCreate>;
+};
+
+export type SalesQuoteUpdate = {
+    notes?: string;
+    valid_until?: string;
+    items?: Array<SalesQuoteItemCreate>;
+};
+
+export type SalesQuoteListPage = {
+    data: Array<SalesQuote>;
+    next_cursor?: string;
+};
+
+export type ReturnRequestWritable = {
+    id: string;
+    order_id: string;
+    origin: ReturnRequestOrigin;
+    status: ReturnRequestStatus;
+    resolution: ReturnResolution;
+    /**
+     * Loja que recebe o restock
+     */
+    warehouse_id?: string;
+    lines: Array<ReturnRequestLine>;
+    reason?: string;
+    refund_id?: string;
+    exchange_order_id?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type ReturnRequestListPageWritable = {
+    data: Array<ReturnRequestWritable>;
+    next_cursor?: string;
+};
+
+export type AgentRunWritable = {
+    id?: string;
+    agent_id?: string;
+    agent_name?: string;
+    status?: 'queued' | 'running' | 'done' | 'error';
+    tool_calls?: number;
+    summary?: string;
+    error?: string;
+    created_at?: string;
+    started_at?: string;
+    finished_at?: string;
+    transcript?: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Run pai quando esta execução veio de run_agent (ADR 0078)
+     */
+    parent_run_id?: string;
+    /**
+     * Raiz da árvore de delegação
+     */
+    root_run_id?: string;
+    /**
+     * Ordem na cadeia sob o root (0 = root)
+     */
+    delegation_index?: number;
+    /**
+     * Modo efectivo (compiled|exploratory|auto|…)
+     */
+    execution_mode?: string;
+    contract_hash?: string;
+    reliability_score?: number;
+    /**
+     * Tokens de input LLM nesta run
+     */
+    prompt_tokens?: number;
+    /**
+     * Tokens de output LLM nesta run
+     */
+    completion_tokens?: number;
+    total_tokens?: number;
+    /**
+     * Round-trips ao gateway LLM nesta run
+     */
+    llm_calls?: number;
+    /**
+     * Modelo LiteLLM efectivo
+     */
+    model?: string;
+    /**
+     * Soma prompt_tokens da árvore (preenchido no root)
+     */
+    subtree_prompt_tokens?: number;
+    subtree_completion_tokens?: number;
+    subtree_total_tokens?: number;
+    /**
+     * Resultado de NEGÓCIO, ortogonal a status (que é ciclo de vida). Sem ele, run sem efeito, run abaixo do limiar e run bem-sucedida saíam todas como `done` (#1101).
+     */
+    outcome?: AgentRunOutcome;
+    /**
+     * Tool calls com erro ou bloqueadas por guard — já era calculado e descartado.
+     */
+    tool_errors?: number;
+    /**
+     * Subconjunto de tool_calls que MUTA estado, com sucesso.
+     */
+    write_tool_calls?: number;
+    /**
+     * Envelope destinado ao CLIENTE no canal (ADR 0101), escrito só quando a run é de superfície de canal e terminou em `done`. Existe porque `result_summary` é do LOJISTA: extrair a resposta do cliente a partir dele é leniente por natureza e chegou a mandar texto interno ("teto de N rodadas atingido") para o WhatsApp. Nulo = não há nada que possa ser dito ao cliente a partir desta run (#1200 F1).
+     */
+    customer_reply?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Subconjunto de tool_errors em que o modelo pediu uma tool que não existe no catálogo — ou seja, inventou o que lhe faltava. Separado porque o runtime anexa só um subconjunto do catálogo ao prompt: aqui o sinal é "o menu não cobriu a capacidade", enquanto o resto de tool_errors é argumento inválido. Somados, a decisão sobre o teto do menu vira opinião (#1200 F0).
+     */
+    unknown_tool_attempts?: number;
+    /**
+     * Limiar VIGENTE nesta execução. Vem no payload para a UI mostrar o score em contexto sem refetchar o agente e replicar o default — "Fiabilidade 0.50" parece aceitável até se saber que o mínimo era 0.70.
+     */
+    reliability_min_score?: number;
+    /**
+     * Custo da execução em BRL (#1099), pela mesma tabela de preços que debita a wallet. null quando não há preço de venda para o modelo — zero fingido faria o teto mensal somar custo falso.
+     */
+    cost_brl?: number;
+    /**
+     * Custo da árvore de delegação, preenchido no root.
+     */
+    subtree_cost_brl?: number;
+    /**
+     * Câmbio USD→BRL aplicado, para auditoria reproduzível.
+     */
+    fx_usd_brl?: number;
+    delegation_input?: {
+        [key: string]: unknown;
+    };
+    delegation_output?: {
+        [key: string]: unknown;
+    };
+};
+
+export type AgentRunListWritable = {
+    runs: Array<AgentRunWritable>;
+};
+
+export type CreativeConnectRequestWritable = {
+    provider: CreativeProviderId;
+    /**
+     * Credencial BYOK do cliente — nunca devolvida em respostas.
+     */
+    api_key: string;
+};
+
+export type ExtMcpOauthAuthorizeRequestWritable = {
+    /**
+     * `google` | `meta` | `mcp`. Opcional: templates Ads inferem google/meta; sem provider (ou `mcp`) = discovery OAuth do MCP remoto (ADR 0076 A3, PKCE + DCR).
+     */
+    provider?: string;
+    /**
+     * BYO — opcional se app da plataforma, vault, ou DCR no AS do MCP.
+     */
+    client_id?: string;
+    /**
+     * BYO — vai ao vault; nunca volta ao browser. Opcional com DCR public client.
+     */
+    client_secret?: string;
+    /**
+     * URL do admin para redirect pós-callback.
+     */
+    return_url: string;
+    /**
+     * Override dos scopes (template ou discovery) — opcional.
+     */
+    scopes?: Array<string>;
+};
+
+export type ProductBarcodeLookupWritable = {
+    barcode?: ProductBarcode;
+    product?: ProductWritable;
+    sku?: ProductSkuWritable;
+    balance?: InventoryBalanceWritable;
+};
+
+export type PosSyncSaleWritable = {
+    /**
+     * Idempotência do device — reenvio com o mesmo ref não cria pedido duplicado
+     */
+    client_ref: string;
+    items: Array<PosSyncSaleLine>;
+    customer_id?: string;
+    customer_name?: string;
+    /**
+     * Split tender já cobrado no caixa; soma deve igualar o total
+     */
+    tenders?: Array<OrderTender>;
+    coupon_code?: string;
+    /**
+     * Momento da cobrança no device (UTC)
+     */
+    paid_at?: string;
+    /**
+     * PIN do gerente — obrigatório se line_overrides ou discount_amount (#945)
+     */
+    manager_pin?: string;
+    line_overrides?: Array<OrderLineOverride>;
+    /**
+     * Desconto manual do pedido (moeda)
+     */
+    discount_amount?: number;
+    /**
+     * SalesChannel kind=pos da sessão (metadata no pedido)
+     */
+    sales_channel_id?: string;
+    /**
+     * Se preenchido, o core orquestra fulfill-pos-cross-warehouse após settle
+     */
+    fulfillment_mode?: PosCrossWarehouseFulfillMode;
+};
+
+export type PosAvailabilityWritable = {
+    product_id?: string;
+    sku?: string;
+    barcode?: string;
+    balances?: Array<InventoryBalanceWritable>;
+};
+
+export type PosCrossWarehouseFulfillResultWritable = {
+    order?: OrderWritable;
+    mode?: PosCrossWarehouseFulfillMode;
+    stock_transfer_id?: string;
+    /**
+     * true se idempotente (já orquestrado)
+     */
+    already_applied?: boolean;
+};
+
+export type PosSyncPushRequestWritable = {
+    protocol_version: number;
+    warehouse_id: string;
+    device_id?: string;
+    client_time?: string;
+    /**
+     * Vendas offline a aplicar (create+submit+settle no core)
+     */
+    sales?: Array<PosSyncSaleWritable>;
+    /**
+     * Fatia posterior — movimentos de turno já cobertos por /pos/shifts
+     */
+    shift_events?: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
 export type PaymentGatewayConfigWritable = {
     provider: SplitRuleProvider;
     is_active: boolean;
@@ -4210,6 +14261,748 @@ export type PaymentProviderConfigWritable = {
     currency?: string;
     checkout_success_url?: string;
     checkout_cancel_url?: string;
+};
+
+/**
+ * Política de segurança do login de staff (#1126). O 2FA existia, mas era opt-in individual e sem política: quem não ativou entra só com magic link, ou seja, quem controla a caixa de e-mail controla o painel.
+ */
+export type StaffSecurityPolicyWritable = {
+    /**
+     * Papéis que exigem 2FA. Usuário sem TOTP é levado ao ENROLMENT obrigatório, nunca recusado — recusar trancaria o owner fora.
+     */
+    require_totp_for_roles?: Array<StaffRole>;
+    /**
+     * Janela para o usuário existente configurar o TOTP depois de a política ser ativada. 0 = imediato.
+     */
+    totp_grace_period_days?: number;
+};
+
+export type TenantSettingsWritable = {
+    tenant_id: string;
+    security_policy?: StaffSecurityPolicyWritable;
+    display_name?: string;
+    contact_email?: string;
+    timezone?: string;
+    description?: string;
+    notifications_enabled?: boolean;
+    /**
+     * IDs estáveis de itens do menu admin ocultos neste tenant (só menu —
+     * não altera RBAC). Definidos em `lib/platform-nav.ts`. O id `settings`
+     * nunca é aceite.
+     *
+     */
+    hidden_nav_module_ids?: Array<string>;
+    /**
+     * Override do cold cache in-process para `GET /products` (lista).
+     * `null` = default plataforma (300s). `0` = desliga a classe neste tenant.
+     * ADR 0066 — não afecta compose/place/resolvePrice.
+     *
+     */
+    cache_ttl_products_seconds?: number;
+    /**
+     * Override do cold cache para `GET /payment-methods` e `GET /payment-providers`.
+     * `null` = default plataforma (86400s). `0` = desliga. Invalidação via
+     * epoch no write admin (cross-réplica).
+     *
+     */
+    cache_ttl_payment_seconds?: number;
+    /**
+     * Lista JSON de URLs HTTPS de sites concorrentes deste tenant.
+     * Usada por pesquisa web / `research_competitor_prices` e configuração
+     * da loja. Só `https://`; hosts privados/SSRF são rejeitados.
+     *
+     */
+    competitor_site_urls?: Array<string>;
+    updated_at?: string;
+};
+
+export type TenantSettingsUpdateWritable = {
+    display_name?: string;
+    contact_email?: string;
+    timezone?: string;
+    description?: string;
+    notifications_enabled?: boolean;
+    /**
+     * Substitui a allowlist de compradores de teste. **Só a plataforma**
+     * pode enviar este campo (auth platform); um bearer de member recebe 403 —
+     * ver `TenantSettings.test_customer_emails`. Enviar `[]` limpa a lista.
+     *
+     */
+    test_customer_emails?: Array<string>;
+    hidden_nav_module_ids?: Array<string>;
+    cache_ttl_products_seconds?: number;
+    cache_ttl_payment_seconds?: number;
+    /**
+     * Substitui a lista completa de URLs HTTPS de sites concorrentes.
+     * Enviar `[]` limpa a lista.
+     *
+     */
+    competitor_site_urls?: Array<string>;
+    /**
+     * PIN do gerente para overrides de preço no POS (#870). Write-only —
+     * nunca devolvido no GET. Enviar string vazia limpa o PIN.
+     *
+     */
+    pos_manager_pin?: string;
+    /**
+     * Política de 2FA do login de staff (#1126). Até aqui só existia em leitura: o motor aplicava-a mas nada na API a conseguia escrever, o que a tornava inalcançável na prática.
+     *
+     * Escrita restrita a owner/manager E protegida por step-up (`X-Mira-Step-Up` com purpose `change_security_policy`) — afrouxar a política de acesso de toda a equipa não pode sair de uma sessão aberta e esquecida.
+     */
+    security_policy?: StaffSecurityPolicyWritable;
+};
+
+export type ProductListPageWritable = {
+    data: Array<ProductWritable>;
+    next_cursor?: string;
+    has_more: boolean;
+    /**
+     * Total estimado (opcional UX)
+     */
+    total?: number;
+    grouped_by?: ProductGroupBy;
+    groups?: Array<ProductAggregateGroup>;
+};
+
+export type OrderListPageWritable = {
+    data?: Array<OrderWritable>;
+    next_cursor?: string;
+    has_more?: boolean;
+    /**
+     * Total estimado (opcional UX)
+     */
+    total?: number;
+    /**
+     * Presente quando a listagem veio em modo agregado
+     */
+    grouped_by?: OrderGroupBy;
+    /**
+     * Preenchido quando group_by está presente; data fica vazia
+     */
+    groups?: Array<OrderAggregateGroup>;
+};
+
+export type InventoryListPageWritable = {
+    data?: Array<InventoryWritable>;
+    next_cursor?: string;
+    has_more?: boolean;
+    /**
+     * Total estimado (opcional UX)
+     */
+    total?: number;
+};
+
+export type PriceListPageWritable = {
+    data?: Array<PriceWritable>;
+    next_cursor?: string;
+    has_more?: boolean;
+    /**
+     * Total estimado (opcional UX)
+     */
+    total?: number;
+};
+
+export type CustomerListPageWritable = {
+    data?: Array<CustomerWritable>;
+    next_cursor?: string;
+    has_more?: boolean;
+    /**
+     * Total estimado (opcional UX)
+     */
+    total?: number;
+};
+
+export type ScheduleSlotListPageWritable = {
+    data?: Array<ScheduleSlotWritable>;
+    /**
+     * Total estimado (opcional UX)
+     */
+    total?: number;
+};
+
+export type StaffListPageWritable = {
+    data?: Array<StaffWritable>;
+    /**
+     * Total estimado (opcional UX)
+     */
+    total?: number;
+};
+
+export type CategoryWritable = {
+    id: string;
+    tenant_id?: string;
+    name: string;
+    /**
+     * Único por tenant; é a URL da vitrine.
+     */
+    slug: string;
+    /**
+     * null = categoria de topo. Profundidade máxima 3.
+     */
+    parent_id?: string;
+    position?: number;
+    is_active?: boolean;
+    created_at?: string;
+};
+
+export type CategoryListPageWritable = {
+    data: Array<CategoryWritable>;
+    next_cursor?: string;
+    has_more?: boolean;
+    total?: number;
+};
+
+export type ProductWritable = {
+    id: string;
+    tenant_id?: string;
+    /**
+     * Produto pai (agrupador de vitrine). Quando preenchido, ESTE produto é a
+     * variante vendável (rota A #907 / ADR 0092) — estoque/preço/pedido usam este id.
+     *
+     */
+    parent_product_id?: string;
+    /**
+     * Código do produto (VTEX Product RefId). Distinto do código da variante em ProductSku.sku. Unicidade por tenant (case-insensitive).
+     */
+    sku: string;
+    name: string;
+    /**
+     * Slug canônico do produto na vitrine (URL) — VTEX LinkId / DetailUrl.
+     * A migração de plataforma o preenche com o slug de ORIGEM para preservar
+     * SEO (F3) — resolva a PDP por `GET /products?slug=`. Só produtos raiz
+     * (agrupadores) têm slug; variantes filhas ficam sem. Único por tenant
+     * entre raízes (aplicação).
+     *
+     */
+    slug?: string;
+    description?: string;
+    /**
+     * Categoria de catálogo (#1105 / ADR 0126) — VTEX CategoryId
+     */
+    category_id?: string;
+    /**
+     * Nome da categoria, mantido durante a transição para category_id (#1105 / ADR 0126). Storefronts e integrações que o leem continuam funcionando; a remoção é passo contract de uma release seguinte.
+     *
+     * @deprecated
+     */
+    category?: string;
+    status: ProductStatus;
+    created_at?: string;
+    /**
+     * Data de lançamento (VTEX ReleaseDate). Se no futuro, o produto fica inactive até o worker de auto-publish (com gate de readiness).
+     */
+    release_date?: string;
+    /**
+     * LEGADO no agrupador. EAN/GTIN é por variante (VTEX SKU Ean) — use product_barcodes no produto filho. Mantido por WMS/migração (ADR 0023).
+     *
+     * @deprecated
+     */
+    ean?: string;
+    /**
+     * Fallback de localização WMS/scanner. Preferir localização por linha de inventário (aba Estoque); não faz parte da identidade do agrupador.
+     */
+    location_hint?: string;
+    specifications?: {
+        structured?: Array<ProductSpecificationEntry>;
+    };
+    /**
+     * Imagens e vídeos do agrupador (PDP). type=image|video; role= gallery|story. Vários vídeos permitidos. Capa/readiness exigem pelo menos uma imagem. Variantes (filhos) têm media própria; na PDP use variants[].effective_media (fallback para este array).
+     */
+    media?: Array<ProductMedia>;
+    seo?: ProductSeo;
+    /**
+     * Palavras-chave de **busca/descoberta de catálogo** (#1427) — aliases, gírias, casos de uso, marcas populares. Distinto de `ProductSeo.keywords` (meta SEO). Presente no card de PLP para o search SDK da vitrine sem GET de PDP. Normalizado em trim/lowercase na escrita.
+     *
+     */
+    search_keywords?: Array<string>;
+    /**
+     * Peso de merchandising na busca (#1427). Quanto maior, mais cedo o produto aparece nos resultados de `?search=` (e no ranking client-side da vitrine). Default 0; não afecta SEO.
+     *
+     */
+    search_weight?: number;
+    /**
+     * goods (default) | rental | digital | gift_card — ADR 0049/0130; service fica em ServiceProduct
+     */
+    product_type?: CatalogProductType;
+    rental_meta?: RentalMeta;
+    digital_meta?: DigitalMeta;
+    gift_card_meta?: GiftCardMeta;
+};
+
+export type ProductSkuWritable = {
+    id?: string;
+    product_id?: string;
+    /**
+     * Código do SKU / variante (VTEX SKU RefId). Distinto do código do produto (Product.sku). O produto filho vendável usa o mesmo texto.
+     */
+    sku?: string;
+    name?: string;
+    status?: ProductStatus;
+    level?: number;
+    option_values?: {
+        [key: string]: string;
+    };
+    base_price?: number;
+    /**
+     * Peso do produto sem embalagem (kg) — alinhado a VTEX WeightKg
+     */
+    weight_kg?: number;
+    /**
+     * Comprimento do produto sem embalagem (cm)
+     */
+    length_cm?: number;
+    /**
+     * Largura do produto sem embalagem (cm)
+     */
+    width_cm?: number;
+    /**
+     * Altura do produto sem embalagem (cm)
+     */
+    height_cm?: number;
+    /**
+     * Peso com embalagem (kg) — frete; VTEX PackagedWeightKg
+     */
+    packaged_weight_kg?: number;
+    /**
+     * Comprimento embalado (cm) — frete / Correios
+     */
+    packaged_length_cm?: number;
+    /**
+     * Largura embalada (cm)
+     */
+    packaged_width_cm?: number;
+    /**
+     * Altura embalada (cm)
+     */
+    packaged_height_cm?: number;
+    /**
+     * Lista JSON de URLs HTTPS de páginas de produto concorrentes
+     * associadas a este SKU (monitoria de preços por agentes).
+     * Só `https://`; hosts privados/SSRF são rejeitados.
+     *
+     */
+    competitor_product_urls?: Array<string>;
+};
+
+export type OrderItemWritable = {
+    id?: string;
+    product_id?: string;
+    sku?: string;
+    name?: string;
+    quantity?: number;
+    unit_price?: number;
+    total_price?: number;
+    item_type?: OrderItemType;
+    /**
+     * Depósito de origem que atende este item (split-ready, modelo VTEX — issue #110). Resolvido server-side; hoje igual ao depósito principal do pedido, mas por item para permitir split multi-origem no futuro.
+     */
+    warehouse_id?: string;
+    /**
+     * Início do período de locação (UTC) — ADR 0049
+     */
+    period_start?: string;
+    /**
+     * Fim do período de locação (UTC) — ADR 0049
+     */
+    period_end?: string;
+    /**
+     * Unidade física alocada (rental serializado)
+     */
+    asset_id?: string;
+};
+
+export type OrderPaymentRefundResultWritable = {
+    /**
+     * ID do estorno no adquirente
+     */
+    refund_id: string;
+    status: PaymentStatus;
+    /**
+     * Valor estornado em BRL
+     */
+    amount: number;
+    order: OrderWritable;
+};
+
+export type OrderWritable = {
+    attribution?: OrderAttribution;
+    id: string;
+    /**
+     * Código curto e amigável do pedido (8 caracteres, alfabeto sem ambiguidades) para exibir ao cliente e ao suporte. O `id` UUID continua sendo o identificador interno.
+     */
+    order_code?: string;
+    tenant_id?: string;
+    customer_id?: string;
+    customer_name?: string;
+    customer_snapshot?: OrderCustomerSnapshot;
+    origin?: OrderOrigin;
+    status: OrderStatus;
+    warehouse_id?: string;
+    total_amount: number;
+    discount_amount?: number;
+    subsidy_amount?: number;
+    items?: Array<OrderItemWritable>;
+    payment?: OrderPayment;
+    /**
+     * Intents do pedido (rental + deposit + extension) — ADR 0049; payment = principal
+     */
+    payments?: Array<OrderPayment>;
+    /**
+     * Meios usados no caixa (split tender) —
+     */
+    tenders?: Array<OrderTender>;
+    rental_gates?: RentalOrderGates;
+    timeline?: Array<OrderTimelineEntry>;
+    created_at?: string;
+    updated_at?: string;
+    customer_whatsapp?: string;
+    warehouse_name?: string;
+    promotion_id?: string;
+    erp_order_id?: string;
+    schedule?: OrderSchedule;
+    fiscal?: OrderFiscal;
+    /**
+     * UTM, coupon_code, checkout_module — chaves string
+     */
+    marketing_data?: {
+        [key: string]: string;
+    };
+    /**
+     * Extensões opacas por canal
+     */
+    metadata?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Valor do frete incluído no total
+     */
+    shipping_amount?: number;
+    shipping?: OrderShippingWritable;
+    /**
+     * Entregas por depósito de origem (multi-origem — #110/#130). Uma por depósito; agrupa os itens que saem de cada origem.
+     */
+    shipments?: Array<OrderShipment>;
+    delivery_address?: DeliveryAddress;
+};
+
+export type OrderCreateWritable = {
+    campaign?: CampaignAttribution;
+    company_id?: string;
+    /**
+     * Token OTP confirmado (ADR 0099) quando o pedido usa crédito/faturado
+     */
+    credit_confirmation_token?: string;
+    /**
+     * Código da opção em CommercialTerms.invoice_installment_policy (ADR 0140).
+     * Obrigatório quando a policy activa tem ≥1 opção; ignorado se policy vazia.
+     *
+     */
+    invoice_installment_option_code?: string;
+    /**
+     * Cartões ao portador a aplicar no pedido (stacking). Cada item faz
+     * Lookup+Reserve; capture no payment_approved / release no cancel.
+     *
+     */
+    gift_card_tenders?: Array<GiftCardTender>;
+    attribution?: OrderAttribution;
+    customer_id?: string;
+    warehouse_id?: string;
+    origin?: OrderOrigin;
+    items: Array<OrderItemCreate>;
+    /**
+     * Obrigatório para token platform; ignorado para member
+     */
+    tenant_id?: string;
+    customer_whatsapp?: string;
+    customer_email?: string;
+    customer_name?: string;
+    coupon_code?: string;
+    promotion_id?: string;
+    services?: Array<OrderServiceLineCreate>;
+    schedule?: OrderScheduleCreate;
+    /**
+     * Método seleccionado após POST /shipping/quotes — re-validado no core
+     */
+    shipping_method_id?: string;
+    delivery_address?: DeliveryAddress;
+    /**
+     * Split tender no caixa (#870). Soma deve igualar total_amount.
+     */
+    tenders?: Array<OrderTender>;
+    /**
+     * Overrides de preço por SKU; exige manager_pin (#870).
+     */
+    line_overrides?: Array<OrderLineOverride>;
+    /**
+     * PIN do gerente — obrigatório se line_overrides ou discount_amount manual.
+     */
+    manager_pin?: string;
+    /**
+     * Desconto manual do pedido (requer manager_pin se > 0).
+     */
+    discount_amount?: number;
+};
+
+export type InventoryWritable = {
+    id?: string;
+    tenant_id?: string;
+    warehouse_id?: string;
+    product_id?: string;
+    quantity?: number;
+    reserved?: number;
+    source?: InventorySource;
+    synced_at?: string;
+    updated_at?: string;
+    sku?: string;
+    /**
+     * Localização física neste armazém (corredor/prateleira/bin). Por linha produto×armazém.
+     */
+    location?: string;
+    /**
+     * Política de estoque desta linha (#975).
+     */
+    stock_policy?: InventoryStockPolicy;
+};
+
+export type PriceWritable = {
+    id?: string;
+    product_id?: string;
+    warehouse_id?: string;
+    channel?: PriceChannel;
+    base_price?: number;
+    dealer_price?: number;
+    effective_price?: number;
+    currency?: string;
+    source?: PriceSource;
+    tenant_id?: string;
+    updated_at?: string;
+    synced_at?: string;
+};
+
+export type PriceResolveResultWritable = {
+    sku?: string;
+    unit_price?: number;
+    quantity_available?: number;
+    currency?: string;
+    channel?: PriceChannel;
+    member_id?: string;
+    warehouse_id?: string;
+    price_source?: PriceSource;
+    promotion_applied?: boolean;
+    subsidy_amount?: number;
+};
+
+/**
+ * PDP consolidada (#1187): produto agrupador + variantes vendáveis já com preço e saldo resolvidos. Uma resposta por tela.
+ *
+ */
+export type StorefrontProductDetailWritable = {
+    product: ProductWritable;
+    /**
+     * Variantes vendáveis (produtos filhos). Vazio quando o produto não é agrupador — nesse caso o próprio produto é vendável e aparece como variante única.
+     *
+     */
+    variants: Array<StorefrontProductVariantWritable>;
+    /**
+     * Eixos de variação derivados de `option_values` (ex.: Cor, Tamanho), na ordem de aparição, para desenhar os seletores sem parsing de nome.
+     *
+     */
+    option_axes?: Array<StorefrontOptionAxis>;
+    /**
+     * Menor preço unitário entre as variantes com preço resolvido
+     */
+    price_min?: number;
+    price_max?: number;
+    currency?: string;
+    /**
+     * Alguma variante com saldo disponível
+     */
+    in_stock?: boolean;
+    variant_count?: number;
+    channel?: PriceChannel;
+    warehouse_id?: string;
+    resolved_at?: string;
+    /**
+     * Igual ao ETag da resposta — use em If-None-Match.
+     */
+    version?: string;
+};
+
+export type StorefrontProductVariantWritable = {
+    /**
+     * Id do produto vendável — é este que vai no pedido.
+     */
+    product_id: string;
+    sku: string;
+    ean?: string;
+    name?: string;
+    status?: ProductStatus;
+    /**
+     * goods | rental | digital — útil na PDP sem reler o Product (#1363)
+     */
+    product_type?: CatalogProductType;
+    /**
+     * Eixos estruturados (ex.: {"Cor":"TOMATE ATLANTA","Tamanho":"P"}). Vem do ProductSku correspondente; ausente quando o import não trouxe opções.
+     *
+     */
+    option_values?: {
+        [key: string]: string;
+    };
+    /**
+     * Mídia própria desta SKU/filho (pode estar vazia). Preferir `effective_media` para renderizar a galeria na PDP.
+     */
+    media?: Array<ProductMedia>;
+    /**
+     * Meta de locação da variante vendável (#1363). Presente quando product_type=rental — tiers/modifiers/deposit sem round-trip extra.
+     *
+     */
+    rental_meta?: RentalMeta;
+    /**
+     * Preço resolvido (mesma precedência de /prices/resolve)
+     */
+    unit_price?: number;
+    /**
+     * Preço de lista quando maior que o unitário (preço riscado)
+     */
+    list_price?: number;
+    currency?: string;
+    price_source?: PriceSource;
+    promotion_applied?: boolean;
+    quantity_available?: number;
+    in_stock?: boolean;
+};
+
+export type PriceOverrideWritable = {
+    id?: string;
+    product_id?: string;
+    override_price?: number;
+    reason?: string;
+    applied_at?: string;
+};
+
+export type OrderPriceOverrideRequestWritable = {
+    manager_pin: string;
+    line_overrides?: Array<OrderLineOverride>;
+    discount_amount?: number;
+};
+
+export type CustomerAccountViewWritable = {
+    account_id: string;
+    status: 'active' | 'blocked' | 'anonymized';
+    identities?: Array<CustomerIdentityView>;
+    /**
+     * Pessoas que a conta pode representar (vínculo verificado).
+     */
+    customers?: Array<CustomerWritable>;
+};
+
+export type CustomerWritable = {
+    id?: string;
+    name?: string;
+    email?: string;
+    whatsapp_number?: string;
+    created_at?: string;
+    consult_token?: string;
+    consult_token_expires_at?: string;
+    anonymized?: boolean;
+    anonymized_at?: string;
+    addresses?: Array<{
+        [key: string]: unknown;
+    }>;
+    document_type?: CustomerDocumentType;
+    /**
+     * Valor normalizado (CPF/CNPJ só dígitos; RNE/passaporte alfanumérico).
+     */
+    document_number?: string;
+    status?: CustomerStatus;
+    segment?: CustomerSegment;
+    /**
+     * Número de registo profissional (CRO, CNPJ) — preenchido para segmento professional.
+     */
+    professional_registration?: string;
+    /**
+     * Campos customizáveis definidos pelo tenant — chave no formato namespace::key.
+     */
+    metadata?: {
+        [key: string]: unknown;
+    };
+};
+
+export type CustomerFieldDefinitionWritable = {
+    id: string;
+    member_id: string;
+    /**
+     * Identificador do namespace (ex. erp, crm, pdv).
+     */
+    namespace: string;
+    /**
+     * Chave do campo dentro do namespace.
+     */
+    key: string;
+    /**
+     * Nome visível ao utilizador.
+     */
+    label: string;
+    field_type: CustomerFieldType;
+    required: boolean;
+    /**
+     * Valores possíveis — apenas para field_type=select.
+     */
+    options?: Array<string>;
+    description?: string;
+    created_at: string;
+};
+
+export type CustomerFieldDefinitionListPageWritable = {
+    data?: Array<CustomerFieldDefinitionWritable>;
+};
+
+export type MemberServiceOfferWritable = {
+    id?: string;
+    tenant_id?: string;
+    service_id?: string;
+    warehouse_id?: string;
+    is_enabled?: boolean;
+};
+
+export type ScheduleSlotWritable = {
+    id?: string;
+    warehouse_id?: string;
+    order_id?: string;
+    scheduled_for?: string;
+    duration?: number;
+    status?: ScheduleSlotStatus;
+    tenant_id?: string;
+    notes?: string;
+    created_at?: string;
+    customer_name?: string;
+    customer_whatsapp?: string;
+};
+
+export type AvailableScheduleSlotWritable = {
+    id?: string;
+    scheduled_for?: string;
+    label?: string;
+    warehouse_id?: string;
+    duration_minutes?: number;
+};
+
+export type ErpOutboxEntryWritable = {
+    id?: string;
+    order_id?: string;
+    status?: string;
+    attempts?: number;
+    next_attempt_at?: string;
+    external_id?: string;
+    last_error?: string;
+    updated_at?: string;
+};
+
+export type ErpOutboxListWritable = {
+    entries?: Array<ErpOutboxEntryWritable>;
+    counts?: {
+        [key: string]: number;
+    };
 };
 
 export type ErpWizardCredentialsWritable = {
@@ -4272,6 +15065,304 @@ export type ErpOauthAuthorizeRequestWritable = {
     return_url: string;
 };
 
+export type StaffWritable = {
+    id?: string;
+    tenant_id?: string;
+    email?: string;
+    name?: string;
+    role?: StaffRole;
+    status?: StaffStatus;
+    /**
+     * Tags livres de área/classificação (ex. financeiro, adm, logistica). Não é RBAC nem role de utilizador.
+     *
+     */
+    groups?: Array<string>;
+    permissions?: {
+        [key: string]: Array<string>;
+    };
+    totp_enabled?: boolean;
+    created_at?: string;
+    last_login_at?: string;
+    tenant_type?: 'platform' | 'member';
+    tenant_name?: string;
+};
+
+/**
+ * Alias de compatibilidade de contrato. Novas integrações usam Staff e /staffs.
+ *
+ * @deprecated
+ */
+export type UserWritable = StaffWritable;
+
+export type StaffCreatedWritable = {
+    staff: StaffWritable;
+    invite?: StaffInviteResult;
+};
+
+export type RentalAssetWritable = {
+    id: string;
+    tenant_id?: string;
+    product_id: string;
+    warehouse_id?: string;
+    code: string;
+    serial_number?: string;
+    status: 'active' | 'inactive' | 'retired';
+    maintenance_buffer_hours?: number;
+    created_at?: string;
+};
+
+export type RentalAssetListPageWritable = {
+    data: Array<RentalAssetWritable>;
+    next_cursor?: string;
+    has_more: boolean;
+    total?: number;
+};
+
+export type RentalAgreementWritable = {
+    id?: string;
+    order_id?: string;
+    /**
+     * Produto principal do contrato.
+     */
+    product_id?: string;
+    status?: 'pending' | 'token_sent' | 'signed' | 'void';
+    template_version?: string;
+    signed_at?: string;
+    /**
+     * HTML do contrato renderizado com variáveis.
+     */
+    body_html?: string;
+    /**
+     * URL pré-assinada (15 min TTL) do PDF gerado após assinatura.
+     */
+    pdf_url?: string;
+};
+
+export type OrderChangePreviewWritable = {
+    order_id: string;
+    paid_ceiling_cents: number;
+    previous_total_cents: number;
+    new_total_cents: number;
+    delta_cents: number;
+    settlement_plan: OrderChangeSettlementPlan;
+    settlement_mode?: ChangeOrderSettlementMode;
+    items?: Array<OrderItemWritable>;
+    advisories?: Array<OrderChangeAdvisory>;
+    change_seal: string;
+    expires_at?: string;
+    changeable: boolean;
+};
+
+export type CustomerSessionCreatedWritable = {
+    /**
+     * Bearer `mc_sess_…` para GET /auth/customer/me
+     */
+    session_token: string;
+    expires_at: string;
+    customer: CustomerWritable;
+};
+
+export type StaffEnrolmentActivatedWritable = {
+    session: StaffSessionCreatedWritable;
+    backup_codes: Array<string>;
+};
+
+/**
+ * Sessão imediata ou desafio 2FA (TOTP) após Google/passkey
+ */
+export type StaffAuthFinishResultWritable = {
+    session_token?: string;
+    expires_at?: string;
+    user?: StaffWritable;
+    requires_totp?: boolean;
+    pending_token?: string;
+    email?: string;
+    /**
+     * Só em development
+     */
+    dev_totp_code?: string;
+};
+
+export type StaffSessionCreatedWritable = {
+    /**
+     * Bearer `mc_staff_sess_…` para painéis platform/member
+     */
+    session_token: string;
+    expires_at: string;
+    user: StaffWritable;
+};
+
+export type SavedReportWritable = {
+    id: string;
+    title: string;
+    spec: ReportSpec;
+    original_prompt?: string;
+    created_by?: string;
+    created_at: string;
+    updated_at: string;
+    schedule?: ReportScheduleWritable;
+    /**
+     * Scopes de domínio necessários para reexecutar (SQL interno não é exposto)
+     */
+    required_scopes?: Array<string>;
+    visualization?: ReportVisualization;
+    /**
+     * Motor de execução (free_sql = ADR 0080; report_spec = legado)
+     */
+    engine?: 'free_sql' | 'report_spec';
+};
+
+export type SavedReportUpdateWritable = {
+    title?: string;
+    spec?: ReportSpec;
+    original_prompt?: string;
+    schedule?: ReportScheduleWritable;
+};
+
+export type ReportScheduleWritable = {
+    enabled: boolean;
+    frequency?: 'daily' | 'weekly' | 'monthly';
+    hour_utc?: number;
+    /**
+     * 0=domingo (weekly)
+     */
+    day_of_week?: number;
+    /**
+     * Dia do mês (monthly)
+     */
+    day_of_month?: number;
+    recipients?: Array<string>;
+    last_sent_at?: string;
+    next_run_at?: string;
+};
+
+export type CheckoutSessionWritable = {
+    id: string;
+    member_id: string;
+    warehouse_id?: string;
+    channel: CheckoutSessionChannel;
+    state: {
+        [key: string]: unknown;
+    };
+    expires_at: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type CheckoutSessionCreatedWritable = CheckoutSessionWritable & {
+    /**
+     * Token opaco — guardar em cookie httpOnly; não reemitido
+     */
+    session_token: string;
+};
+
+export type CheckoutPlaceOrderResponseWritable = {
+    order: OrderWritable;
+    session_id: string;
+    payment_status?: PaymentStatus;
+    /**
+     * URL do checkout do aluguel (purpose=rental)
+     */
+    checkout_url?: string;
+    /**
+     * URL da caução (2ª sessão). Também em order.marketing_data.deposit_checkout_url (#1418).
+     */
+    deposit_checkout_url?: string;
+};
+
+export type CheckoutIdentityVerifiedWritable = {
+    verified: boolean;
+    customer: CustomerWritable;
+};
+
+export type GiftCardIssueWritable = {
+    amount_cents: number;
+    expires_at?: string;
+    recipient_email?: string;
+    note?: string;
+    /**
+     * PIN opcional — só hash é persistido
+     */
+    pin?: string;
+    /**
+     * Pedido que originou o cartão (emissão pela venda de um item).
+     */
+    order_id?: string;
+    /**
+     * Item do pedido — a emissão é idempotente por (pedido, item).
+     */
+    order_item_id?: string;
+};
+
+export type CheckoutCompositionLineWritable = {
+    sku: string;
+    name?: string;
+    quantity: number;
+    /**
+     * Preço unitário autoritativo (mesma unidade que CheckoutQuoteResult).
+     */
+    unit_amount: number;
+    line_amount: number;
+    availability: CheckoutCompositionLineAvailability;
+    available_quantity?: number;
+    warehouse_id?: string;
+    express_group?: boolean;
+    category?: string;
+    /**
+     * Eco do período cotado (SKU rental)
+     */
+    period_start?: string;
+    period_end?: string;
+    /**
+     * Base de cobrança do rental_meta no momento do compose
+     */
+    billing_basis?: 'day' | 'hour';
+    /**
+     * Pacote casado (half_day, daily, multi_day, hourly, …)
+     */
+    package?: string;
+    /**
+     * id da day_part quando package=half_day
+     */
+    matched_day_part?: string;
+    /**
+     * Dias civis cobrados (billing_basis=day)
+     */
+    days?: number;
+    /**
+     * Horas cobradas (billing_basis=hour)
+     */
+    hours?: number;
+    /**
+     * Unidades cobradas (dias ou horas)
+     */
+    billing_units?: number;
+    /**
+     * Calção desta linha (antes de agregados nos totais)
+     */
+    deposit_amount?: number;
+};
+
+export type CheckoutCompositionWritable = {
+    lines: Array<CheckoutCompositionLineWritable>;
+    totals: CheckoutQuoteResult;
+    fulfillment_offers?: Array<CheckoutFulfillmentOffer>;
+    tender_options?: Array<CheckoutTenderOption>;
+    advisories: Array<CheckoutAdvisory>;
+    heuristics_applied?: CheckoutCompositionHeuristics;
+    /**
+     * false se existir advisory severity=block.
+     */
+    placeable: boolean;
+    /**
+     * Selo opaco HMAC; enviar no place-order.
+     */
+    composition_seal?: string;
+    expires_at?: string;
+    composed_at: string;
+    currency: 'BRL';
+};
+
 export type OrderIdentityVerificationWritable = {
     id: string;
     order_id: string;
@@ -4317,6 +15408,14 @@ export type InventoryMovementWritable = {
     note?: string;
     created_by?: string;
     created_at: string;
+    /**
+     * Custo unitário em centavos (entrada/ajuste+)
+     */
+    unit_cost_cents?: number;
+    /**
+     * Custo total do movimento (CMV em saídas)
+     */
+    total_cost_cents?: number;
 };
 
 export type InventoryMovementListPageWritable = {
@@ -4325,16 +15424,264 @@ export type InventoryMovementListPageWritable = {
     has_more?: boolean;
 };
 
+export type InventoryBalanceWritable = {
+    tenant_id?: string;
+    warehouse_id?: string;
+    product_id?: string;
+    sku?: string;
+    ean?: string;
+    quantity?: number;
+    reserved?: number;
+    /**
+     * quantity - reserved. Null quando stock_policy=infinite (sem teto).
+     */
+    available?: number;
+    /**
+     * Disponível para a vitrine web (#866). 0 se o warehouse POS estiver offline (heartbeat expirado). Null quando stock_policy=infinite.
+     */
+    sellable?: number;
+    /**
+     * Política da linha consultada (#975). Agregado cross-warehouse usa a mais permissiva.
+     */
+    stock_policy?: InventoryStockPolicy;
+    /**
+     * Warehouse com heartbeat POS válido (pos_online_until > now)
+     */
+    pos_online?: boolean;
+    pos_online_until?: string;
+    /**
+     * Localização física no armazém consultado; fallback para o location_hint do produto quando a linha não tem localização própria.
+     */
+    location?: string;
+};
+
+export type CatalogEanLookupWritable = {
+    product?: ProductWritable;
+    balance?: InventoryBalanceWritable;
+    /**
+     * true se encontrado na base Mirá sem hook externo
+     */
+    cache_hit?: boolean;
+};
+
+export type WmsProductDraftWritable = {
+    id?: string;
+    tenant_id?: string;
+    warehouse_id?: string;
+    status?: WmsDraftStatus;
+    operation_mode?: WmsOperationMode;
+    ean?: string;
+    sku_suggestion?: string;
+    title?: string;
+    description?: string;
+    category?: string;
+    cost_price?: number;
+    margin_pct?: number;
+    sale_price?: number;
+    location_hint?: string;
+    enrich_status?: WmsEnrichStatus;
+    enrich_error?: string;
+    published_product_id?: string;
+    created_at?: string;
+    updated_at?: string;
+};
+
 export type WmsProductDraftPublishResultWritable = {
-    draft?: WmsProductDraft;
-    product?: Product;
+    draft?: WmsProductDraftWritable;
+    product?: ProductWritable;
     movement?: InventoryMovementWritable;
+};
+
+export type WmsProductDraftListPageWritable = {
+    data?: Array<WmsProductDraftWritable>;
+    next_cursor?: string;
+    has_more?: boolean;
+};
+
+export type WmsInboundNfeDraftWritable = {
+    id?: string;
+    tenant_id?: string;
+    warehouse_id?: string;
+    status?: WmsDraftStatus;
+    access_key?: string;
+    issuer_cnpj?: string;
+    issued_at?: string;
+    xml_source?: WmsNfeXmlSource;
+    resolve_status?: WmsEnrichStatus;
+    resolve_error?: string;
+    item_count?: number;
+    items?: Array<WmsInboundNfeItemWritable>;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type WmsInboundNfeItemWritable = {
+    id?: string;
+    line_number?: number;
+    ean?: string;
+    fiscal_name?: string;
+    ncm?: string;
+    quantity?: number;
+    unit_cost?: number;
+    line_total?: number;
+    product_id?: string;
+    action?: 'entrada' | 'cadastrar_entrada';
+    enrich_status?: WmsEnrichStatus;
+};
+
+export type WmsInboundNfePublishResultWritable = {
+    draft?: WmsInboundNfeDraftWritable;
+    products_created?: number;
+    movements_created?: number;
+};
+
+export type WmsInboundNfeDraftListPageWritable = {
+    data?: Array<WmsInboundNfeDraftWritable>;
+    next_cursor?: string;
+    has_more?: boolean;
 };
 
 export type WmsInventoryCountBatchResultWritable = {
     session_id?: string;
     adjustments?: Array<InventoryMovementWritable>;
     skipped_duplicates?: number;
+};
+
+export type OrderShippingWritable = {
+    method_id?: string;
+    carrier_code?: string;
+    carrier_name?: string;
+    method_code?: string;
+    method_name?: string;
+    transport_mode?: ShippingTransportMode;
+    /**
+     * Prazo mínimo de entrega em dias úteis (da cotação selecionada).
+     */
+    eta_days_min?: number;
+    /**
+     * Prazo máximo de entrega em dias úteis (da cotação selecionada).
+     */
+    eta_days_max?: number;
+    /**
+     * Número de volumes físicos da cotação (split por limites do método).
+     */
+    package_count?: number;
+    /**
+     * Volumes cotados/persistidos — preço do pedido já é a soma.
+     */
+    packages?: Array<ShippingQuotePackage>;
+    tracking_code?: string;
+    tracking_url?: string;
+    tracking_status?: ShippingTrackingStatus;
+    tracking_updated_at?: string;
+    label?: OrderShippingLabelWritable;
+    /**
+     * Doca de expedição (ADR 0095)
+     */
+    dock_id?: string;
+};
+
+export type ShippingDockWritable = {
+    id: string;
+    tenant_id?: string;
+    warehouse_id: string;
+    code: string;
+    name: string;
+    is_active?: boolean;
+    /**
+     * Doca principal do warehouse (backfill)
+     */
+    is_default?: boolean;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type OrderShippingLabelWritable = {
+    /**
+     * Estado da pré-postagem/etiqueta
+     */
+    status?: 'none' | 'created' | 'failed';
+    prepostagem_id?: string;
+    tracking_code?: string;
+    /**
+     * Chave interna MinIO — nunca exposta na API (só label_url assinada).
+     */
+    label_storage_key?: string;
+    /**
+     * URL assinada do PDF (curta duração)
+     */
+    label_url?: string;
+    /**
+     * Declaração eletrónica de conteúdo enviada aos Correios
+     */
+    content_declaration?: Array<OrderShippingLabelContentItem>;
+    error?: string;
+    created_at?: string;
+};
+
+export type ShippingMethodWritable = {
+    id: string;
+    tenant_id?: string;
+    carrier_id: string;
+    /**
+     * CD/loja de origem (ADR 0082 — obrigatório)
+     */
+    warehouse_id: string;
+    /**
+     * Doca de expedição neste warehouse (ADR 0095)
+     */
+    dock_id?: string;
+    /**
+     * Allowlist de canais (`web`, `whatsapp`, `api`, …). Vazio = todos os
+     * canais deste warehouse (ADR 0082).
+     *
+     */
+    channels?: Array<string>;
+    code: string;
+    name: string;
+    transport_mode: ShippingTransportMode;
+    quote_mode: ShippingQuoteMode;
+    /**
+     * Provider autoritativo; quote_mode permanece por compatibilidade.
+     */
+    provider_id?: string;
+    provider_config?: {
+        [key: string]: unknown;
+    };
+    price_adjustment_percent?: number;
+    price_adjustment_fixed?: number;
+    price_adjustment_label?: string;
+    fixed_price?: number;
+    distance_config?: ShippingDistanceConfig;
+    external_config?: ShippingExternalConfig;
+    correios_config?: CorreiosConfig;
+    eligibility?: ShippingMethodEligibility;
+    is_active?: boolean;
+    priority?: number;
+    created_at?: string;
+    updated_at?: string;
+};
+
+export type ShippingQuoteResultWritable = {
+    options: Array<ShippingQuoteOption>;
+    resolved_at: string;
+    /**
+     * Depósito de origem resolvido server-side (issue
+     */
+    warehouse_id?: string;
+    /**
+     * Alocação por item — qual depósito atende cada item (split-ready, modelo VTEX).
+     */
+    allocation?: Array<FulfillmentItemAllocationWritable>;
+};
+
+export type FulfillmentItemAllocationWritable = {
+    sku: string;
+    warehouse_id: string;
+    /**
+     * O depósito tem estoque suficiente do item.
+     */
+    covered: boolean;
 };
 
 /**
@@ -4381,6 +15728,10 @@ export type SubscriptionWritable = {
      * `locked` congela o preço da adesão; `current` reprecifica a cada ciclo
      */
     price_policy?: 'locked' | 'current';
+    /**
+     * Se true, cada ciclo fica `awaiting_customer` até o comprador confirmar composição + agenda na loja (fluxo B / #520). Default false = payment link imediato (comportamento clássico ADR 0039).
+     */
+    renewal_completion_required?: boolean;
     payment_method_id?: string;
     /**
      * Adquirente que detém o token do meio de pagamento
@@ -4415,15 +15766,85 @@ export type SubscriptionCreateWritable = {
     next_run_at?: string;
     price_policy?: 'locked' | 'current';
     /**
+     * Opt-in ao fluxo B (#520): comprador edita composição + agenda antes do payment link. Persistido em `metadata.renewal_completion_required`.
+     */
+    renewal_completion_required?: boolean;
+    /**
      * Referência ao meio de pagamento tokenizado no adquirente (nunca PAN)
      */
     payment_method_id?: string;
     payment_provider?: string;
+    /**
+     * Pedido pago que originou a adesão. Quando presente, o core exige pagamento liquidado e `metadata.checkout_session_id` no pedido (#370). Omitir só para adesão manual (admin).
+     */
     source_order_id?: string;
+    /**
+     * Sessão de checkout (`cks_…`) que gerou o `source_order_id`. Opcional; se enviado, tem de coincidir com `order.metadata.checkout_session_id`.
+     */
+    checkout_session_id?: string;
     items: Array<SubscriptionItemWritable>;
     metadata?: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * Estado editável do ciclo antes do payment link (#520). Presente só com run `awaiting_customer` e `renewal_completion_pending`.
+ */
+export type SubscriptionRenewalWritable = {
+    subscription_id: string;
+    run: SubscriptionRunWritable;
+    order_id?: string;
+    /**
+     * Total base da assinatura (snapshot locked) — imutável por troca de pacote
+     */
+    locked_base?: number;
+    package_items?: Array<SubscriptionRenewalLine>;
+    extra_items?: Array<SubscriptionRenewalLine>;
+    scheduled_for?: string;
+    /**
+     * Total do pedido (base locked + extras + frete/imposto se houver)
+     */
+    total_amount?: number;
+    renewal_completion_pending: boolean;
+};
+
+/**
+ * Resultado do confirm — pedido submetido + payment link
+ */
+export type SubscriptionRenewalConfirmWritable = {
+    run: SubscriptionRunWritable;
+    order_id?: string;
+    /**
+     * URL com o token em claro — só nesta resposta (nunca em logs)
+     */
+    payment_link_url: string;
+    total_amount?: number;
+};
+
+/**
+ * Um ciclo da assinatura. `UNIQUE(subscription_id, cycle_no)` no banco = idempotência: crash entre gerar o pedido e avançar `next_run_at` NÃO duplica pedido.
+ */
+export type SubscriptionRunWritable = {
+    id?: string;
+    subscription_id?: string;
+    cycle_no?: number;
+    order_id?: string;
+    /**
+     * auto | link — `auto` = cobrado no adquirente; `link` = pedido + payment link enviado. Vazio enquanto o ciclo não decidiu a via de cobrança.
+     */
+    charge_mode?: string;
+    /**
+     * `awaiting_customer` = pedido rascunho pronto; comprador ainda não confirmou composição+agenda (#520). Depois do confirm → `awaiting_payment`.
+     */
+    status?: 'pending' | 'awaiting_customer' | 'awaiting_payment' | 'paid' | 'held' | 'failed' | 'expired' | 'skipped';
+    /**
+     * Motivo legível da falha do ciclo — nunca inclui credencial nem resposta crua do adquirente
+     */
+    failure_reason?: string;
+    scheduled_for?: string;
+    created_at?: string;
+    updated_at?: string;
 };
 
 export type SubscriptionListPageWritable = {
@@ -4434,6 +15855,12 @@ export type SubscriptionListPageWritable = {
      * Total estimado (opcional UX)
      */
     total?: number;
+};
+
+export type SubscriptionRunListPageWritable = {
+    data: Array<SubscriptionRunWritable>;
+    next_cursor?: string;
+    has_more: boolean;
 };
 
 /**
@@ -4461,7 +15888,216 @@ export type PaymentLinkListPageWritable = {
     has_more: boolean;
 };
 
+/**
+ * Manifest de capabilities do storefront do tenant. Só existe UMA linha por tenant. `strict=true` faz o admin rejeitar placement/block/routes fora do allowlist.
+ */
+export type ExperienceCapabilitiesWritable = {
+    strict?: boolean;
+    surfaces: Array<{
+        key: string;
+        title?: string;
+        placements: Array<string>;
+    }>;
+    block_types: Array<string>;
+    routes_allowlist?: Array<string>;
+    external_hosts_allowlist?: Array<string>;
+};
+
+export type ExperienceSurfaceWritable = {
+    id: string;
+    key: string;
+    title?: string;
+    status: ExperienceSurfaceStatus;
+    current_release_id?: string;
+};
+
+export type ExperienceSurfaceListWritable = {
+    data: Array<ExperienceSurfaceWritable>;
+};
+
+export type ExperienceReleaseWritable = {
+    id: string;
+    surface_id: string;
+    surface_key: string;
+    name?: string;
+    notes?: string;
+    status: ExperienceReleaseStatus;
+    starts_at?: string;
+    ends_at?: string;
+    publish_at?: string;
+    published_at?: string;
+    /**
+     * Hidratado apenas em GET single / após PUT placements.
+     */
+    placements?: Array<ExperiencePlacement>;
+};
+
+export type ExperienceReleaseListWritable = {
+    data: Array<ExperienceReleaseWritable>;
+};
+
+export type MerchandisingCollectionWritable = {
+    id: string;
+    key: string;
+    title?: string;
+    kind: 'manual' | 'rule';
+    rule?: JsonObject;
+    product_refs?: Array<string>;
+    cache_ttl_seconds?: number;
+};
+
+export type MerchandisingCollectionListWritable = {
+    data: Array<MerchandisingCollectionWritable>;
+};
+
+export type ExperienceAssetWritable = {
+    id: string;
+    kind: 'image' | 'video' | 'other';
+    storage_key: string;
+    content_type?: string;
+    width_px?: number;
+    height_px?: number;
+    checksum?: string;
+    bytes?: number;
+};
+
+export type ExperienceAssetListWritable = {
+    data: Array<ExperienceAssetWritable>;
+};
+
+export type ExperienceResolvedResourcesWritable = {
+    products?: Array<ExperienceResolvedProduct>;
+    collections?: Array<MerchandisingCollectionWritable>;
+};
+
+export type ExperienceResolvedWritable = {
+    surface: string;
+    release_id: string;
+    status: ExperienceReleaseStatus;
+    /**
+     * Identificador do snapshot (para cache/etag).
+     */
+    version?: string;
+    placements: Array<ExperiencePlacement>;
+    resources?: ExperienceResolvedResourcesWritable;
+    rendered_at?: string;
+};
+
+export type InventoryCostWritable = {
+    tenant_id: string;
+    warehouse_id: string;
+    product_id: string;
+    qty_on_hand: number;
+    unit_cost_cents: number;
+    total_cost_cents: number;
+    updated_at?: string;
+};
+
+export type InventoryCostListPageWritable = {
+    data?: Array<InventoryCostWritable>;
+    next_cursor?: string;
+    has_more?: boolean;
+};
+
+export type KbAssetWritable = {
+    id: string;
+    entry_id: string;
+    content_type?: string;
+    alt_text?: string;
+    bytes?: number;
+    created_at: string;
+};
+
+export type KbEntryWritable = {
+    id: string;
+    topic_id: string;
+    title: string;
+    /**
+     * Texto puro (markdown permitido)
+     */
+    body: string;
+    is_active: boolean;
+    position: number;
+    assets?: Array<KbAssetWritable>;
+    created_at: string;
+    updated_at: string;
+};
+
+export type KbEntryListPageWritable = {
+    data: Array<KbEntryWritable>;
+    next_cursor?: string;
+    has_more?: boolean;
+    total?: number;
+};
+
+export type KbSearchHitWritable = {
+    topic: KbTopic;
+    entry?: KbEntryWritable;
+    score?: number;
+};
+
+export type KbSearchResultWritable = {
+    data: Array<KbSearchHitWritable>;
+    /**
+     * Como os hits foram obtidos
+     */
+    method?: 'lexical' | 'llm';
+};
+
+export type KbClassifyMatchedTopicWritable = {
+    topic: KbTopic;
+    score: number;
+    reason?: string;
+    entries?: Array<KbEntryWritable>;
+};
+
+export type KbClassifyResultWritable = {
+    query: string;
+    topics: Array<KbClassifyMatchedTopicWritable>;
+    method: 'llm' | 'lexical';
+};
+
+export type PriceListId = string;
+
+export type SupplierId = string;
+
+export type AccountingExportId = string;
+
+export type WorkOrderId = string;
+
+export type PurchaseOrderId = string;
+
+export type SalesTargetId = string;
+
+export type ArDocumentId = string;
+
+export type ApDocumentId = string;
+
+export type CompanyId = string;
+
+export type QuoteId = string;
+
+export type CommissionProgramId = string;
+
+export type CommissionActorId = string;
+
+export type SplitRuleId = string;
+
+export type CommissionRuleId = string;
+
+export type CommissionLedgerEntryId = string;
+
+export type ReturnRequestId = string;
+
 export type CampaignId = string;
+
+export type GrowthCampaignId = string;
+
+export type TaskId = string;
+
+export type CouncilSessionId = string;
+
+export type ExtMcpConnectionId = string;
 
 /**
  * ID da assinatura (sempre resolvido dentro do tenant do token)
@@ -4492,8 +16128,47 @@ export type AiModeSessionId = string;
  */
 export type Search = string;
 
+/**
+ * Token de reconfirmação de identidade obtido em `/auth/staff/step-up/finish`.
+ * Obrigatório em acções sensíveis quando quem chama é uma sessão de staff —
+ * um bearer de integração não passa por step-up (não há humano para
+ * reconfirmar) e é governado por scopes.
+ *
+ */
+export type StepUpToken = string;
+
+/**
+ * Quando `false` (omissão), listagens de configuração omitem entidades
+ * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+ * registos. Se a operação também aceita `status` e este for enviado,
+ * `status` tem precedência.
+ *
+ */
+export type IncludeInactive = boolean;
+
+export type KbTopicId = string;
+
+export type KbEntryId = string;
+
+export type KbAssetId = string;
+
+export type CategoryId = string;
+
 export type ProductId = string;
 
+/**
+ * ID do ProductSku (variante)
+ */
+export type SkuId = string;
+
+/**
+ * ID do ServiceProduct
+ */
+export type ServiceId = string;
+
+/**
+ * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+ */
 export type OrderId = string;
 
 export type WmsProductDraftId = string;
@@ -4502,7 +16177,9 @@ export type WmsInboundNfeDraftId = string;
 
 export type MemberId = string;
 
-export type UserId = string;
+export type StaffId = string;
+
+export type PermissionGroupSlug = string;
 
 /**
  * ID opaco `cks_…`
@@ -4519,17 +16196,77 @@ export type CheckoutSessionToken = string;
  */
 export type IdempotencyKey = string;
 
+/**
+ * Identificador estável da surface no manifest (ex. `home`, `pdp`, `plp:category`).
+ */
+export type ExperienceSurfaceKey = string;
+
+/**
+ * ID da release editorial (draft/publicada) — sempre resolvido dentro do tenant do token.
+ */
+export type ExperienceReleaseId = string;
+
+export type MerchandisingCollectionId = string;
+
+/**
+ * Token de preview — é a CREDENCIAL do endpoint público (ADR 0041). O banco guarda apenas o SHA-256 (`token_hash`); o valor em claro só existe na resposta da emissão. Nunca logar, nunca ecoar noutro payload.
+ */
+export type ExperiencePreviewToken = string;
+
 export type ListProductsData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
         limit?: number;
         cursor?: string;
         status?: ProductStatus;
         /**
+         * Facet exclusivo da listagem admin. Quando presente, tem precedência
+         * sobre `status` (active/inactive). Ranking (top_sellers_*) ordena por
+         * unidades vendidas no período; zero_stock = disponível total ≤ 0.
+         *
+         */
+        facet?: ProductListFacet;
+        /**
          * Busca case-insensitive por substring em campos de texto do recurso.
          */
         search?: string;
+        /**
+         * Resolve produto por slug exato (case-insensitive). Uso típico:
+         * storefront resolvendo a PDP pela URL de origem migrada (F3 SEO).
+         * Quando presente, `facet` é ignorado.
+         *
+         */
+        slug?: string;
+        /**
+         * Filtra produtos filhos deste agrupador (ADR 0092 / #907).
+         * Útil para PDP/vitrine listar variantes vendáveis.
+         *
+         */
+        parent_product_id?: string;
+        /**
+         * Filtra por categoria (match exato, case-insensitive, no campo
+         * `category` do produto). Compõe com `status`/`search`/`cursor`. Uso
+         * típico: PLP de storefront headless (#1070).
+         *
+         */
+        category?: string;
+        /**
+         * Quando presente, devolve agregação em `groups` (data vazia).
+         * Allowlist: status, category, parent. Métrica: product_count.
+         * `parent` agrupa filhos por `parent_product_id` (chave = UUID do pai ou
+         * `_root` se sem pai).
+         *
+         */
+        group_by?: ProductGroupBy;
     };
     url: '/products';
 };
@@ -4558,6 +16295,22 @@ export type CreateProductResponses = {
 };
 
 export type CreateProductResponse = CreateProductResponses[keyof CreateProductResponses];
+
+export type GetProductFacetsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/products/facets';
+};
+
+export type GetProductFacetsResponses = {
+    /**
+     * Contagens de facets
+     */
+    200: ProductFacets;
+};
+
+export type GetProductFacetsResponse = GetProductFacetsResponses[keyof GetProductFacetsResponses];
 
 export type GetProductData = {
     body?: never;
@@ -4596,12 +16349,43 @@ export type UpdateProductResponses = {
 
 export type UpdateProductResponse = UpdateProductResponses[keyof UpdateProductResponses];
 
-export type ListProductSkusData = {
+export type GetProductMarketplaceStatusData = {
     body?: never;
     path: {
         product_id: string;
     };
     query?: never;
+    url: '/products/{product_id}/marketplace-status';
+};
+
+export type GetProductMarketplaceStatusErrors = {
+    /**
+     * Recurso não encontrado
+     */
+    404: unknown;
+};
+
+export type GetProductMarketplaceStatusResponses = {
+    200: ProductMarketplaceStatus;
+};
+
+export type GetProductMarketplaceStatusResponse = GetProductMarketplaceStatusResponses[keyof GetProductMarketplaceStatusResponses];
+
+export type ListProductSkusData = {
+    body?: never;
+    path: {
+        product_id: string;
+    };
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
     url: '/products/{product_id}/skus';
 };
 
@@ -4612,6 +16396,60 @@ export type ListProductSkusResponses = {
 };
 
 export type ListProductSkusResponse = ListProductSkusResponses[keyof ListProductSkusResponses];
+
+export type CreateProductSkuData = {
+    body: ProductSkuCreate;
+    path: {
+        product_id: string;
+    };
+    query?: never;
+    url: '/products/{product_id}/skus';
+};
+
+export type CreateProductSkuErrors = {
+    /**
+     * Recurso não encontrado
+     */
+    404: unknown;
+};
+
+export type CreateProductSkuResponses = {
+    /**
+     * SKU criado ou actualizado
+     */
+    201: ProductSku;
+};
+
+export type CreateProductSkuResponse = CreateProductSkuResponses[keyof CreateProductSkuResponses];
+
+export type UpdateProductSkuData = {
+    body: ProductSkuUpdate;
+    path: {
+        product_id: string;
+        /**
+         * ID do ProductSku (variante)
+         */
+        sku_id: string;
+    };
+    query?: never;
+    url: '/products/{product_id}/skus/{sku_id}';
+};
+
+export type UpdateProductSkuErrors = {
+    /**
+     * Recurso não encontrado
+     */
+    404: unknown;
+};
+
+export type UpdateProductSkuResponses = {
+    /**
+     * SKU actualizado
+     */
+    200: ProductSku;
+};
+
+export type UpdateProductSkuResponse = UpdateProductSkuResponses[keyof UpdateProductSkuResponses];
 
 export type LookupCatalogByEanData = {
     body?: never;
@@ -4640,10 +16478,225 @@ export type LookupCatalogByEanResponses = {
 
 export type LookupCatalogByEanResponse = LookupCatalogByEanResponses[keyof LookupCatalogByEanResponses];
 
+export type ListProductBarcodesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        product_id?: string;
+        sku_id?: string;
+    };
+    url: '/catalog/barcodes';
+};
+
+export type ListProductBarcodesResponses = {
+    200: ProductBarcodeListPage;
+};
+
+export type ListProductBarcodesResponse = ListProductBarcodesResponses[keyof ListProductBarcodesResponses];
+
+export type CreateProductBarcodeData = {
+    body: ProductBarcodeCreate;
+    path?: never;
+    query?: never;
+    url: '/catalog/barcodes';
+};
+
+export type CreateProductBarcodeErrors = {
+    /**
+     * Barcode já existe no tenant
+     */
+    409: unknown;
+};
+
+export type CreateProductBarcodeResponses = {
+    201: ProductBarcode;
+};
+
+export type CreateProductBarcodeResponse = CreateProductBarcodeResponses[keyof CreateProductBarcodeResponses];
+
+export type DeleteProductBarcodeData = {
+    body?: never;
+    path: {
+        barcode_id: string;
+    };
+    query?: never;
+    url: '/catalog/barcodes/{barcode_id}';
+};
+
+export type DeleteProductBarcodeErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type DeleteProductBarcodeResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type DeleteProductBarcodeResponse = DeleteProductBarcodeResponses[keyof DeleteProductBarcodeResponses];
+
+export type LookupProductBarcodeData = {
+    body?: never;
+    path: {
+        code: string;
+    };
+    query?: {
+        warehouse_id?: string;
+    };
+    url: '/catalog/barcodes/lookup/{code}';
+};
+
+export type LookupProductBarcodeErrors = {
+    /**
+     * Recurso não encontrado
+     */
+    404: unknown;
+};
+
+export type LookupProductBarcodeResponses = {
+    200: ProductBarcodeLookup;
+};
+
+export type LookupProductBarcodeResponse = LookupProductBarcodeResponses[keyof LookupProductBarcodeResponses];
+
+export type ListPriceLabelTemplatesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
+    url: '/catalog/price-label-templates';
+};
+
+export type ListPriceLabelTemplatesResponses = {
+    200: PriceLabelTemplateListPage;
+};
+
+export type ListPriceLabelTemplatesResponse = ListPriceLabelTemplatesResponses[keyof ListPriceLabelTemplatesResponses];
+
+export type CreatePriceLabelTemplateData = {
+    body: PriceLabelTemplateCreate;
+    path?: never;
+    query?: never;
+    url: '/catalog/price-label-templates';
+};
+
+export type CreatePriceLabelTemplateResponses = {
+    201: PriceLabelTemplate;
+};
+
+export type CreatePriceLabelTemplateResponse = CreatePriceLabelTemplateResponses[keyof CreatePriceLabelTemplateResponses];
+
+export type GetPriceLabelTemplateData = {
+    body?: never;
+    path: {
+        template_id: string;
+    };
+    query?: never;
+    url: '/catalog/price-label-templates/{template_id}';
+};
+
+export type GetPriceLabelTemplateErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type GetPriceLabelTemplateResponses = {
+    200: PriceLabelTemplate;
+};
+
+export type GetPriceLabelTemplateResponse = GetPriceLabelTemplateResponses[keyof GetPriceLabelTemplateResponses];
+
+export type UpdatePriceLabelTemplateData = {
+    body: PriceLabelTemplateUpdate;
+    path: {
+        template_id: string;
+    };
+    query?: never;
+    url: '/catalog/price-label-templates/{template_id}';
+};
+
+export type UpdatePriceLabelTemplateResponses = {
+    200: PriceLabelTemplate;
+};
+
+export type UpdatePriceLabelTemplateResponse = UpdatePriceLabelTemplateResponses[keyof UpdatePriceLabelTemplateResponses];
+
+export type ListPriceLabelJobsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+    };
+    url: '/catalog/price-label-jobs';
+};
+
+export type ListPriceLabelJobsResponses = {
+    200: PriceLabelJobListPage;
+};
+
+export type ListPriceLabelJobsResponse = ListPriceLabelJobsResponses[keyof ListPriceLabelJobsResponses];
+
+export type CreatePriceLabelJobData = {
+    body: PriceLabelJobCreate;
+    path?: never;
+    query?: never;
+    url: '/catalog/price-label-jobs';
+};
+
+export type CreatePriceLabelJobResponses = {
+    201: PriceLabelJob;
+};
+
+export type CreatePriceLabelJobResponse = CreatePriceLabelJobResponses[keyof CreatePriceLabelJobResponses];
+
+export type GetPriceLabelJobData = {
+    body?: never;
+    path: {
+        job_id: string;
+    };
+    query?: never;
+    url: '/catalog/price-label-jobs/{job_id}';
+};
+
+export type GetPriceLabelJobErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type GetPriceLabelJobResponses = {
+    200: PriceLabelJob;
+};
+
+export type GetPriceLabelJobResponse = GetPriceLabelJobResponses[keyof GetPriceLabelJobResponses];
+
 export type ListServicesData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
         limit?: number;
         cursor?: string;
         status?: ProductStatus;
@@ -4656,6 +16709,229 @@ export type ListServicesResponses = {
 };
 
 export type ListServicesResponse = ListServicesResponses[keyof ListServicesResponses];
+
+export type CreateServiceData = {
+    body: ServiceProductCreate;
+    path?: never;
+    query?: never;
+    url: '/services';
+};
+
+export type CreateServiceResponses = {
+    /**
+     * Serviço criado
+     */
+    201: ServiceProduct;
+};
+
+export type CreateServiceResponse = CreateServiceResponses[keyof CreateServiceResponses];
+
+export type UpdateServiceData = {
+    body: ServiceProductUpdate;
+    path: {
+        /**
+         * ID do ServiceProduct
+         */
+        service_id: string;
+    };
+    query?: never;
+    url: '/services/{service_id}';
+};
+
+export type UpdateServiceErrors = {
+    /**
+     * Recurso não encontrado
+     */
+    404: unknown;
+};
+
+export type UpdateServiceResponses = {
+    /**
+     * Serviço actualizado
+     */
+    200: ServiceProduct;
+};
+
+export type UpdateServiceResponse = UpdateServiceResponses[keyof UpdateServiceResponses];
+
+export type ListCategoriesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+        limit?: number;
+        cursor?: string;
+        /**
+         * Busca case-insensitive por substring em campos de texto do recurso.
+         */
+        search?: string;
+        /**
+         * UUID do pai, ou o literal `_root` para as de topo.
+         */
+        parent_id?: string;
+    };
+    url: '/catalog/categories';
+};
+
+export type ListCategoriesResponses = {
+    200: CategoryListPage;
+};
+
+export type ListCategoriesResponse = ListCategoriesResponses[keyof ListCategoriesResponses];
+
+export type CreateCategoryData = {
+    body: CategoryCreate;
+    path?: never;
+    query?: never;
+    url: '/catalog/categories';
+};
+
+export type CreateCategoryErrors = {
+    /**
+     * Slug duplicado no tenant ou profundidade acima de 3
+     */
+    409: unknown;
+};
+
+export type CreateCategoryResponses = {
+    201: Category;
+};
+
+export type CreateCategoryResponse = CreateCategoryResponses[keyof CreateCategoryResponses];
+
+export type DeleteCategoryData = {
+    body?: never;
+    path: {
+        category_id: string;
+    };
+    query?: never;
+    url: '/catalog/categories/{category_id}';
+};
+
+export type DeleteCategoryErrors = {
+    /**
+     * Categoria inexistente
+     */
+    404: unknown;
+    /**
+     * Categoria com filhas ou com produtos ligados
+     */
+    409: unknown;
+};
+
+export type DeleteCategoryResponses = {
+    /**
+     * Removida
+     */
+    204: void;
+};
+
+export type DeleteCategoryResponse = DeleteCategoryResponses[keyof DeleteCategoryResponses];
+
+export type GetCategoryData = {
+    body?: never;
+    path: {
+        category_id: string;
+    };
+    query?: never;
+    url: '/catalog/categories/{category_id}';
+};
+
+export type GetCategoryErrors = {
+    /**
+     * Categoria inexistente
+     */
+    404: unknown;
+};
+
+export type GetCategoryResponses = {
+    200: Category;
+};
+
+export type GetCategoryResponse = GetCategoryResponses[keyof GetCategoryResponses];
+
+export type UpdateCategoryData = {
+    body: CategoryUpdate;
+    path: {
+        category_id: string;
+    };
+    query?: never;
+    url: '/catalog/categories/{category_id}';
+};
+
+export type UpdateCategoryErrors = {
+    /**
+     * Categoria inexistente
+     */
+    404: unknown;
+    /**
+     * Slug duplicado, ciclo em parent_id ou profundidade acima de 3
+     */
+    409: unknown;
+};
+
+export type UpdateCategoryResponses = {
+    200: Category;
+};
+
+export type UpdateCategoryResponse = UpdateCategoryResponses[keyof UpdateCategoryResponses];
+
+export type PublishProductData = {
+    body?: never;
+    path: {
+        product_id: string;
+    };
+    query?: never;
+    url: '/products/{product_id}/commands/publish';
+};
+
+export type PublishProductErrors = {
+    /**
+     * Produto inexistente
+     */
+    404: unknown;
+    /**
+     * Produto incompleto — blockers no corpo
+     */
+    409: ProductReadiness;
+};
+
+export type PublishProductError = PublishProductErrors[keyof PublishProductErrors];
+
+export type PublishProductResponses = {
+    200: Product;
+};
+
+export type PublishProductResponse = PublishProductResponses[keyof PublishProductResponses];
+
+export type UnpublishProductData = {
+    body?: never;
+    path: {
+        product_id: string;
+    };
+    query?: never;
+    url: '/products/{product_id}/commands/unpublish';
+};
+
+export type UnpublishProductErrors = {
+    /**
+     * Produto inexistente
+     */
+    404: unknown;
+};
+
+export type UnpublishProductResponses = {
+    200: Product;
+};
+
+export type UnpublishProductResponse = UnpublishProductResponses[keyof UnpublishProductResponses];
 
 export type GetCatalogSpecificationsData = {
     body?: never;
@@ -4672,9 +16948,26 @@ export type GetCatalogSpecificationsResponse = GetCatalogSpecificationsResponses
 
 export type UpdateCatalogSpecificationsData = {
     body: SpecificationFieldsData;
+    headers: {
+        /**
+         * ETag obtido no GET. Use "0" para criar o documento inicial.
+         */
+        'If-Match': string;
+    };
     path?: never;
     query?: never;
     url: '/catalog/specifications';
+};
+
+export type UpdateCatalogSpecificationsErrors = {
+    /**
+     * Documento alterado por outro utilizador — recarregar e reaplicar.
+     */
+    412: unknown;
+    /**
+     * If-Match obrigatório.
+     */
+    428: unknown;
 };
 
 export type UpdateCatalogSpecificationsResponses = {
@@ -4703,6 +16996,58 @@ export type AssistProductDescriptionResponses = {
 
 export type AssistProductDescriptionResponse = AssistProductDescriptionResponses[keyof AssistProductDescriptionResponses];
 
+export type AssistProductImageData = {
+    body: ProductAssistImageRequest;
+    path?: never;
+    query?: never;
+    url: '/catalog/assist-product-image';
+};
+
+export type AssistProductImageErrors = {
+    /**
+     * Produto não encontrado
+     */
+    404: unknown;
+    /**
+     * LLM ou object store não configurado neste ambiente
+     */
+    503: unknown;
+};
+
+export type AssistProductImageResponses = {
+    201: ProductAssistImageResult;
+};
+
+export type AssistProductImageResponse = AssistProductImageResponses[keyof AssistProductImageResponses];
+
+export type AssistCompetitorProductUrlsData = {
+    body: CompetitorProductUrlsAssistRequest;
+    path?: never;
+    query?: never;
+    url: '/catalog/assist-competitor-product-urls';
+};
+
+export type AssistCompetitorProductUrlsErrors = {
+    /**
+     * Pedido inválido ou sem sites concorrentes
+     */
+    400: unknown;
+    /**
+     * Produto ou SKU não encontrado
+     */
+    404: unknown;
+    /**
+     * Pesquisa web não disponível / app inactivo
+     */
+    503: unknown;
+};
+
+export type AssistCompetitorProductUrlsResponses = {
+    200: CompetitorProductUrlsAssistResult;
+};
+
+export type AssistCompetitorProductUrlsResponse = AssistCompetitorProductUrlsResponses[keyof AssistCompetitorProductUrlsResponses];
+
 export type ListOrdersData = {
     body?: never;
     path?: never;
@@ -4720,6 +17065,23 @@ export type ListOrdersData = {
          * Busca case-insensitive por substring em campos de texto do recurso.
          */
         search?: string;
+        /**
+         * Filtra pedidos da empresa B2B (ADR 0137)
+         */
+        company_id?: string;
+        /**
+         * Filtra por estado de aprovação B2B (pending, approved, rejected)
+         */
+        company_approval_status?: string;
+        /**
+         * Quando presente, devolve agregação em `groups` (data vazia). Dimensões
+         * allowlist: status, origin, day, warehouse_id, payment_method,
+         * payment_provider, freight_mode (transport_mode), carrier.
+         * Métricas fixas por grupo: order_count, paid_count, sales_amount,
+         * approval_rate (paid_count/order_count*100).
+         *
+         */
+        group_by?: OrderGroupBy;
     };
     url: '/orders';
 };
@@ -4731,7 +17093,7 @@ export type ListOrdersResponses = {
 export type ListOrdersResponse = ListOrdersResponses[keyof ListOrdersResponses];
 
 export type CreateOrderData = {
-    body: OrderCreate;
+    body: OrderCreateWritable;
     path?: never;
     query?: never;
     url: '/orders';
@@ -4746,6 +17108,9 @@ export type CreateOrderResponse = CreateOrderResponses[keyof CreateOrderResponse
 export type GetOrderData = {
     body?: never;
     path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
         order_id: string;
     };
     query?: never;
@@ -4765,6 +17130,42 @@ export type GetOrderResponses = {
 
 export type GetOrderResponse = GetOrderResponses[keyof GetOrderResponses];
 
+export type RepushOrderErpData = {
+    body?: OrderErpRepushRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/erp-repush';
+};
+
+export type RepushOrderErpErrors = {
+    /**
+     * Recurso não encontrado
+     */
+    404: unknown;
+    /**
+     * Já enviado sem replace, ou replace sem CancelEndpoint
+     */
+    409: unknown;
+    /**
+     * Falha ao cancelar no ERP — não se limpa erp_order_id
+     */
+    502: unknown;
+};
+
+export type RepushOrderErpResponses = {
+    /**
+     * Reenfileirado (e push imediato quando possível)
+     */
+    200: OrderErpRepushResult;
+};
+
+export type RepushOrderErpResponse = RepushOrderErpResponses[keyof RepushOrderErpResponses];
+
 export type SubmitOrderData = {
     body?: never;
     headers?: {
@@ -4774,6 +17175,9 @@ export type SubmitOrderData = {
         'Idempotency-Key'?: string;
     };
     path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
         order_id: string;
     };
     query?: never;
@@ -4810,6 +17214,10 @@ export type ListInventoryData = {
     query?: {
         limit?: number;
         cursor?: string;
+        /**
+         * Busca case-insensitive por substring em campos de texto do recurso.
+         */
+        search?: string;
         warehouse_id?: string;
         product_id?: string;
     };
@@ -4893,6 +17301,101 @@ export type CreateInventoryMovementResponses = {
 };
 
 export type CreateInventoryMovementResponse = CreateInventoryMovementResponses[keyof CreateInventoryMovementResponses];
+
+export type ListStockTransfersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: StockTransferStatus;
+        limit?: number;
+    };
+    url: '/inventory/stock-transfers';
+};
+
+export type ListStockTransfersResponses = {
+    200: StockTransferListPage;
+};
+
+export type ListStockTransfersResponse = ListStockTransfersResponses[keyof ListStockTransfersResponses];
+
+export type CreateStockTransferData = {
+    body: StockTransferCreate;
+    path?: never;
+    query?: never;
+    url: '/inventory/stock-transfers';
+};
+
+export type CreateStockTransferResponses = {
+    201: StockTransfer;
+};
+
+export type CreateStockTransferResponse = CreateStockTransferResponses[keyof CreateStockTransferResponses];
+
+export type GetStockTransferData = {
+    body?: never;
+    path: {
+        transfer_id: string;
+    };
+    query?: never;
+    url: '/inventory/stock-transfers/{transfer_id}';
+};
+
+export type GetStockTransferErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type GetStockTransferResponses = {
+    200: StockTransfer;
+};
+
+export type GetStockTransferResponse = GetStockTransferResponses[keyof GetStockTransferResponses];
+
+export type ShipStockTransferData = {
+    body?: never;
+    path: {
+        transfer_id: string;
+    };
+    query?: never;
+    url: '/inventory/stock-transfers/{transfer_id}/ship';
+};
+
+export type ShipStockTransferErrors = {
+    /**
+     * Estado inválido ou stock insuficiente
+     */
+    409: unknown;
+};
+
+export type ShipStockTransferResponses = {
+    200: StockTransfer;
+};
+
+export type ShipStockTransferResponse = ShipStockTransferResponses[keyof ShipStockTransferResponses];
+
+export type ReceiveStockTransferData = {
+    body?: never;
+    path: {
+        transfer_id: string;
+    };
+    query?: never;
+    url: '/inventory/stock-transfers/{transfer_id}/receive';
+};
+
+export type ReceiveStockTransferErrors = {
+    /**
+     * Estado inválido
+     */
+    409: unknown;
+};
+
+export type ReceiveStockTransferResponses = {
+    200: StockTransfer;
+};
+
+export type ReceiveStockTransferResponse = ReceiveStockTransferResponses[keyof ReceiveStockTransferResponses];
 
 export type GetInventoryBalanceData = {
     body?: never;
@@ -5119,6 +17622,10 @@ export type ListPricesData = {
     query?: {
         limit?: number;
         cursor?: string;
+        /**
+         * Busca case-insensitive por substring em campos de texto do recurso.
+         */
+        search?: string;
         product_id?: string;
         warehouse_id?: string;
         channel?: PriceChannel;
@@ -5132,6 +17639,38 @@ export type ListPricesResponses = {
 
 export type ListPricesResponse = ListPricesResponses[keyof ListPricesResponses];
 
+export type CreatePriceData = {
+    body: PriceCreate;
+    path?: never;
+    query?: never;
+    url: '/prices';
+};
+
+export type CreatePriceResponses = {
+    /**
+     * Preço existente actualizado (mesmo chave produto/armazém/canal)
+     */
+    200: Price;
+    201: Price;
+};
+
+export type CreatePriceResponse = CreatePriceResponses[keyof CreatePriceResponses];
+
+export type UpdatePriceData = {
+    body: PriceUpdate;
+    path: {
+        price_id: string;
+    };
+    query?: never;
+    url: '/prices/{price_id}';
+};
+
+export type UpdatePriceResponses = {
+    200: Price;
+};
+
+export type UpdatePriceResponse = UpdatePriceResponses[keyof UpdatePriceResponses];
+
 export type ResolvePriceData = {
     body?: never;
     path?: never;
@@ -5140,6 +17679,10 @@ export type ResolvePriceData = {
         member_id?: string;
         warehouse_id?: string;
         channel?: PriceChannel;
+        /**
+         * Empresa B2B — quando informado, resolve preço da lista de preços vinculada aos terms (ADR 0137)
+         */
+        company_id?: string;
     };
     url: '/prices/resolve';
 };
@@ -5167,6 +17710,227 @@ export type ListServicePricesResponses = {
 };
 
 export type ListServicePricesResponse = ListServicePricesResponses[keyof ListServicePricesResponses];
+
+export type UpsertServicePriceData = {
+    body: ServicePriceUpsert;
+    path?: never;
+    query?: never;
+    url: '/service-prices';
+};
+
+export type UpsertServicePriceErrors = {
+    /**
+     * Parâmetros inválidos
+     */
+    400: unknown;
+};
+
+export type UpsertServicePriceResponses = {
+    /**
+     * Preço atualizado
+     */
+    200: ServicePrice;
+    /**
+     * Preço criado
+     */
+    201: ServicePrice;
+};
+
+export type UpsertServicePriceResponse = UpsertServicePriceResponses[keyof UpsertServicePriceResponses];
+
+export type DeleteServicePriceData = {
+    body?: never;
+    path: {
+        service_price_id: string;
+    };
+    query?: never;
+    url: '/service-prices/{service_price_id}';
+};
+
+export type DeleteServicePriceErrors = {
+    /**
+     * Preço inexistente
+     */
+    404: unknown;
+};
+
+export type DeleteServicePriceResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type DeleteServicePriceResponse = DeleteServicePriceResponses[keyof DeleteServicePriceResponses];
+
+export type ListPriceListsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        status?: PriceListStatusB2b;
+    };
+    url: '/pricing/price-lists';
+};
+
+export type ListPriceListsResponses = {
+    /**
+     * OK
+     */
+    200: PriceListB2bListPage;
+};
+
+export type ListPriceListsResponse = ListPriceListsResponses[keyof ListPriceListsResponses];
+
+export type CreatePriceListData = {
+    body: PriceListCreate;
+    path?: never;
+    query?: never;
+    url: '/pricing/price-lists';
+};
+
+export type CreatePriceListResponses = {
+    /**
+     * Created
+     */
+    201: PriceListB2b;
+};
+
+export type CreatePriceListResponse = CreatePriceListResponses[keyof CreatePriceListResponses];
+
+export type GetPriceListData = {
+    body?: never;
+    path: {
+        price_list_id: string;
+    };
+    query?: never;
+    url: '/pricing/price-lists/{price_list_id}';
+};
+
+export type GetPriceListErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetPriceListResponses = {
+    /**
+     * OK
+     */
+    200: PriceListB2b;
+};
+
+export type GetPriceListResponse = GetPriceListResponses[keyof GetPriceListResponses];
+
+export type UpdatePriceListData = {
+    body: PriceListUpdate;
+    path: {
+        price_list_id: string;
+    };
+    query?: never;
+    url: '/pricing/price-lists/{price_list_id}';
+};
+
+export type UpdatePriceListErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type UpdatePriceListResponses = {
+    /**
+     * OK
+     */
+    200: PriceListB2b;
+};
+
+export type UpdatePriceListResponse = UpdatePriceListResponses[keyof UpdatePriceListResponses];
+
+export type ListPriceListItemsData = {
+    body?: never;
+    path: {
+        price_list_id: string;
+    };
+    query?: {
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/pricing/price-lists/{price_list_id}/items';
+};
+
+export type ListPriceListItemsErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type ListPriceListItemsResponses = {
+    /**
+     * OK
+     */
+    200: PriceListItemListPage;
+};
+
+export type ListPriceListItemsResponse = ListPriceListItemsResponses[keyof ListPriceListItemsResponses];
+
+export type UpsertPriceListItemData = {
+    body: PriceListItemUpsert;
+    path: {
+        price_list_id: string;
+    };
+    query?: never;
+    url: '/pricing/price-lists/{price_list_id}/items';
+};
+
+export type UpsertPriceListItemErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type UpsertPriceListItemResponses = {
+    /**
+     * Updated
+     */
+    200: PriceListItem;
+    /**
+     * Created
+     */
+    201: PriceListItem;
+};
+
+export type UpsertPriceListItemResponse = UpsertPriceListItemResponses[keyof UpsertPriceListItemResponses];
+
+export type DeletePriceListItemData = {
+    body?: never;
+    path: {
+        price_list_id: string;
+        sku: string;
+    };
+    query?: never;
+    url: '/pricing/price-lists/{price_list_id}/items/{sku}';
+};
+
+export type DeletePriceListItemErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type DeletePriceListItemResponses = {
+    /**
+     * Removed
+     */
+    204: void;
+};
+
+export type DeletePriceListItemResponse = DeletePriceListItemResponses[keyof DeletePriceListItemResponses];
 
 export type ListPriceOverridesData = {
     body?: never;
@@ -5203,6 +17967,14 @@ export type ListMembersData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
         status?: TenantStatus;
         /**
          * Busca case-insensitive por substring em campos de texto do recurso.
@@ -5298,10 +18070,19 @@ export type ListCustomersData = {
     path?: never;
     query?: {
         limit?: number;
+        cursor?: string;
         /**
          * Busca case-insensitive por substring em campos de texto do recurso.
          */
         search?: string;
+        /**
+         * Filtra por situação do cadastro (#1096). Sem o filtro no servidor, a fila de aprovação perdia quem estivesse além da primeira página.
+         */
+        status?: CustomerStatus;
+        /**
+         * Filtra por segmento do comprador (#1096).
+         */
+        segment?: CustomerSegment;
     };
     url: '/customers';
 };
@@ -5311,6 +18092,60 @@ export type ListCustomersResponses = {
 };
 
 export type ListCustomersResponse = ListCustomersResponses[keyof ListCustomersResponses];
+
+export type CreateCustomerData = {
+    body: CustomerCreate;
+    path?: never;
+    query?: never;
+    url: '/customers';
+};
+
+export type CreateCustomerErrors = {
+    /**
+     * Documento inválido
+     */
+    400: unknown;
+};
+
+export type CreateCustomerResponses = {
+    /**
+     * Updated existing
+     */
+    200: Customer;
+    /**
+     * Created
+     */
+    201: Customer;
+};
+
+export type CreateCustomerResponse = CreateCustomerResponses[keyof CreateCustomerResponses];
+
+export type LookupCustomerData = {
+    body: CustomerLookupRequest;
+    path?: never;
+    query?: never;
+    url: '/customers/lookup';
+};
+
+export type LookupCustomerErrors = {
+    /**
+     * Documento inválido
+     */
+    400: unknown;
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type LookupCustomerResponses = {
+    /**
+     * Encontrado
+     */
+    200: Customer;
+};
+
+export type LookupCustomerResponse = LookupCustomerResponses[keyof LookupCustomerResponses];
 
 export type GetCustomerData = {
     body?: never;
@@ -5351,6 +18186,71 @@ export type PatchCustomerResponses = {
 };
 
 export type PatchCustomerResponse = PatchCustomerResponses[keyof PatchCustomerResponses];
+
+export type MergeCustomerData = {
+    body: CustomerMergeRequest;
+    path: {
+        /**
+         * Cliente SOBREVIVENTE — o que fica.
+         */
+        customer_id: string;
+    };
+    query?: never;
+    url: '/customers/{customer_id}/merge';
+};
+
+export type MergeCustomerErrors = {
+    /**
+     * IDs iguais ou ausentes
+     */
+    400: unknown;
+    /**
+     * Cliente sobrevivente ou duplicado não encontrado
+     */
+    404: unknown;
+};
+
+export type MergeCustomerResponses = {
+    /**
+     * Merge aplicado (ou já aplicado antes)
+     */
+    200: CustomerMergeResult;
+};
+
+export type MergeCustomerResponse = MergeCustomerResponses[keyof MergeCustomerResponses];
+
+export type AddCustomerIdentityData = {
+    body: CustomerIdentityCreate;
+    path: {
+        customer_id: string;
+    };
+    query?: never;
+    url: '/customers/{customer_id}/identities';
+};
+
+export type AddCustomerIdentityErrors = {
+    /**
+     * Canal ou valor inválido
+     */
+    400: unknown;
+    /**
+     * Cliente não encontrado
+     */
+    404: unknown;
+    /**
+     * Canal já verificado por outra conta
+     */
+    409: unknown;
+};
+
+export type AddCustomerIdentityResponses = {
+    /**
+     * Canal registado
+     */
+    201: CustomerIdentityView;
+};
+
+export type AddCustomerIdentityResponse = AddCustomerIdentityResponses[keyof AddCustomerIdentityResponses];
 
 export type ListCustomerFieldDefinitionsData = {
     body?: never;
@@ -5403,10 +18303,475 @@ export type DeleteCustomerFieldDefinitionResponses = {
 
 export type DeleteCustomerFieldDefinitionResponse = DeleteCustomerFieldDefinitionResponses[keyof DeleteCustomerFieldDefinitionResponses];
 
+export type UpdateCustomerFieldDefinitionData = {
+    body: CustomerFieldDefinitionUpdate;
+    path: {
+        definition_id: string;
+    };
+    query?: never;
+    url: '/customer-field-definitions/{definition_id}';
+};
+
+export type UpdateCustomerFieldDefinitionErrors = {
+    /**
+     * Definição não encontrada
+     */
+    404: unknown;
+};
+
+export type UpdateCustomerFieldDefinitionResponses = {
+    200: CustomerFieldDefinition;
+};
+
+export type UpdateCustomerFieldDefinitionResponse = UpdateCustomerFieldDefinitionResponses[keyof UpdateCustomerFieldDefinitionResponses];
+
+export type ListPosDevicesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        warehouse_id?: string;
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
+    url: '/pos/devices';
+};
+
+export type ListPosDevicesResponses = {
+    /**
+     * Lista de devices
+     */
+    200: PosDeviceListPage;
+};
+
+export type ListPosDevicesResponse = ListPosDevicesResponses[keyof ListPosDevicesResponses];
+
+export type PairPosDeviceData = {
+    body: PosDevicePairRequest;
+    path?: never;
+    query?: never;
+    url: '/pos/devices';
+};
+
+export type PairPosDeviceErrors = {
+    /**
+     * Pedido inválido
+     */
+    400: unknown;
+    /**
+     * Warehouse não encontrado
+     */
+    404: unknown;
+};
+
+export type PairPosDeviceResponses = {
+    /**
+     * Device emparelhado
+     */
+    201: PosDevicePaired;
+};
+
+export type PairPosDeviceResponse = PairPosDeviceResponses[keyof PairPosDeviceResponses];
+
+export type GetPosDeviceData = {
+    body?: never;
+    path: {
+        device_id: string;
+    };
+    query?: never;
+    url: '/pos/devices/{device_id}';
+};
+
+export type GetPosDeviceErrors = {
+    /**
+     * Device não encontrado
+     */
+    404: unknown;
+};
+
+export type GetPosDeviceResponses = {
+    200: PosDevice;
+};
+
+export type GetPosDeviceResponse = GetPosDeviceResponses[keyof GetPosDeviceResponses];
+
+export type HeartbeatPosDeviceData = {
+    body?: PosHeartbeatRequest;
+    path: {
+        device_id: string;
+    };
+    query?: never;
+    url: '/pos/devices/{device_id}/heartbeat';
+};
+
+export type HeartbeatPosDeviceErrors = {
+    /**
+     * Scope ou device inválido
+     */
+    403: unknown;
+    /**
+     * Device não encontrado
+     */
+    404: unknown;
+};
+
+export type HeartbeatPosDeviceResponses = {
+    /**
+     * Heartbeat aceite
+     */
+    200: PosHeartbeatResponse;
+};
+
+export type HeartbeatPosDeviceResponse = HeartbeatPosDeviceResponses[keyof HeartbeatPosDeviceResponses];
+
+export type RevokePosDeviceData = {
+    body?: never;
+    path: {
+        device_id: string;
+    };
+    query?: never;
+    url: '/pos/devices/{device_id}/revoke';
+};
+
+export type RevokePosDeviceErrors = {
+    /**
+     * Device não encontrado
+     */
+    404: unknown;
+};
+
+export type RevokePosDeviceResponses = {
+    /**
+     * Device revogado
+     */
+    200: PosDevice;
+};
+
+export type RevokePosDeviceResponse = RevokePosDeviceResponses[keyof RevokePosDeviceResponses];
+
+export type ListPosShiftsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        warehouse_id?: string;
+        status?: PosShiftStatus;
+        limit?: number;
+    };
+    url: '/pos/shifts';
+};
+
+export type ListPosShiftsResponses = {
+    200: PosShiftListPage;
+};
+
+export type ListPosShiftsResponse = ListPosShiftsResponses[keyof ListPosShiftsResponses];
+
+export type OpenPosShiftData = {
+    body: PosShiftOpenRequest;
+    path?: never;
+    query?: never;
+    url: '/pos/shifts';
+};
+
+export type OpenPosShiftErrors = {
+    /**
+     * Já existe turno aberto no warehouse
+     */
+    409: unknown;
+};
+
+export type OpenPosShiftResponses = {
+    201: PosShift;
+};
+
+export type OpenPosShiftResponse = OpenPosShiftResponses[keyof OpenPosShiftResponses];
+
+export type GetPosShiftData = {
+    body?: never;
+    path: {
+        shift_id: string;
+    };
+    query?: never;
+    url: '/pos/shifts/{shift_id}';
+};
+
+export type GetPosShiftErrors = {
+    /**
+     * Turno não encontrado
+     */
+    404: unknown;
+};
+
+export type GetPosShiftResponses = {
+    200: PosShift;
+};
+
+export type GetPosShiftResponse = GetPosShiftResponses[keyof GetPosShiftResponses];
+
+export type ClosePosShiftData = {
+    body: PosShiftCloseRequest;
+    path: {
+        shift_id: string;
+    };
+    query?: never;
+    url: '/pos/shifts/{shift_id}/close';
+};
+
+export type ClosePosShiftErrors = {
+    /**
+     * Turno já fechado
+     */
+    409: unknown;
+};
+
+export type ClosePosShiftResponses = {
+    200: PosShift;
+};
+
+export type ClosePosShiftResponse = ClosePosShiftResponses[keyof ClosePosShiftResponses];
+
+export type CreatePosShiftMovementData = {
+    body: PosShiftMovementCreate;
+    path: {
+        shift_id: string;
+    };
+    query?: never;
+    url: '/pos/shifts/{shift_id}/movements';
+};
+
+export type CreatePosShiftMovementErrors = {
+    /**
+     * Turno fechado
+     */
+    409: unknown;
+};
+
+export type CreatePosShiftMovementResponses = {
+    201: PosShiftMovement;
+};
+
+export type CreatePosShiftMovementResponse = CreatePosShiftMovementResponses[keyof CreatePosShiftMovementResponses];
+
+export type ListPosPeripheralProfilesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        warehouse_id?: string;
+        device_id?: string;
+    };
+    url: '/pos/peripheral-profiles';
+};
+
+export type ListPosPeripheralProfilesResponses = {
+    /**
+     * Lista
+     */
+    200: PosPeripheralProfileListPage;
+};
+
+export type ListPosPeripheralProfilesResponse = ListPosPeripheralProfilesResponses[keyof ListPosPeripheralProfilesResponses];
+
+export type CreatePosPeripheralProfileData = {
+    body: PosPeripheralProfileCreate;
+    path?: never;
+    query?: never;
+    url: '/pos/peripheral-profiles';
+};
+
+export type CreatePosPeripheralProfileErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+};
+
+export type CreatePosPeripheralProfileResponses = {
+    /**
+     * Created
+     */
+    201: PosPeripheralProfile;
+};
+
+export type CreatePosPeripheralProfileResponse = CreatePosPeripheralProfileResponses[keyof CreatePosPeripheralProfileResponses];
+
+export type DeletePosPeripheralProfileData = {
+    body?: never;
+    path: {
+        profile_id: string;
+    };
+    query?: never;
+    url: '/pos/peripheral-profiles/{profile_id}';
+};
+
+export type DeletePosPeripheralProfileErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type DeletePosPeripheralProfileResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type DeletePosPeripheralProfileResponse = DeletePosPeripheralProfileResponses[keyof DeletePosPeripheralProfileResponses];
+
+export type GetPosPeripheralProfileData = {
+    body?: never;
+    path: {
+        profile_id: string;
+    };
+    query?: never;
+    url: '/pos/peripheral-profiles/{profile_id}';
+};
+
+export type GetPosPeripheralProfileErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetPosPeripheralProfileResponses = {
+    200: PosPeripheralProfile;
+};
+
+export type GetPosPeripheralProfileResponse = GetPosPeripheralProfileResponses[keyof GetPosPeripheralProfileResponses];
+
+export type UpdatePosPeripheralProfileData = {
+    body: PosPeripheralProfileUpdate;
+    path: {
+        profile_id: string;
+    };
+    query?: never;
+    url: '/pos/peripheral-profiles/{profile_id}';
+};
+
+export type UpdatePosPeripheralProfileErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type UpdatePosPeripheralProfileResponses = {
+    200: PosPeripheralProfile;
+};
+
+export type UpdatePosPeripheralProfileResponse = UpdatePosPeripheralProfileResponses[keyof UpdatePosPeripheralProfileResponses];
+
+export type PullPosSyncData = {
+    body?: never;
+    path?: never;
+    query: {
+        warehouse_id: string;
+        device_id?: string;
+        since?: string;
+    };
+    url: '/pos/sync/pull';
+};
+
+export type PullPosSyncErrors = {
+    /**
+     * Warehouse não encontrado
+     */
+    404: unknown;
+};
+
+export type PullPosSyncResponses = {
+    200: PosSyncPull;
+};
+
+export type PullPosSyncResponse = PullPosSyncResponses[keyof PullPosSyncResponses];
+
+export type PushPosSyncData = {
+    body: PosSyncPushRequestWritable;
+    path?: never;
+    query?: never;
+    url: '/pos/sync';
+};
+
+export type PushPosSyncResponses = {
+    200: PosSyncPushResponse;
+};
+
+export type PushPosSyncResponse = PushPosSyncResponses[keyof PushPosSyncResponses];
+
+export type VerifyPosManagerPinData = {
+    body: PosManagerPinVerifyRequest;
+    path?: never;
+    query?: never;
+    url: '/pos/manager-pin/verify';
+};
+
+export type VerifyPosManagerPinErrors = {
+    /**
+     * Body inválido
+     */
+    400: unknown;
+    /**
+     * PIN inválido ou não configurado
+     */
+    403: unknown;
+};
+
+export type VerifyPosManagerPinResponses = {
+    /**
+     * PIN válido
+     */
+    204: void;
+};
+
+export type VerifyPosManagerPinResponse = VerifyPosManagerPinResponses[keyof VerifyPosManagerPinResponses];
+
+export type GetPosAvailabilityData = {
+    body?: never;
+    path?: never;
+    query?: {
+        sku?: string;
+        product_id?: string;
+        barcode?: string;
+    };
+    url: '/pos/availability';
+};
+
+export type GetPosAvailabilityErrors = {
+    /**
+     * Informar sku, product_id ou barcode
+     */
+    400: unknown;
+    /**
+     * Produto não encontrado
+     */
+    404: unknown;
+};
+
+export type GetPosAvailabilityResponses = {
+    200: PosAvailability;
+};
+
+export type GetPosAvailabilityResponse = GetPosAvailabilityResponses[keyof GetPosAvailabilityResponses];
+
 export type ListWarehousesData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
         tenant_id?: string;
     };
     url: '/warehouses';
@@ -5417,6 +18782,29 @@ export type ListWarehousesResponses = {
 };
 
 export type ListWarehousesResponse = ListWarehousesResponses[keyof ListWarehousesResponses];
+
+export type CreateWarehouseData = {
+    body: WarehouseCreate;
+    path?: never;
+    query?: never;
+    url: '/warehouses';
+};
+
+export type CreateWarehouseErrors = {
+    /**
+     * Pedido inválido (nome obrigatório)
+     */
+    400: unknown;
+};
+
+export type CreateWarehouseResponses = {
+    /**
+     * Armazém criado
+     */
+    201: Warehouse;
+};
+
+export type CreateWarehouseResponse = CreateWarehouseResponses[keyof CreateWarehouseResponses];
 
 export type GetWarehouseData = {
     body?: never;
@@ -5599,7 +18987,11 @@ export type ListPaymentMethodsData = {
     path?: never;
     query?: {
         /**
-         * Platform — incluir meios desactivados (gestão admin).
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
          */
         include_inactive?: boolean;
     };
@@ -5661,7 +19053,16 @@ export type ListPaymentInstallmentRulesData = {
     path: {
         payment_method_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
     url: '/payment-methods/{payment_method_id}/installment-rules';
 };
 
@@ -5843,6 +19244,81 @@ export type ResolveInstallmentsResponses = {
 
 export type ResolveInstallmentsResponse = ResolveInstallmentsResponses[keyof ResolveInstallmentsResponses];
 
+export type CreateDevicePaymentIntentData = {
+    body: DevicePaymentIntentCreate;
+    path?: never;
+    query?: never;
+    url: '/payments/device-intents';
+};
+
+export type CreateDevicePaymentIntentErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Idempotency conflict
+     */
+    409: unknown;
+};
+
+export type CreateDevicePaymentIntentResponses = {
+    /**
+     * Intent criado
+     */
+    201: DevicePaymentIntent;
+};
+
+export type CreateDevicePaymentIntentResponse = CreateDevicePaymentIntentResponses[keyof CreateDevicePaymentIntentResponses];
+
+export type GetDevicePaymentIntentData = {
+    body?: never;
+    path: {
+        intent_id: string;
+    };
+    query?: never;
+    url: '/payments/device-intents/{intent_id}';
+};
+
+export type GetDevicePaymentIntentErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetDevicePaymentIntentResponses = {
+    200: DevicePaymentIntent;
+};
+
+export type GetDevicePaymentIntentResponse = GetDevicePaymentIntentResponses[keyof GetDevicePaymentIntentResponses];
+
+export type VoidDevicePaymentIntentData = {
+    body?: never;
+    path: {
+        intent_id: string;
+    };
+    query?: never;
+    url: '/payments/device-intents/{intent_id}/void';
+};
+
+export type VoidDevicePaymentIntentErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Não anulável
+     */
+    409: unknown;
+};
+
+export type VoidDevicePaymentIntentResponses = {
+    200: DevicePaymentIntent;
+};
+
+export type VoidDevicePaymentIntentResponse = VoidDevicePaymentIntentResponses[keyof VoidDevicePaymentIntentResponses];
+
 export type ResolveShippingQuotesData = {
     body: ShippingQuoteRequest;
     path?: never;
@@ -5859,7 +19335,15 @@ export type ResolveShippingQuotesErrors = {
      * Warehouse não encontrado
      */
     404: unknown;
+    /**
+     * Nenhuma opção de frete disponível. O corpo inclui `reasons` com
+     * motivos por método (fora do raio, canal, CEP sem coords, …).
+     *
+     */
+    422: ShippingQuoteNoOptions;
 };
+
+export type ResolveShippingQuotesError = ResolveShippingQuotesErrors[keyof ResolveShippingQuotesErrors];
 
 export type ResolveShippingQuotesResponses = {
     200: ShippingQuoteResult;
@@ -5867,10 +19351,146 @@ export type ResolveShippingQuotesResponses = {
 
 export type ResolveShippingQuotesResponse = ResolveShippingQuotesResponses[keyof ResolveShippingQuotesResponses];
 
-export type ListShippingCarriersData = {
+export type GetAddressByZipData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * CEP com ou sem hífen (8 dígitos).
+         */
+        zip: string;
+    };
+    url: '/shipping/address-by-zip';
+};
+
+export type GetAddressByZipErrors = {
+    /**
+     * CEP inválido
+     */
+    400: unknown;
+    /**
+     * CEP ausente da base — o cliente preenche à mão e o pedido não é bloqueado por isso
+     */
+    404: unknown;
+};
+
+export type GetAddressByZipResponses = {
+    /**
+     * CEP encontrado
+     */
+    200: PostalAddress;
+};
+
+export type GetAddressByZipResponse = GetAddressByZipResponses[keyof GetAddressByZipResponses];
+
+export type ListShippingProvidersData = {
     body?: never;
     path?: never;
     query?: never;
+    url: '/shipping/providers';
+};
+
+export type ListShippingProvidersResponses = {
+    200: ShippingProviderList;
+};
+
+export type ListShippingProvidersResponse = ListShippingProvidersResponses[keyof ListShippingProvidersResponses];
+
+export type ListShippingDocksData = {
+    body?: never;
+    path?: never;
+    query?: {
+        warehouse_id?: string;
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
+    url: '/shipping/docks';
+};
+
+export type ListShippingDocksResponses = {
+    200: {
+        data?: Array<ShippingDock>;
+    };
+};
+
+export type ListShippingDocksResponse = ListShippingDocksResponses[keyof ListShippingDocksResponses];
+
+export type CreateShippingDockData = {
+    body: ShippingDockCreate;
+    path?: never;
+    query?: never;
+    url: '/shipping/docks';
+};
+
+export type CreateShippingDockResponses = {
+    201: ShippingDock;
+};
+
+export type CreateShippingDockResponse = CreateShippingDockResponses[keyof CreateShippingDockResponses];
+
+export type GetShippingDockData = {
+    body?: never;
+    path: {
+        dock_id: string;
+    };
+    query?: never;
+    url: '/shipping/docks/{dock_id}';
+};
+
+export type GetShippingDockErrors = {
+    /**
+     * Doca não encontrada
+     */
+    404: unknown;
+};
+
+export type GetShippingDockResponses = {
+    200: ShippingDock;
+};
+
+export type GetShippingDockResponse = GetShippingDockResponses[keyof GetShippingDockResponses];
+
+export type UpdateShippingDockData = {
+    body: ShippingDockUpdate;
+    path: {
+        dock_id: string;
+    };
+    query?: never;
+    url: '/shipping/docks/{dock_id}';
+};
+
+export type UpdateShippingDockErrors = {
+    /**
+     * Doca não encontrada
+     */
+    404: unknown;
+};
+
+export type UpdateShippingDockResponses = {
+    200: ShippingDock;
+};
+
+export type UpdateShippingDockResponse = UpdateShippingDockResponses[keyof UpdateShippingDockResponses];
+
+export type ListShippingCarriersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
     url: '/shipping/carriers';
 };
 
@@ -5936,6 +19556,14 @@ export type ListShippingMethodsData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
         carrier_id?: string;
         warehouse_id?: string;
     };
@@ -6026,6 +19654,14 @@ export type ListFreightTablesData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
         method_id?: string;
     };
     url: '/shipping/freight-tables';
@@ -6120,7 +19756,16 @@ export type ResolveTaxQuotesResponse = ResolveTaxQuotesResponses[keyof ResolveTa
 export type ListTaxProfilesData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
     url: '/tax/profiles';
 };
 
@@ -6208,6 +19853,14 @@ export type ListTaxRulesData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
         profile_id?: string;
     };
     url: '/tax/rules';
@@ -6300,7 +19953,16 @@ export type UpdatePaymentGatewayResponse = UpdatePaymentGatewayResponses[keyof U
 export type ListPaymentProvidersData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
     url: '/payment-providers';
 };
 
@@ -6399,6 +20061,37 @@ export type ResolveCheckoutQuoteResponses = {
 
 export type ResolveCheckoutQuoteResponse = ResolveCheckoutQuoteResponses[keyof ResolveCheckoutQuoteResponses];
 
+export type ComposeCheckoutData = {
+    body: CheckoutComposeRequest;
+    path?: never;
+    query?: never;
+    url: '/checkout/compose';
+};
+
+export type ComposeCheckoutErrors = {
+    /**
+     * Pedido inválido (carrinho vazio, canal desconhecido)
+     */
+    400: unknown;
+    /**
+     * Tenant / auth mismatch
+     */
+    403: unknown;
+    /**
+     * Rate limit checkout
+     */
+    429: unknown;
+};
+
+export type ComposeCheckoutResponses = {
+    /**
+     * Composição actual
+     */
+    200: CheckoutComposition;
+};
+
+export type ComposeCheckoutResponse = ComposeCheckoutResponses[keyof ComposeCheckoutResponses];
+
 export type UpsertPlatformSecretData = {
     body: PlatformSecretUpsert;
     path: {
@@ -6453,7 +20146,17 @@ export type GetTenantSettingsResponses = {
 export type GetTenantSettingsResponse = GetTenantSettingsResponses[keyof GetTenantSettingsResponses];
 
 export type UpdateTenantSettingsData = {
-    body: TenantSettingsUpdate;
+    body: TenantSettingsUpdateWritable;
+    headers?: {
+        /**
+         * Token de reconfirmação de identidade obtido em `/auth/staff/step-up/finish`.
+         * Obrigatório em acções sensíveis quando quem chama é uma sessão de staff —
+         * um bearer de integração não passa por step-up (não há humano para
+         * reconfirmar) e é governado por scopes.
+         *
+         */
+        'X-Mira-Step-Up'?: string;
+    };
     path?: never;
     query?: never;
     url: '/tenant-settings';
@@ -6646,6 +20349,114 @@ export type GetIntegrationTraceResponses = {
 
 export type GetIntegrationTraceResponse = GetIntegrationTraceResponses[keyof GetIntegrationTraceResponses];
 
+export type ListEntityAuditEventsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Tipo estável — product, order, customer, …
+         */
+        entity_type?: string;
+        entity_id?: string;
+        actor_kind?: EntityAuditActorKind;
+        actor_id?: string;
+        channel?: EntityAuditChannel;
+        action?: EntityAuditAction;
+        since?: string;
+        until?: string;
+        /**
+         * Só platform — filtrar tenant; member ignora (usa o próprio)
+         */
+        tenant_id?: string;
+        limit?: number;
+        offset?: number;
+    };
+    url: '/ops/entity-audit-events';
+};
+
+export type ListEntityAuditEventsErrors = {
+    /**
+     * Scope audit:read em falta
+     */
+    403: unknown;
+};
+
+export type ListEntityAuditEventsResponses = {
+    /**
+     * Lista paginada de eventos de auditoria
+     */
+    200: EntityAuditEventList;
+};
+
+export type ListEntityAuditEventsResponse = ListEntityAuditEventsResponses[keyof ListEntityAuditEventsResponses];
+
+export type ExportEntityAuditEventsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        entity_type?: string;
+        entity_id?: string;
+        actor_kind?: EntityAuditActorKind;
+        actor_id?: string;
+        channel?: EntityAuditChannel;
+        action?: EntityAuditAction;
+        since?: string;
+        until?: string;
+        /**
+         * Só platform — member usa sempre o próprio tenant.
+         */
+        tenant_id?: string;
+        format?: EntityAuditExportFormat;
+        max_rows?: number;
+    };
+    url: '/ops/entity-audit-events/export';
+};
+
+export type ExportEntityAuditEventsErrors = {
+    /**
+     * Scope audit:read em falta
+     */
+    403: unknown;
+};
+
+export type ExportEntityAuditEventsResponses = {
+    /**
+     * Ficheiro de export
+     */
+    200: string;
+};
+
+export type ExportEntityAuditEventsResponse = ExportEntityAuditEventsResponses[keyof ExportEntityAuditEventsResponses];
+
+export type GetEntityAuditEventData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/ops/entity-audit-events/{id}';
+};
+
+export type GetEntityAuditEventErrors = {
+    /**
+     * Scope audit:read em falta
+     */
+    403: unknown;
+    /**
+     * Evento inexistente ou fora do tenant
+     */
+    404: unknown;
+};
+
+export type GetEntityAuditEventResponses = {
+    /**
+     * Evento encontrado
+     */
+    200: EntityAuditEvent;
+};
+
+export type GetEntityAuditEventResponse = GetEntityAuditEventResponses[keyof GetEntityAuditEventResponses];
+
 export type RetryWebhookDeliveryData = {
     body?: never;
     path: {
@@ -6684,6 +20495,14 @@ export type ListWebhookEndpointsData = {
     path?: never;
     query?: {
         /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+        /**
          * Platform — filtra por tenant; omitir lista todos.
          */
         tenant_id?: string;
@@ -6704,6 +20523,14 @@ export type CreateWebhookEndpointData = {
     path?: never;
     query?: never;
     url: '/webhook-endpoints';
+};
+
+export type CreateWebhookEndpointErrors = {
+    /**
+     * `event_types` inclui tipo que o dispatcher não emite (ex. subscription.*). Só os valores de WebhookEventType são entregues.
+     *
+     */
+    422: unknown;
 };
 
 export type CreateWebhookEndpointResponses = {
@@ -6768,11 +20595,120 @@ export type UpdateWebhookEndpointData = {
     url: '/webhook-endpoints/{endpoint_id}';
 };
 
+export type UpdateWebhookEndpointErrors = {
+    /**
+     * `event_types` inclui tipo que o dispatcher não emite. Só os valores de WebhookEventType são entregues.
+     *
+     */
+    422: unknown;
+};
+
 export type UpdateWebhookEndpointResponses = {
     200: WebhookEndpoint;
 };
 
 export type UpdateWebhookEndpointResponse = UpdateWebhookEndpointResponses[keyof UpdateWebhookEndpointResponses];
+
+export type ListWebhookDeliveriesData = {
+    body?: never;
+    path: {
+        endpoint_id: string;
+    };
+    query?: {
+        status?: 'pending' | 'delivered' | 'failed' | 'exhausted';
+        event_type?: string;
+        correlation_id?: string;
+        since?: string;
+        until?: string;
+        limit?: number;
+        offset?: number;
+    };
+    url: '/webhook-endpoints/{endpoint_id}/deliveries';
+};
+
+export type ListWebhookDeliveriesErrors = {
+    /**
+     * Endpoint inexistente ou de outro tenant
+     */
+    404: unknown;
+};
+
+export type ListWebhookDeliveriesResponses = {
+    200: WebhookDeliveryListPage;
+};
+
+export type ListWebhookDeliveriesResponse = ListWebhookDeliveriesResponses[keyof ListWebhookDeliveriesResponses];
+
+export type RetryWebhookEndpointDeliveryData = {
+    body?: never;
+    path: {
+        endpoint_id: string;
+        delivery_id: string;
+    };
+    query?: never;
+    url: '/webhook-endpoints/{endpoint_id}/deliveries/{delivery_id}/retry';
+};
+
+export type RetryWebhookEndpointDeliveryErrors = {
+    /**
+     * Entrega inexistente
+     */
+    404: unknown;
+    /**
+     * Entrega já concluída
+     */
+    409: unknown;
+};
+
+export type RetryWebhookEndpointDeliveryResponses = {
+    200: WebhookDeliveryRetryResult;
+};
+
+export type RetryWebhookEndpointDeliveryResponse = RetryWebhookEndpointDeliveryResponses[keyof RetryWebhookEndpointDeliveryResponses];
+
+export type TestWebhookEndpointData = {
+    body?: WebhookEndpointTestRequest;
+    path: {
+        endpoint_id: string;
+    };
+    query?: never;
+    url: '/webhook-endpoints/{endpoint_id}/test';
+};
+
+export type TestWebhookEndpointErrors = {
+    /**
+     * Endpoint inexistente
+     */
+    404: unknown;
+};
+
+export type TestWebhookEndpointResponses = {
+    200: WebhookEndpointTestResult;
+};
+
+export type TestWebhookEndpointResponse = TestWebhookEndpointResponses[keyof TestWebhookEndpointResponses];
+
+export type RotateWebhookEndpointSecretData = {
+    body?: WebhookRotateSecretRequest;
+    path: {
+        endpoint_id: string;
+    };
+    query?: never;
+    url: '/webhook-endpoints/{endpoint_id}/rotate-secret';
+};
+
+export type RotateWebhookEndpointSecretErrors = {
+    /**
+     * Endpoint inexistente
+     */
+    404: unknown;
+};
+
+export type RotateWebhookEndpointSecretResponses = {
+    200: WebhookRotateSecretResult;
+};
+
+export type RotateWebhookEndpointSecretResponse = RotateWebhookEndpointSecretResponses[keyof RotateWebhookEndpointSecretResponses];
 
 export type GetDeveloperOpsData = {
     body?: never;
@@ -6786,6 +20722,94 @@ export type GetDeveloperOpsResponses = {
 };
 
 export type GetDeveloperOpsResponse = GetDeveloperOpsResponses[keyof GetDeveloperOpsResponses];
+
+export type ListWorkerStatusesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/ops/workers';
+};
+
+export type ListWorkerStatusesResponses = {
+    200: WorkerStatusList;
+};
+
+export type ListWorkerStatusesResponse = ListWorkerStatusesResponses[keyof ListWorkerStatusesResponses];
+
+export type RequeueDeadLettersData = {
+    body?: RequeueDeadLettersRequest;
+    path: {
+        queue: RequeueableQueue;
+    };
+    query?: never;
+    url: '/ops/queues/{queue}/requeue';
+};
+
+export type RequeueDeadLettersErrors = {
+    /**
+     * Fila desconhecida
+     */
+    404: unknown;
+};
+
+export type RequeueDeadLettersResponses = {
+    200: RequeueDeadLettersResult;
+};
+
+export type RequeueDeadLettersResponse = RequeueDeadLettersResponses[keyof RequeueDeadLettersResponses];
+
+export type GetProductionBoardData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Data de entrega (YYYY-MM-DD, UTC date of scheduled_for)
+         */
+        date: string;
+    };
+    url: '/ops/production-board';
+};
+
+export type GetProductionBoardErrors = {
+    /**
+     * date inválida
+     */
+    400: unknown;
+};
+
+export type GetProductionBoardResponses = {
+    /**
+     * OK
+     */
+    200: ProductionBoard;
+};
+
+export type GetProductionBoardResponse = GetProductionBoardResponses[keyof GetProductionBoardResponses];
+
+export type GetExpeditionBoardData = {
+    body?: never;
+    path?: never;
+    query: {
+        date: string;
+    };
+    url: '/ops/expedition-board';
+};
+
+export type GetExpeditionBoardErrors = {
+    /**
+     * date inválida
+     */
+    400: unknown;
+};
+
+export type GetExpeditionBoardResponses = {
+    /**
+     * OK
+     */
+    200: ExpeditionBoard;
+};
+
+export type GetExpeditionBoardResponse = GetExpeditionBoardResponses[keyof GetExpeditionBoardResponses];
 
 export type GetLlmUsageAuditData = {
     body?: never;
@@ -6817,6 +20841,14 @@ export type ListSplitRulesData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
         tenant_id?: string;
     };
     url: '/split-rules';
@@ -6842,6 +20874,79 @@ export type CreateSplitRuleResponses = {
 };
 
 export type CreateSplitRuleResponse = CreateSplitRuleResponses[keyof CreateSplitRuleResponses];
+
+export type DeleteSplitRuleData = {
+    body?: never;
+    path: {
+        rule_id: string;
+    };
+    query?: never;
+    url: '/split-rules/{rule_id}';
+};
+
+export type DeleteSplitRuleErrors = {
+    /**
+     * Regra inexistente
+     */
+    404: unknown;
+};
+
+export type DeleteSplitRuleResponses = {
+    /**
+     * Regra desativada
+     */
+    204: void;
+};
+
+export type DeleteSplitRuleResponse = DeleteSplitRuleResponses[keyof DeleteSplitRuleResponses];
+
+export type GetSplitRuleData = {
+    body?: never;
+    path: {
+        rule_id: string;
+    };
+    query?: never;
+    url: '/split-rules/{rule_id}';
+};
+
+export type GetSplitRuleErrors = {
+    /**
+     * Regra inexistente
+     */
+    404: unknown;
+};
+
+export type GetSplitRuleResponses = {
+    200: SplitRule;
+};
+
+export type GetSplitRuleResponse = GetSplitRuleResponses[keyof GetSplitRuleResponses];
+
+export type UpdateSplitRuleData = {
+    body: SplitRuleUpdate;
+    path: {
+        rule_id: string;
+    };
+    query?: never;
+    url: '/split-rules/{rule_id}';
+};
+
+export type UpdateSplitRuleErrors = {
+    /**
+     * Regra inexistente
+     */
+    404: unknown;
+    /**
+     * member_pct + platform_pct diferente de 100
+     */
+    409: unknown;
+};
+
+export type UpdateSplitRuleResponses = {
+    200: SplitRule;
+};
+
+export type UpdateSplitRuleResponse = UpdateSplitRuleResponses[keyof UpdateSplitRuleResponses];
 
 export type ListScheduleSlotsData = {
     body?: never;
@@ -6879,8 +20984,23 @@ export type ListAvailableScheduleSlotsData = {
     query: {
         warehouse_id: string;
         duration_minutes?: number;
+        /**
+         * Início do intervalo (date-time ISO). Default = agora (UTC).
+         */
+        from?: string;
+        /**
+         * Fim do intervalo (date-time ISO). Default = from + 7 dias. Janela máxima de 31 dias.
+         */
+        to?: string;
     };
     url: '/schedule-slots/available';
+};
+
+export type ListAvailableScheduleSlotsErrors = {
+    /**
+     * Intervalo inválido (from > to, janela > 31 dias, etc.)
+     */
+    400: unknown;
 };
 
 export type ListAvailableScheduleSlotsResponses = {
@@ -6896,17 +21016,37 @@ export type ListErpConnectionsData = {
     path?: never;
     query?: {
         /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+        /**
          * Platform — filtra por tenant; omitir lista toda a rede (inclui conta mãe).
          */
         tenant_id?: string;
+        /**
+         * Filtra por situação da conexão NO SERVIDOR (#1118).
+         */
+        status?: ErpConnectionStatus;
+        /**
+         * Filtra por modo de integração.
+         */
+        mode?: string;
+        /**
+         * Busca por tenant_id ou nome do membro.
+         */
+        search?: string;
+        limit?: number;
+        cursor?: string;
     };
     url: '/erp-connections';
 };
 
 export type ListErpConnectionsResponses = {
-    200: {
-        data?: Array<ErpConnection>;
-    };
+    200: ErpConnectionListPage;
 };
 
 export type ListErpConnectionsResponse = ListErpConnectionsResponses[keyof ListErpConnectionsResponses];
@@ -7115,8 +21255,18 @@ export type RecomputeErpCatalogMatchResponse = RecomputeErpCatalogMatchResponses
 
 export type ApplyErpCatalogMatchData = {
     body: {
-        action: 'import' | 'ignore' | 'unignore' | 'link' | 'reject';
-        skus: Array<string>;
+        /**
+         * import_all dispara o job resumável de IMPORT FULL do catálogo (migração de plataforma) sobre todas as linhas "new" — não recebe skus; devolve job_id acompanhável em getErpSyncJob.
+         */
+        action: 'import' | 'import_all' | 'create_sku' | 'link' | 'unlink' | 'ignore' | 'unignore' | 'reject';
+        skus?: Array<string>;
+        /**
+         * Ajuste por linha (sku → product_id explícito); obrigatório para create_sku.
+         */
+        items?: Array<{
+            sku?: string;
+            product_id?: string;
+        }>;
     };
     path: {
         connection_id: string;
@@ -7129,10 +21279,77 @@ export type ApplyErpCatalogMatchResponses = {
     200: {
         applied?: number;
         errors?: Array<string>;
+        /**
+         * Presente no import_all — id do job de import (progresso via getErpSyncJob).
+         */
+        job_id?: string;
+        counts?: {
+            [key: string]: unknown;
+        };
     };
 };
 
 export type ApplyErpCatalogMatchResponse = ApplyErpCatalogMatchResponses[keyof ApplyErpCatalogMatchResponses];
+
+export type GetErpOrdersImportPreviewData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/erp-connections/{connection_id}/orders-import/preview';
+};
+
+export type GetErpOrdersImportPreviewResponses = {
+    /**
+     * Amostra mapeada e diagnóstico
+     */
+    200: {
+        /**
+         * true quando a amostra tem os campos obrigatórios
+         */
+        ok?: boolean;
+        /**
+         * Pedidos da 1ª página já mapeados (sem PII de documento)
+         */
+        sample?: Array<{
+            [key: string]: unknown;
+        }>;
+        sample_count?: number;
+        /**
+         * Pedidos desta conexão já importados (erp_order_links)
+         */
+        already_imported?: number;
+        issues?: Array<string>;
+    };
+};
+
+export type GetErpOrdersImportPreviewResponse = GetErpOrdersImportPreviewResponses[keyof GetErpOrdersImportPreviewResponses];
+
+export type ApplyErpOrdersImportData = {
+    body: {
+        action: 'import_all';
+    };
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/erp-connections/{connection_id}/orders-import/apply';
+};
+
+export type ApplyErpOrdersImportResponses = {
+    /**
+     * Job aceito
+     */
+    202: {
+        /**
+         * Progresso via getErpSyncJob
+         */
+        job_id?: string;
+    };
+};
+
+export type ApplyErpOrdersImportResponse = ApplyErpOrdersImportResponses[keyof ApplyErpOrdersImportResponses];
 
 export type SyncNowErpConnectionData = {
     body?: ErpSyncNowRequest;
@@ -7150,6 +21367,10 @@ export type SyncNowErpConnectionResponses = {
             job_id?: string;
             error?: string;
         }>;
+        /**
+         * Pedidos pendentes liberados para tentativa imediata de envio ao ERP
+         */
+        orders_queued?: number;
     };
 };
 
@@ -7209,6 +21430,10 @@ export type ListErpOutboxData = {
          * pending|sent|dead (vazio = todos)
          */
         status?: string;
+        /**
+         * Filtra a entrada da outbox de um pedido (detalhe do pedido no admin)
+         */
+        order_id?: string;
     };
     url: '/erp-connections/{connection_id}/outbox';
 };
@@ -7220,7 +21445,7 @@ export type ListErpOutboxResponses = {
 export type ListErpOutboxResponse = ListErpOutboxResponses[keyof ListErpOutboxResponses];
 
 export type RetryErpOutboxData = {
-    body?: never;
+    body?: ErpOutboxRetryRequest;
     path: {
         connection_id: string;
     };
@@ -7319,9 +21544,25 @@ export type ListMessageKindsResponse = ListMessageKindsResponses[keyof ListMessa
 
 export type UploadProductMediaData = {
     body: {
-        file?: Blob | File;
+        /**
+         * Imagem (JPEG/PNG/WebP/GIF/AVIF/HEIC) ou vídeo (MP4/WebM)
+         */
+        file: Blob | File;
+        /**
+         * gallery (default) ou story (9:16 / shorts)
+         */
+        role?: 'gallery' | 'story';
+        alt_text?: string;
+        duration_ms?: number;
+        /**
+         * Poster/capa opcional (imagem) para type=video
+         */
+        poster?: Blob | File;
     };
     path: {
+        /**
+         * Id do produto pai (agrupador) ou do filho (SKU vendável)
+         */
         product_id: string;
     };
     query?: never;
@@ -7435,6 +21676,115 @@ export type CustomerOrderDetailResponses = {
 };
 
 export type CustomerOrderDetailResponse = CustomerOrderDetailResponses[keyof CustomerOrderDetailResponses];
+
+export type CustomerGetAccountData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/customer/account';
+};
+
+export type CustomerGetAccountErrors = {
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+};
+
+export type CustomerGetAccountResponses = {
+    /**
+     * Conta do comprador
+     */
+    200: CustomerAccountView;
+};
+
+export type CustomerGetAccountResponse = CustomerGetAccountResponses[keyof CustomerGetAccountResponses];
+
+export type CustomerListWishlistData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/auth/customer/wishlist';
+};
+
+export type CustomerListWishlistErrors = {
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+};
+
+export type CustomerListWishlistResponses = {
+    /**
+     * Página de favoritos
+     */
+    200: WishlistPage;
+};
+
+export type CustomerListWishlistResponse = CustomerListWishlistResponses[keyof CustomerListWishlistResponses];
+
+export type CustomerAddWishlistItemData = {
+    body: WishlistItemCreate;
+    path?: never;
+    query?: never;
+    url: '/auth/customer/wishlist';
+};
+
+export type CustomerAddWishlistItemErrors = {
+    /**
+     * Body sem product_id/sku ou produto inexistente
+     */
+    400: unknown;
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+};
+
+export type CustomerAddWishlistItemResponses = {
+    /**
+     * Já estava na lista — devolve o item existente
+     */
+    200: WishlistItem;
+    /**
+     * Item adicionado
+     */
+    201: WishlistItem;
+};
+
+export type CustomerAddWishlistItemResponse = CustomerAddWishlistItemResponses[keyof CustomerAddWishlistItemResponses];
+
+export type CustomerRemoveWishlistItemData = {
+    body?: never;
+    path: {
+        product_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/wishlist/{product_id}';
+};
+
+export type CustomerRemoveWishlistItemErrors = {
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+    /**
+     * Item inexistente na lista deste comprador
+     */
+    404: unknown;
+};
+
+export type CustomerRemoveWishlistItemResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type CustomerRemoveWishlistItemResponse = CustomerRemoveWishlistItemResponses[keyof CustomerRemoveWishlistItemResponses];
 
 export type CustomerListSubscriptionsData = {
     body?: never;
@@ -7562,6 +21912,148 @@ export type CustomerSkipNextSubscriptionResponses = {
 
 export type CustomerSkipNextSubscriptionResponse = CustomerSkipNextSubscriptionResponses[keyof CustomerSkipNextSubscriptionResponses];
 
+export type CustomerGetSubscriptionRenewalData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/auth/customer/subscriptions/{id}/renewal';
+};
+
+export type CustomerGetSubscriptionRenewalErrors = {
+    /**
+     * Sem renovação pendente ou assinatura de outro comprador
+     */
+    404: unknown;
+};
+
+export type CustomerGetSubscriptionRenewalResponses = {
+    200: SubscriptionRenewal;
+};
+
+export type CustomerGetSubscriptionRenewalResponse = CustomerGetSubscriptionRenewalResponses[keyof CustomerGetSubscriptionRenewalResponses];
+
+export type CustomerReplaceSubscriptionRenewalItemsData = {
+    body: SubscriptionRenewalItemsReplace;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/auth/customer/subscriptions/{id}/renewal/items';
+};
+
+export type CustomerReplaceSubscriptionRenewalItemsErrors = {
+    /**
+     * Body inválido ou pacote vazio
+     */
+    400: unknown;
+    /**
+     * Sem renovação pendente ou assinatura de outro comprador
+     */
+    404: unknown;
+    /**
+     * Ciclo não está à espera de confirmação do comprador
+     */
+    409: unknown;
+};
+
+export type CustomerReplaceSubscriptionRenewalItemsResponses = {
+    200: SubscriptionRenewal;
+};
+
+export type CustomerReplaceSubscriptionRenewalItemsResponse = CustomerReplaceSubscriptionRenewalItemsResponses[keyof CustomerReplaceSubscriptionRenewalItemsResponses];
+
+export type CustomerAddSubscriptionRenewalExtrasData = {
+    body: SubscriptionRenewalExtrasAdd;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/auth/customer/subscriptions/{id}/renewal/extras';
+};
+
+export type CustomerAddSubscriptionRenewalExtrasErrors = {
+    /**
+     * Body inválido ou SKU desconhecido
+     */
+    400: unknown;
+    /**
+     * Sem renovação pendente ou assinatura de outro comprador
+     */
+    404: unknown;
+    /**
+     * Ciclo não está à espera de confirmação do comprador
+     */
+    409: unknown;
+};
+
+export type CustomerAddSubscriptionRenewalExtrasResponses = {
+    200: SubscriptionRenewal;
+};
+
+export type CustomerAddSubscriptionRenewalExtrasResponse = CustomerAddSubscriptionRenewalExtrasResponses[keyof CustomerAddSubscriptionRenewalExtrasResponses];
+
+export type CustomerSetSubscriptionRenewalScheduleData = {
+    body: SubscriptionRenewalScheduleSet;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/auth/customer/subscriptions/{id}/renewal/schedule';
+};
+
+export type CustomerSetSubscriptionRenewalScheduleErrors = {
+    /**
+     * scheduled_for em falta ou inválido
+     */
+    400: unknown;
+    /**
+     * Sem renovação pendente ou assinatura de outro comprador
+     */
+    404: unknown;
+    /**
+     * Ciclo não está à espera de confirmação do comprador
+     */
+    409: unknown;
+};
+
+export type CustomerSetSubscriptionRenewalScheduleResponses = {
+    200: SubscriptionRenewal;
+};
+
+export type CustomerSetSubscriptionRenewalScheduleResponse = CustomerSetSubscriptionRenewalScheduleResponses[keyof CustomerSetSubscriptionRenewalScheduleResponses];
+
+export type CustomerConfirmSubscriptionRenewalData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/auth/customer/subscriptions/{id}/renewal/confirm';
+};
+
+export type CustomerConfirmSubscriptionRenewalErrors = {
+    /**
+     * Agenda em falta
+     */
+    400: unknown;
+    /**
+     * Sem renovação pendente ou assinatura de outro comprador
+     */
+    404: unknown;
+    /**
+     * Ciclo não está à espera de confirmação do comprador
+     */
+    409: unknown;
+};
+
+export type CustomerConfirmSubscriptionRenewalResponses = {
+    200: SubscriptionRenewalConfirm;
+};
+
+export type CustomerConfirmSubscriptionRenewalResponse = CustomerConfirmSubscriptionRenewalResponses[keyof CustomerConfirmSubscriptionRenewalResponses];
+
 export type ListAppsData = {
     body?: never;
     path?: never;
@@ -7672,6 +22164,470 @@ export type SyncAppResponses = {
 
 export type SyncAppResponse = SyncAppResponses[keyof SyncAppResponses];
 
+export type ListWhatsAppInstancesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/apps/whatsapp-connect/instances';
+};
+
+export type ListWhatsAppInstancesResponses = {
+    /**
+     * Lista (vazia se o app ainda não estiver instalado)
+     */
+    200: WhatsAppInstanceList;
+};
+
+export type ListWhatsAppInstancesResponse = ListWhatsAppInstancesResponses[keyof ListWhatsAppInstancesResponses];
+
+export type CreateWhatsAppInstanceData = {
+    body?: WhatsAppInstanceCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/apps/whatsapp-connect/instances';
+};
+
+export type CreateWhatsAppInstanceErrors = {
+    /**
+     * App não instalado ou Connect indisponível
+     */
+    400: unknown;
+    /**
+     * App whatsapp-connect não instalado
+     */
+    404: unknown;
+};
+
+export type CreateWhatsAppInstanceResponses = {
+    200: WhatsAppInstance;
+    201: WhatsAppInstance;
+};
+
+export type CreateWhatsAppInstanceResponse = CreateWhatsAppInstanceResponses[keyof CreateWhatsAppInstanceResponses];
+
+export type DeactivateWhatsAppInstanceData = {
+    body?: never;
+    path: {
+        inbox_id: number;
+    };
+    query?: never;
+    url: '/apps/whatsapp-connect/instances/{inbox_id}';
+};
+
+export type DeactivateWhatsAppInstanceErrors = {
+    /**
+     * Instância ou app não encontrado
+     */
+    404: unknown;
+    /**
+     * Connect ainda sem DELETE por inbox (Issue
+     */
+    502: unknown;
+};
+
+export type DeactivateWhatsAppInstanceResponses = {
+    200: WhatsAppInstanceDeactivateResponse;
+};
+
+export type DeactivateWhatsAppInstanceResponse = DeactivateWhatsAppInstanceResponses[keyof DeactivateWhatsAppInstanceResponses];
+
+export type GetWhatsAppInstancePairingData = {
+    body?: never;
+    path: {
+        inbox_id: number;
+    };
+    query?: never;
+    url: '/apps/whatsapp-connect/instances/{inbox_id}/pairing';
+};
+
+export type GetWhatsAppInstancePairingErrors = {
+    /**
+     * Instância não encontrada neste tenant
+     */
+    404: unknown;
+};
+
+export type GetWhatsAppInstancePairingResponses = {
+    200: WhatsAppInstancePairing;
+};
+
+export type GetWhatsAppInstancePairingResponse = GetWhatsAppInstancePairingResponses[keyof GetWhatsAppInstancePairingResponses];
+
+export type GetWhatsAppContactContextData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Telefone / WhatsApp do cliente (E.164 ou só dígitos)
+         */
+        phone?: string;
+        /**
+         * Alias de phone
+         */
+        whatsapp?: string;
+        /**
+         * Origem do pedido (ex. whatsapp) para sugestões contextuais
+         */
+        order_origin?: string;
+    };
+    url: '/apps/whatsapp-connect/contact-context';
+};
+
+export type GetWhatsAppContactContextResponses = {
+    200: JsonObject;
+};
+
+export type GetWhatsAppContactContextResponse = GetWhatsAppContactContextResponses[keyof GetWhatsAppContactContextResponses];
+
+export type AssistWhatsAppReplyData = {
+    body: JsonObject;
+    path?: never;
+    query?: never;
+    url: '/apps/whatsapp-connect/assist-reply';
+};
+
+export type AssistWhatsAppReplyErrors = {
+    /**
+     * App não instalado ou payload inválido
+     */
+    400: unknown;
+    /**
+     * LLM indisponível
+     */
+    503: unknown;
+};
+
+export type AssistWhatsAppReplyResponses = {
+    200: JsonObject;
+};
+
+export type AssistWhatsAppReplyResponse = AssistWhatsAppReplyResponses[keyof AssistWhatsAppReplyResponses];
+
+export type DeleteWhatsAppInboxAgentData = {
+    body?: never;
+    path: {
+        inbox_id: number;
+    };
+    query?: never;
+    url: '/apps/whatsapp-connect/inboxes/{inbox_id}/agent';
+};
+
+export type DeleteWhatsAppInboxAgentErrors = {
+    /**
+     * Connect indisponível
+     */
+    502: unknown;
+};
+
+export type DeleteWhatsAppInboxAgentResponses = {
+    200: JsonObject;
+};
+
+export type DeleteWhatsAppInboxAgentResponse = DeleteWhatsAppInboxAgentResponses[keyof DeleteWhatsAppInboxAgentResponses];
+
+export type GetWhatsAppInboxAgentData = {
+    body?: never;
+    path: {
+        inbox_id: number;
+    };
+    query?: never;
+    url: '/apps/whatsapp-connect/inboxes/{inbox_id}/agent';
+};
+
+export type GetWhatsAppInboxAgentErrors = {
+    /**
+     * App ou inbox não encontrado
+     */
+    404: unknown;
+    /**
+     * Connect indisponível
+     */
+    502: unknown;
+};
+
+export type GetWhatsAppInboxAgentResponses = {
+    200: JsonObject;
+};
+
+export type GetWhatsAppInboxAgentResponse = GetWhatsAppInboxAgentResponses[keyof GetWhatsAppInboxAgentResponses];
+
+export type PutWhatsAppInboxAgentData = {
+    body: JsonObject;
+    path: {
+        inbox_id: number;
+    };
+    query?: never;
+    url: '/apps/whatsapp-connect/inboxes/{inbox_id}/agent';
+};
+
+export type PutWhatsAppInboxAgentErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+    /**
+     * Connect indisponível
+     */
+    502: unknown;
+};
+
+export type PutWhatsAppInboxAgentResponses = {
+    200: JsonObject;
+};
+
+export type PutWhatsAppInboxAgentResponse = PutWhatsAppInboxAgentResponses[keyof PutWhatsAppInboxAgentResponses];
+
+export type ListWhatsAppInboxConversationsData = {
+    body?: never;
+    path: {
+        inbox_id: number;
+    };
+    query?: {
+        limit?: number;
+    };
+    url: '/apps/whatsapp-connect/inboxes/{inbox_id}/conversations';
+};
+
+export type ListWhatsAppInboxConversationsErrors = {
+    /**
+     * Connect indisponível
+     */
+    502: unknown;
+};
+
+export type ListWhatsAppInboxConversationsResponses = {
+    200: JsonObject;
+};
+
+export type ListWhatsAppInboxConversationsResponse = ListWhatsAppInboxConversationsResponses[keyof ListWhatsAppInboxConversationsResponses];
+
+export type GetWhatsAppConversationData = {
+    body?: never;
+    path: {
+        conversation_id: number;
+    };
+    query?: never;
+    url: '/apps/whatsapp-connect/conversations/{conversation_id}';
+};
+
+export type GetWhatsAppConversationErrors = {
+    /**
+     * Conversa fora do tenant
+     */
+    404: unknown;
+    /**
+     * Connect indisponível
+     */
+    502: unknown;
+};
+
+export type GetWhatsAppConversationResponses = {
+    200: JsonObject;
+};
+
+export type GetWhatsAppConversationResponse = GetWhatsAppConversationResponses[keyof GetWhatsAppConversationResponses];
+
+export type ListWhatsAppConversationMessagesData = {
+    body?: never;
+    path: {
+        conversation_id: number;
+    };
+    query?: {
+        limit?: number;
+        inbox_id?: number;
+    };
+    url: '/apps/whatsapp-connect/conversations/{conversation_id}/messages';
+};
+
+export type ListWhatsAppConversationMessagesErrors = {
+    /**
+     * Connect indisponível
+     */
+    502: unknown;
+};
+
+export type ListWhatsAppConversationMessagesResponses = {
+    200: JsonObject;
+};
+
+export type ListWhatsAppConversationMessagesResponse = ListWhatsAppConversationMessagesResponses[keyof ListWhatsAppConversationMessagesResponses];
+
+export type ListSignTemplatesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        page?: number;
+        per_page?: number;
+    };
+    url: '/sign/templates';
+};
+
+export type ListSignTemplatesErrors = {
+    /**
+     * App inactivo ou erro Documenso
+     */
+    400: unknown;
+};
+
+export type ListSignTemplatesResponses = {
+    200: JsonObject;
+};
+
+export type ListSignTemplatesResponse = ListSignTemplatesResponses[keyof ListSignTemplatesResponses];
+
+export type GetSignTemplateData = {
+    body?: never;
+    path: {
+        template_id: number;
+    };
+    query?: never;
+    url: '/sign/templates/{template_id}';
+};
+
+export type GetSignTemplateErrors = {
+    /**
+     * App inactivo ou erro Documenso
+     */
+    400: unknown;
+};
+
+export type GetSignTemplateResponses = {
+    200: JsonObject;
+};
+
+export type GetSignTemplateResponse = GetSignTemplateResponses[keyof GetSignTemplateResponses];
+
+export type ListSignEnvelopesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        page?: number;
+        per_page?: number;
+    };
+    url: '/sign/envelopes';
+};
+
+export type ListSignEnvelopesErrors = {
+    /**
+     * App inactivo ou erro Documenso
+     */
+    400: unknown;
+};
+
+export type ListSignEnvelopesResponses = {
+    200: JsonObject;
+};
+
+export type ListSignEnvelopesResponse = ListSignEnvelopesResponses[keyof ListSignEnvelopesResponses];
+
+export type CreateSignEnvelopeData = {
+    body: SignEnvelopeCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/sign/envelopes';
+};
+
+export type CreateSignEnvelopeErrors = {
+    /**
+     * Validação ou app inactivo
+     */
+    400: unknown;
+};
+
+export type CreateSignEnvelopeResponses = {
+    201: JsonObject;
+};
+
+export type CreateSignEnvelopeResponse = CreateSignEnvelopeResponses[keyof CreateSignEnvelopeResponses];
+
+export type GetSignEnvelopeData = {
+    body?: never;
+    path: {
+        envelope_id: number;
+    };
+    query?: never;
+    url: '/sign/envelopes/{envelope_id}';
+};
+
+export type GetSignEnvelopeErrors = {
+    /**
+     * App inactivo ou erro Documenso
+     */
+    400: unknown;
+};
+
+export type GetSignEnvelopeResponses = {
+    200: JsonObject;
+};
+
+export type GetSignEnvelopeResponse = GetSignEnvelopeResponses[keyof GetSignEnvelopeResponses];
+
+export type SendSignEnvelopeData = {
+    body?: SignEnvelopeSendRequest;
+    path: {
+        envelope_id: number;
+    };
+    query?: never;
+    url: '/sign/envelopes/{envelope_id}/send';
+};
+
+export type SendSignEnvelopeErrors = {
+    /**
+     * App inactivo ou erro Documenso
+     */
+    400: unknown;
+};
+
+export type SendSignEnvelopeResponses = {
+    200: JsonObject;
+};
+
+export type SendSignEnvelopeResponse = SendSignEnvelopeResponses[keyof SendSignEnvelopeResponses];
+
+export type ResendSignEnvelopeData = {
+    body?: SignEnvelopeResendRequest;
+    path: {
+        envelope_id: number;
+    };
+    query?: never;
+    url: '/sign/envelopes/{envelope_id}/resend';
+};
+
+export type ResendSignEnvelopeErrors = {
+    /**
+     * App inactivo ou erro Documenso
+     */
+    400: unknown;
+};
+
+export type ResendSignEnvelopeResponses = {
+    200: JsonObject;
+};
+
+export type ResendSignEnvelopeResponse = ResendSignEnvelopeResponses[keyof ResendSignEnvelopeResponses];
+
+export type DownloadSignEnvelopeData = {
+    body?: never;
+    path: {
+        envelope_id: number;
+    };
+    query?: never;
+    url: '/sign/envelopes/{envelope_id}/download';
+};
+
+export type DownloadSignEnvelopeErrors = {
+    /**
+     * App inactivo ou erro Documenso
+     */
+    400: unknown;
+};
+
+export type DownloadSignEnvelopeResponses = {
+    200: JsonObject;
+};
+
+export type DownloadSignEnvelopeResponse = DownloadSignEnvelopeResponses[keyof DownloadSignEnvelopeResponses];
+
 export type GetPlatformBillingData = {
     body?: never;
     path?: never;
@@ -7688,7 +22644,13 @@ export type GetPlatformBillingResponse = GetPlatformBillingResponses[keyof GetPl
 export type GetClientBillingData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Sobrescreve o início do período.
+         */
+        from?: string;
+        format?: 'json' | 'csv';
+    };
     url: '/billing/client';
 };
 
@@ -7698,33 +22660,567 @@ export type GetClientBillingResponses = {
 
 export type GetClientBillingResponse = GetClientBillingResponses[keyof GetClientBillingResponses];
 
-export type TrackEventData = {
-    body: {
-        /**
-         * Tipo do evento (page_view, add_to_cart, checkout_step…)
-         */
-        type: string;
-        /**
-         * Referência curta (sku/step/section) — sem PII
-         */
-        ref?: string;
+export type ListClientBillingPeriodsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
     };
+    url: '/billing/client/periods';
+};
+
+export type ListClientBillingPeriodsResponses = {
+    200: BillingPeriodListPage;
+};
+
+export type ListClientBillingPeriodsResponse = ListClientBillingPeriodsResponses[keyof ListClientBillingPeriodsResponses];
+
+export type GetClientBillingPeriodData = {
+    body?: never;
+    path: {
+        month: string;
+    };
+    query?: never;
+    url: '/billing/client/periods/{month}';
+};
+
+export type GetClientBillingPeriodErrors = {
+    /**
+     * Mês sem faturamento registado
+     */
+    404: unknown;
+};
+
+export type GetClientBillingPeriodResponses = {
+    200: BillingPeriodSummary;
+};
+
+export type GetClientBillingPeriodResponse = GetClientBillingPeriodResponses[keyof GetClientBillingPeriodResponses];
+
+export type ListStorefrontsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/storefronts';
+};
+
+export type ListStorefrontsResponses = {
+    200: StorefrontsList;
+};
+
+export type ListStorefrontsResponse = ListStorefrontsResponses[keyof ListStorefrontsResponses];
+
+export type ListStorefrontCollaboratorsData = {
+    body?: never;
+    path: {
+        storefront_slug: string;
+    };
+    query?: never;
+    url: '/storefronts/{storefront_slug}/collaborators';
+};
+
+export type ListStorefrontCollaboratorsErrors = {
+    /**
+     * Storefront fora do registry
+     */
+    404: unknown;
+    /**
+     * Token GitHub não configurado
+     */
+    503: unknown;
+};
+
+export type ListStorefrontCollaboratorsResponses = {
+    200: StorefrontCollaboratorList;
+};
+
+export type ListStorefrontCollaboratorsResponse = ListStorefrontCollaboratorsResponses[keyof ListStorefrontCollaboratorsResponses];
+
+export type AddStorefrontCollaboratorData = {
+    body: StorefrontCollaboratorCreate;
+    path: {
+        storefront_slug: string;
+    };
+    query?: never;
+    url: '/storefronts/{storefront_slug}/collaborators';
+};
+
+export type AddStorefrontCollaboratorErrors = {
+    /**
+     * Username inválido
+     */
+    400: unknown;
+    /**
+     * Storefront fora do registry
+     */
+    404: unknown;
+    /**
+     * GitHub API falhou
+     */
+    502: unknown;
+    /**
+     * Token GitHub não configurado
+     */
+    503: unknown;
+};
+
+export type AddStorefrontCollaboratorResponses = {
+    201: StorefrontCollaborator;
+};
+
+export type AddStorefrontCollaboratorResponse = AddStorefrontCollaboratorResponses[keyof AddStorefrontCollaboratorResponses];
+
+export type RemoveStorefrontCollaboratorData = {
+    body?: never;
+    path: {
+        storefront_slug: string;
+        username: string;
+    };
+    query?: never;
+    url: '/storefronts/{storefront_slug}/collaborators/{username}';
+};
+
+export type RemoveStorefrontCollaboratorErrors = {
+    /**
+     * Storefront fora do registry
+     */
+    404: unknown;
+    /**
+     * GitHub API falhou
+     */
+    502: unknown;
+    /**
+     * Token GitHub não configurado
+     */
+    503: unknown;
+};
+
+export type RemoveStorefrontCollaboratorResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type RemoveStorefrontCollaboratorResponse = RemoveStorefrontCollaboratorResponses[keyof RemoveStorefrontCollaboratorResponses];
+
+export type GetStorefrontStudioBootstrapData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/storefront-studio/bootstrap';
+};
+
+export type GetStorefrontStudioBootstrapResponses = {
+    200: StorefrontStudioBootstrap;
+};
+
+export type GetStorefrontStudioBootstrapResponse = GetStorefrontStudioBootstrapResponses[keyof GetStorefrontStudioBootstrapResponses];
+
+export type ListStorefrontStudioSessionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/storefront-studio/sessions';
+};
+
+export type ListStorefrontStudioSessionsResponses = {
+    200: StorefrontStudioSessionList;
+};
+
+export type ListStorefrontStudioSessionsResponse = ListStorefrontStudioSessionsResponses[keyof ListStorefrontStudioSessionsResponses];
+
+export type CreateStorefrontStudioSessionData = {
+    body: StorefrontStudioSessionCreate;
+    path?: never;
+    query?: never;
+    url: '/storefront-studio/sessions';
+};
+
+export type CreateStorefrontStudioSessionErrors = {
+    /**
+     * Sem saldo Mirá na wallet (carregar antes de usar o Studio)
+     */
+    402: unknown;
+    /**
+     * Feature/engine desligados ou sem scope
+     */
+    403: unknown;
+    /**
+     * Storefront fora do registry do tenant
+     */
+    404: unknown;
+    /**
+     * Já existe sessão viva do tenant (retomar/encerrar)
+     */
+    409: StorefrontStudioSessionConflict;
+    /**
+     * Engine indisponível
+     */
+    503: unknown;
+};
+
+export type CreateStorefrontStudioSessionError = CreateStorefrontStudioSessionErrors[keyof CreateStorefrontStudioSessionErrors];
+
+export type CreateStorefrontStudioSessionResponses = {
+    201: StorefrontStudioSession;
+};
+
+export type CreateStorefrontStudioSessionResponse = CreateStorefrontStudioSessionResponses[keyof CreateStorefrontStudioSessionResponses];
+
+export type ResumeStorefrontStudioSessionData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/storefront-studio/sessions/{id}/resume';
+};
+
+export type ResumeStorefrontStudioSessionErrors = {
+    /**
+     * Sem saldo Mirá na wallet
+     */
+    402: unknown;
+    /**
+     * Sessão não encontrada (do tenant)
+     */
+    404: unknown;
+    /**
+     * Sessão encerrada (stopped/error) — abrir sessão nova
+     */
+    409: unknown;
+    /**
+     * Engine indisponível
+     */
+    503: unknown;
+};
+
+export type ResumeStorefrontStudioSessionResponses = {
+    202: StorefrontStudioMessageAck;
+};
+
+export type ResumeStorefrontStudioSessionResponse = ResumeStorefrontStudioSessionResponses[keyof ResumeStorefrontStudioSessionResponses];
+
+export type StopStorefrontStudioSessionData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/storefront-studio/sessions/{id}';
+};
+
+export type StopStorefrontStudioSessionErrors = {
+    /**
+     * Sessão não encontrada (do tenant)
+     */
+    404: unknown;
+};
+
+export type StopStorefrontStudioSessionResponses = {
+    /**
+     * Sessão encerrada
+     */
+    204: void;
+};
+
+export type StopStorefrontStudioSessionResponse = StopStorefrontStudioSessionResponses[keyof StopStorefrontStudioSessionResponses];
+
+export type GetStorefrontStudioSessionData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/storefront-studio/sessions/{id}';
+};
+
+export type GetStorefrontStudioSessionErrors = {
+    /**
+     * Sessão não encontrada (do tenant)
+     */
+    404: unknown;
+};
+
+export type GetStorefrontStudioSessionResponses = {
+    200: StorefrontStudioSession;
+};
+
+export type GetStorefrontStudioSessionResponse = GetStorefrontStudioSessionResponses[keyof GetStorefrontStudioSessionResponses];
+
+export type PostStorefrontStudioSessionMessageData = {
+    body: StorefrontStudioSessionMessage;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/storefront-studio/sessions/{id}/messages';
+};
+
+export type PostStorefrontStudioSessionMessageErrors = {
+    /**
+     * Sem saldo Mirá na wallet
+     */
+    402: unknown;
+    /**
+     * Sessão não encontrada (do tenant)
+     */
+    404: unknown;
+    /**
+     * Engine indisponível
+     */
+    503: unknown;
+};
+
+export type PostStorefrontStudioSessionMessageResponses = {
+    202: StorefrontStudioMessageAck;
+};
+
+export type PostStorefrontStudioSessionMessageResponse = PostStorefrontStudioSessionMessageResponses[keyof PostStorefrontStudioSessionMessageResponses];
+
+export type ListStorefrontStudioSessionEventsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: {
+        after?: number;
+        wait_seconds?: number;
+    };
+    url: '/storefront-studio/sessions/{id}/events';
+};
+
+export type ListStorefrontStudioSessionEventsErrors = {
+    /**
+     * Sessão não encontrada (do tenant)
+     */
+    404: unknown;
+};
+
+export type ListStorefrontStudioSessionEventsResponses = {
+    200: StorefrontStudioEventList;
+};
+
+export type ListStorefrontStudioSessionEventsResponse = ListStorefrontStudioSessionEventsResponses[keyof ListStorefrontStudioSessionEventsResponses];
+
+export type PublishStorefrontStudioSessionData = {
+    body?: StorefrontStudioPublishRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/storefront-studio/sessions/{id}/publish';
+};
+
+export type PublishStorefrontStudioSessionErrors = {
+    /**
+     * Sem saldo Mirá na wallet
+     */
+    402: unknown;
+    /**
+     * Sessão não encontrada (do tenant)
+     */
+    404: unknown;
+    /**
+     * Sessão não está ativa
+     */
+    409: unknown;
+    /**
+     * Engine indisponível
+     */
+    503: unknown;
+};
+
+export type PublishStorefrontStudioSessionResponses = {
+    202: StorefrontStudioMessageAck;
+};
+
+export type PublishStorefrontStudioSessionResponse = PublishStorefrontStudioSessionResponses[keyof PublishStorefrontStudioSessionResponses];
+
+export type GetWalletData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/wallet';
+};
+
+export type GetWalletResponses = {
+    200: JsonObject;
+};
+
+export type GetWalletResponse = GetWalletResponses[keyof GetWalletResponses];
+
+export type GetWalletLedgerData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        entry_type?: string;
+        cursor_created_at?: string;
+        cursor_id?: string;
+    };
+    url: '/wallet/ledger';
+};
+
+export type GetWalletLedgerResponses = {
+    200: JsonObject;
+};
+
+export type GetWalletLedgerResponse = GetWalletLedgerResponses[keyof GetWalletLedgerResponses];
+
+export type GetWalletTopupConfigData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/wallet/topup-config';
+};
+
+export type GetWalletTopupConfigResponses = {
+    200: JsonObject;
+};
+
+export type GetWalletTopupConfigResponse = GetWalletTopupConfigResponses[keyof GetWalletTopupConfigResponses];
+
+export type PutWalletTopupConfigData = {
+    body: JsonObject;
+    path?: never;
+    query?: never;
+    url: '/wallet/topup-config';
+};
+
+export type PutWalletTopupConfigResponses = {
+    200: JsonObject;
+};
+
+export type PutWalletTopupConfigResponse = PutWalletTopupConfigResponses[keyof PutWalletTopupConfigResponses];
+
+export type PostWalletSetupIntentData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/wallet/setup-intent';
+};
+
+export type PostWalletSetupIntentResponses = {
+    200: JsonObject;
+};
+
+export type PostWalletSetupIntentResponse = PostWalletSetupIntentResponses[keyof PostWalletSetupIntentResponses];
+
+export type PostWalletPaymentMethodData = {
+    body: JsonObject;
+    path?: never;
+    query?: never;
+    url: '/wallet/payment-methods';
+};
+
+export type PostWalletPaymentMethodResponses = {
+    201: JsonObject;
+};
+
+export type PostWalletPaymentMethodResponse = PostWalletPaymentMethodResponses[keyof PostWalletPaymentMethodResponses];
+
+export type DeleteWalletPaymentMethodData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/wallet/payment-methods/{id}';
+};
+
+export type DeleteWalletPaymentMethodResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type DeleteWalletPaymentMethodResponse = DeleteWalletPaymentMethodResponses[keyof DeleteWalletPaymentMethodResponses];
+
+export type PostWalletTopupData = {
+    body: JsonObject;
+    path?: never;
+    query?: never;
+    url: '/wallet/topup';
+};
+
+export type PostWalletTopupResponses = {
+    200: JsonObject;
+};
+
+export type PostWalletTopupResponse = PostWalletTopupResponses[keyof PostWalletTopupResponses];
+
+export type TrackEventData = {
+    body: TrackEventsRequest;
     path?: never;
     query?: never;
     url: '/events/track';
 };
 
+export type TrackEventErrors = {
+    /**
+     * Sessão de cliente em falta
+     */
+    401: unknown;
+};
+
 export type TrackEventResponses = {
     /**
-     * Evento aceito
+     * Eventos aceitos (tipos inválidos ignorados)
      */
     202: unknown;
 };
 
+export type SubscribeNewsletterData = {
+    body: NewsletterSubscribeRequest;
+    path?: never;
+    query?: never;
+    url: '/newsletter/subscribe';
+};
+
+export type SubscribeNewsletterErrors = {
+    /**
+     * Body inválido
+     */
+    400: unknown;
+    /**
+     * LGPD não aceite, email anónimo (LGPD) ou CRM inactivo
+     */
+    422: unknown;
+    /**
+     * Rate limit
+     */
+    429: unknown;
+    /**
+     * CRM activo mas credenciais/sync falharam
+     */
+    503: unknown;
+};
+
+export type SubscribeNewsletterResponses = {
+    /**
+     * Opt-in aceite (idempotente se já inscrito)
+     */
+    202: NewsletterSubscribeResult;
+};
+
+export type SubscribeNewsletterResponse = SubscribeNewsletterResponses[keyof SubscribeNewsletterResponses];
+
 export type ListAgentsData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
     url: '/agents';
 };
 
@@ -7746,6 +23242,33 @@ export type CreateAgentResponses = {
 };
 
 export type CreateAgentResponse = CreateAgentResponses[keyof CreateAgentResponses];
+
+export type AssistAgentData = {
+    body: AgentAssistRequest;
+    path?: never;
+    query?: never;
+    url: '/agents/assist';
+};
+
+export type AssistAgentErrors = {
+    /**
+     * Intent inválido
+     */
+    400: unknown;
+    /**
+     * LLM não configurado
+     */
+    503: unknown;
+};
+
+export type AssistAgentResponses = {
+    /**
+     * Sugestão gerada
+     */
+    200: AgentAssistResult;
+};
+
+export type AssistAgentResponse = AssistAgentResponses[keyof AssistAgentResponses];
 
 export type DeleteAgentData = {
     body?: never;
@@ -7803,7 +23326,7 @@ export type UpdateAgentResponses = {
 export type UpdateAgentResponse = UpdateAgentResponses[keyof UpdateAgentResponses];
 
 export type RunAgentNowData = {
-    body?: never;
+    body?: AgentRunRequest;
     path: {
         agent_id: string;
     };
@@ -7817,6 +23340,54 @@ export type RunAgentNowResponses = {
 
 export type RunAgentNowResponse = RunAgentNowResponses[keyof RunAgentNowResponses];
 
+export type ListAllAgentRunsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: 'queued' | 'running' | 'done' | 'error';
+        agent_id?: string;
+        /**
+         * Filtrar pela árvore de delegação (ADR 0078)
+         */
+        root_run_id?: string;
+        /**
+         * Filtra por resultado de negócio no SERVIDOR (#1101).
+         */
+        outcome?: AgentRunOutcome;
+        limit?: number;
+    };
+    url: '/agents/runs';
+};
+
+export type ListAllAgentRunsResponses = {
+    200: AgentRunList;
+};
+
+export type ListAllAgentRunsResponse = ListAllAgentRunsResponses[keyof ListAllAgentRunsResponses];
+
+export type GetAgentsUsageData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Início do período; default = início do mês corrente no fuso da loja.
+         */
+        from?: string;
+        /**
+         * Fim do período; default = agora.
+         */
+        to?: string;
+        agent_id?: string;
+    };
+    url: '/agents/usage';
+};
+
+export type GetAgentsUsageResponses = {
+    200: AgentUsageReport;
+};
+
+export type GetAgentsUsageResponse = GetAgentsUsageResponses[keyof GetAgentsUsageResponses];
+
 export type ListAgentRunsData = {
     body?: never;
     path: {
@@ -7827,7 +23398,7 @@ export type ListAgentRunsData = {
 };
 
 export type ListAgentRunsResponses = {
-    200: JsonObject;
+    200: AgentRunList;
 };
 
 export type ListAgentRunsResponse = ListAgentRunsResponses[keyof ListAgentRunsResponses];
@@ -7874,6 +23445,120 @@ export type RejectAgentProposalResponses = {
 };
 
 export type RejectAgentProposalResponse = RejectAgentProposalResponses[keyof RejectAgentProposalResponses];
+
+export type ListInboxAgentProgramsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/agents/inbox-programs';
+};
+
+export type ListInboxAgentProgramsResponses = {
+    200: JsonObject;
+};
+
+export type ListInboxAgentProgramsResponse = ListInboxAgentProgramsResponses[keyof ListInboxAgentProgramsResponses];
+
+export type CreateInboxAgentProgramData = {
+    body: JsonObject;
+    path?: never;
+    query?: never;
+    url: '/agents/inbox-programs';
+};
+
+export type CreateInboxAgentProgramResponses = {
+    201: JsonObject;
+};
+
+export type CreateInboxAgentProgramResponse = CreateInboxAgentProgramResponses[keyof CreateInboxAgentProgramResponses];
+
+export type InstallInboxReceptionPackData = {
+    body: JsonObject;
+    path?: never;
+    query?: never;
+    url: '/agents/inbox-programs/install-reception';
+};
+
+export type InstallInboxReceptionPackResponses = {
+    201: JsonObject;
+};
+
+export type InstallInboxReceptionPackResponse = InstallInboxReceptionPackResponses[keyof InstallInboxReceptionPackResponses];
+
+export type DeleteInboxAgentProgramData = {
+    body?: never;
+    path: {
+        program_id: string;
+    };
+    query?: never;
+    url: '/agents/inbox-programs/{program_id}';
+};
+
+export type DeleteInboxAgentProgramResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type DeleteInboxAgentProgramResponse = DeleteInboxAgentProgramResponses[keyof DeleteInboxAgentProgramResponses];
+
+export type UpdateInboxAgentProgramData = {
+    body: JsonObject;
+    path: {
+        program_id: string;
+    };
+    query?: never;
+    url: '/agents/inbox-programs/{program_id}';
+};
+
+export type UpdateInboxAgentProgramResponses = {
+    200: JsonObject;
+};
+
+export type UpdateInboxAgentProgramResponse = UpdateInboxAgentProgramResponses[keyof UpdateInboxAgentProgramResponses];
+
+export type SimulateInboxAgentTurnData = {
+    body: JsonObject;
+    path: {
+        program_id: string;
+    };
+    query?: never;
+    url: '/agents/inbox-programs/{program_id}/simulate';
+};
+
+export type SimulateInboxAgentTurnResponses = {
+    200: JsonObject;
+};
+
+export type SimulateInboxAgentTurnResponse = SimulateInboxAgentTurnResponses[keyof SimulateInboxAgentTurnResponses];
+
+export type ConnectInboxAgentTurnData = {
+    body: JsonObject;
+    path?: never;
+    query?: never;
+    url: '/connect/inbox-agent/turn';
+};
+
+export type ConnectInboxAgentTurnErrors = {
+    /**
+     * Token inválido
+     */
+    401: unknown;
+};
+
+export type ConnectInboxAgentTurnResponses = {
+    /**
+     * Envelope reply/handoff
+     */
+    200: JsonObject;
+    /**
+     * Humano já assume — sem reply
+     */
+    204: void;
+};
+
+export type ConnectInboxAgentTurnResponse = ConnectInboxAgentTurnResponses[keyof ConnectInboxAgentTurnResponses];
 
 export type ListErpPresetsData = {
     body?: never;
@@ -8062,6 +23747,34 @@ export type GetCampaignResponses = {
 
 export type GetCampaignResponse = GetCampaignResponses[keyof GetCampaignResponses];
 
+export type ListCampaignRecipientsData = {
+    body?: never;
+    path: {
+        campaign_id: string;
+    };
+    query?: {
+        status?: 'pending' | 'sent' | 'blocked' | 'failed';
+        reason?: CampaignRecipientReason;
+        search?: string;
+        limit?: number;
+        offset?: number;
+    };
+    url: '/campaigns/{campaign_id}/recipients';
+};
+
+export type ListCampaignRecipientsErrors = {
+    /**
+     * Campanha inexistente
+     */
+    404: unknown;
+};
+
+export type ListCampaignRecipientsResponses = {
+    200: CampaignRecipientListPage;
+};
+
+export type ListCampaignRecipientsResponse = ListCampaignRecipientsResponses[keyof ListCampaignRecipientsResponses];
+
 export type DispatchCampaignData = {
     body?: never;
     path: {
@@ -8110,10 +23823,2016 @@ export type CancelCampaignResponses = {
 
 export type CancelCampaignResponse = CancelCampaignResponses[keyof CancelCampaignResponses];
 
-export type ListMessageTemplatesData = {
+export type ListGrowthCampaignsData = {
     body?: never;
     path?: never;
     query?: never;
+    url: '/growth/campaigns';
+};
+
+export type ListGrowthCampaignsResponses = {
+    200: GrowthCampaignList;
+};
+
+export type ListGrowthCampaignsResponse = ListGrowthCampaignsResponses[keyof ListGrowthCampaignsResponses];
+
+export type CreateGrowthCampaignData = {
+    body: GrowthCampaignCreate;
+    path?: never;
+    query?: never;
+    url: '/growth/campaigns';
+};
+
+export type CreateGrowthCampaignErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+};
+
+export type CreateGrowthCampaignResponses = {
+    201: GrowthCampaign;
+};
+
+export type CreateGrowthCampaignResponse = CreateGrowthCampaignResponses[keyof CreateGrowthCampaignResponses];
+
+export type GetGrowthCampaignData = {
+    body?: never;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}';
+};
+
+export type GetGrowthCampaignErrors = {
+    /**
+     * Inexistente
+     */
+    404: unknown;
+};
+
+export type GetGrowthCampaignResponses = {
+    200: GrowthCampaign;
+};
+
+export type GetGrowthCampaignResponse = GetGrowthCampaignResponses[keyof GetGrowthCampaignResponses];
+
+export type UpdateGrowthCampaignData = {
+    body: GrowthCampaignUpdate;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}';
+};
+
+export type UpdateGrowthCampaignErrors = {
+    /**
+     * Inexistente
+     */
+    404: unknown;
+};
+
+export type UpdateGrowthCampaignResponses = {
+    200: GrowthCampaign;
+};
+
+export type UpdateGrowthCampaignResponse = UpdateGrowthCampaignResponses[keyof UpdateGrowthCampaignResponses];
+
+export type SetGrowthCampaignStatusData = {
+    body: GrowthStatusBody;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}/status';
+};
+
+export type SetGrowthCampaignStatusErrors = {
+    /**
+     * Transição inválida
+     */
+    400: unknown;
+    /**
+     * Inexistente
+     */
+    404: unknown;
+};
+
+export type SetGrowthCampaignStatusResponses = {
+    200: GrowthCampaign;
+};
+
+export type SetGrowthCampaignStatusResponse = SetGrowthCampaignStatusResponses[keyof SetGrowthCampaignStatusResponses];
+
+export type ListGrowthOutreachData = {
+    body?: never;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}/outreach';
+};
+
+export type ListGrowthOutreachErrors = {
+    /**
+     * Inexistente
+     */
+    404: unknown;
+};
+
+export type ListGrowthOutreachResponses = {
+    200: GrowthOutreachList;
+};
+
+export type ListGrowthOutreachResponse = ListGrowthOutreachResponses[keyof ListGrowthOutreachResponses];
+
+export type AttachGrowthOutreachData = {
+    body: GrowthOutreachAttach;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}/outreach';
+};
+
+export type AttachGrowthOutreachErrors = {
+    /**
+     * Growth ou outreach inexistente
+     */
+    404: unknown;
+};
+
+export type AttachGrowthOutreachResponses = {
+    200: GrowthOutreachList;
+};
+
+export type AttachGrowthOutreachResponse = AttachGrowthOutreachResponses[keyof AttachGrowthOutreachResponses];
+
+export type ListGrowthCreativesData = {
+    body?: never;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}/creatives';
+};
+
+export type ListGrowthCreativesErrors = {
+    /**
+     * Inexistente
+     */
+    404: unknown;
+};
+
+export type ListGrowthCreativesResponses = {
+    200: GrowthCreativeList;
+};
+
+export type ListGrowthCreativesResponse = ListGrowthCreativesResponses[keyof ListGrowthCreativesResponses];
+
+export type AttachGrowthCreativeData = {
+    body: GrowthCreativeAttach;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}/creatives';
+};
+
+export type AttachGrowthCreativeErrors = {
+    /**
+     * Growth ou creative inexistente
+     */
+    404: unknown;
+};
+
+export type AttachGrowthCreativeResponses = {
+    200: GrowthCreativeList;
+};
+
+export type AttachGrowthCreativeResponse = AttachGrowthCreativeResponses[keyof AttachGrowthCreativeResponses];
+
+export type SyncGrowthPaidData = {
+    body?: GrowthPaidSyncBody;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}/paid/sync';
+};
+
+export type SyncGrowthPaidErrors = {
+    /**
+     * Integração Ads não pronta
+     */
+    400: unknown;
+    /**
+     * Inexistente
+     */
+    404: unknown;
+};
+
+export type SyncGrowthPaidResponses = {
+    200: GrowthAdFlightList;
+};
+
+export type SyncGrowthPaidResponse = SyncGrowthPaidResponses[keyof SyncGrowthPaidResponses];
+
+export type ListGrowthAdFlightsData = {
+    body?: never;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}/paid/flights';
+};
+
+export type ListGrowthAdFlightsErrors = {
+    /**
+     * Inexistente
+     */
+    404: unknown;
+};
+
+export type ListGrowthAdFlightsResponses = {
+    200: GrowthAdFlightList;
+};
+
+export type ListGrowthAdFlightsResponse = ListGrowthAdFlightsResponses[keyof ListGrowthAdFlightsResponses];
+
+export type ListGrowthInsightsData = {
+    body?: never;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: {
+        from?: string;
+        to?: string;
+    };
+    url: '/growth/campaigns/{growth_campaign_id}/paid/insights';
+};
+
+export type ListGrowthInsightsErrors = {
+    /**
+     * Inexistente
+     */
+    404: unknown;
+};
+
+export type ListGrowthInsightsResponses = {
+    200: GrowthInsightList;
+};
+
+export type ListGrowthInsightsResponse = ListGrowthInsightsResponses[keyof ListGrowthInsightsResponses];
+
+export type ListGrowthPublishRequestsData = {
+    body?: never;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}/paid/publish-requests';
+};
+
+export type ListGrowthPublishRequestsErrors = {
+    /**
+     * Inexistente
+     */
+    404: unknown;
+};
+
+export type ListGrowthPublishRequestsResponses = {
+    200: GrowthPublishRequestList;
+};
+
+export type ListGrowthPublishRequestsResponse = ListGrowthPublishRequestsResponses[keyof ListGrowthPublishRequestsResponses];
+
+export type RequestGrowthPublishData = {
+    body: GrowthPublishRequestCreate;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}/paid/publish-requests';
+};
+
+export type RequestGrowthPublishErrors = {
+    /**
+     * Inexistente
+     */
+    404: unknown;
+};
+
+export type RequestGrowthPublishResponses = {
+    201: GrowthPublishRequest;
+};
+
+export type RequestGrowthPublishResponse = RequestGrowthPublishResponses[keyof RequestGrowthPublishResponses];
+
+export type DecideGrowthPublishRequestData = {
+    body: GrowthPublishDecide;
+    path: {
+        growth_campaign_id: string;
+        request_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}/paid/publish-requests/{request_id}/decide';
+};
+
+export type DecideGrowthPublishRequestErrors = {
+    /**
+     * Já decidido ou decisão inválida
+     */
+    400: unknown;
+    /**
+     * Inexistente
+     */
+    404: unknown;
+};
+
+export type DecideGrowthPublishRequestResponses = {
+    200: GrowthPublishRequest;
+};
+
+export type DecideGrowthPublishRequestResponse = DecideGrowthPublishRequestResponses[keyof DecideGrowthPublishRequestResponses];
+
+export type GetGrowthCampaignResultsData = {
+    body?: never;
+    path: {
+        growth_campaign_id: string;
+    };
+    query?: never;
+    url: '/growth/campaigns/{growth_campaign_id}/results';
+};
+
+export type GetGrowthCampaignResultsErrors = {
+    /**
+     * Inexistente
+     */
+    404: unknown;
+};
+
+export type GetGrowthCampaignResultsResponses = {
+    200: GrowthResults;
+};
+
+export type GetGrowthCampaignResultsResponse = GetGrowthCampaignResultsResponses[keyof GetGrowthCampaignResultsResponses];
+
+export type ListCreativeProvidersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/marketing/creative/providers';
+};
+
+export type ListCreativeProvidersResponses = {
+    200: CreativeProviderCatalog;
+};
+
+export type ListCreativeProvidersResponse = ListCreativeProvidersResponses[keyof ListCreativeProvidersResponses];
+
+export type DisconnectCreativeProviderData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/marketing/creative/connection';
+};
+
+export type DisconnectCreativeProviderResponses = {
+    /**
+     * Desligado
+     */
+    204: void;
+};
+
+export type DisconnectCreativeProviderResponse = DisconnectCreativeProviderResponses[keyof DisconnectCreativeProviderResponses];
+
+export type GetCreativeConnectionData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/marketing/creative/connection';
+};
+
+export type GetCreativeConnectionResponses = {
+    200: CreativeConnection;
+};
+
+export type GetCreativeConnectionResponse = GetCreativeConnectionResponses[keyof GetCreativeConnectionResponses];
+
+export type ConnectCreativeProviderData = {
+    body: CreativeConnectRequestWritable;
+    path?: never;
+    query?: never;
+    url: '/marketing/creative/connection';
+};
+
+export type ConnectCreativeProviderErrors = {
+    /**
+     * Provider desconhecido ou payload inválido
+     */
+    400: unknown;
+    /**
+     * Credenciais rejeitadas pelo provider
+     */
+    401: unknown;
+};
+
+export type ConnectCreativeProviderResponses = {
+    200: CreativeConnection;
+};
+
+export type ConnectCreativeProviderResponse = ConnectCreativeProviderResponses[keyof ConnectCreativeProviderResponses];
+
+export type GenerateCreativeData = {
+    body: CreativeGenerateRequest;
+    path?: never;
+    query?: never;
+    url: '/marketing/creative/generate';
+};
+
+export type GenerateCreativeErrors = {
+    /**
+     * Pedido inválido ou capability ausente
+     */
+    400: unknown;
+    /**
+     * Provider não ligado
+     */
+    409: unknown;
+};
+
+export type GenerateCreativeResponses = {
+    /**
+     * Job aceite
+     */
+    202: CreativeJob;
+};
+
+export type GenerateCreativeResponse = GenerateCreativeResponses[keyof GenerateCreativeResponses];
+
+export type GenerateCreativeVariationsData = {
+    body: CreativeVariationRequest;
+    path?: never;
+    query?: never;
+    url: '/marketing/creative/variations';
+};
+
+export type GenerateCreativeVariationsErrors = {
+    /**
+     * Pedido inválido
+     */
+    400: unknown;
+    /**
+     * Provider não ligado
+     */
+    409: unknown;
+};
+
+export type GenerateCreativeVariationsResponses = {
+    202: CreativeJob;
+};
+
+export type GenerateCreativeVariationsResponse = GenerateCreativeVariationsResponses[keyof GenerateCreativeVariationsResponses];
+
+export type GenerateCreativeCopyData = {
+    body: CreativeCopyRequest;
+    path?: never;
+    query?: never;
+    url: '/marketing/creative/copy';
+};
+
+export type GenerateCreativeCopyErrors = {
+    /**
+     * Pedido inválido
+     */
+    400: unknown;
+    /**
+     * Provider não ligado
+     */
+    409: unknown;
+};
+
+export type GenerateCreativeCopyResponses = {
+    202: CreativeJob;
+};
+
+export type GenerateCreativeCopyResponse = GenerateCreativeCopyResponses[keyof GenerateCreativeCopyResponses];
+
+export type GetCreativeJobData = {
+    body?: never;
+    path: {
+        job_id: string;
+    };
+    query?: never;
+    url: '/marketing/creative/jobs/{job_id}';
+};
+
+export type GetCreativeJobErrors = {
+    /**
+     * Job não encontrado no provider
+     */
+    404: unknown;
+    /**
+     * Provider não ligado
+     */
+    409: unknown;
+};
+
+export type GetCreativeJobResponses = {
+    200: CreativeJobStatus;
+};
+
+export type GetCreativeJobResponse = GetCreativeJobResponses[keyof GetCreativeJobResponses];
+
+export type ListTasksData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        status?: TaskStatus;
+        /**
+         * me | unassigned | UUID do user staff | group:<slug de área>
+         */
+        assignee?: string;
+        source?: TaskSource;
+    };
+    url: '/tasks';
+};
+
+export type ListTasksResponses = {
+    /**
+     * Lista paginada
+     */
+    200: TaskListPage;
+};
+
+export type ListTasksResponse = ListTasksResponses[keyof ListTasksResponses];
+
+export type CreateTaskData = {
+    body: TaskCreate;
+    path?: never;
+    query?: never;
+    url: '/tasks';
+};
+
+export type CreateTaskErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+};
+
+export type CreateTaskResponses = {
+    /**
+     * Criada
+     */
+    201: Task;
+};
+
+export type CreateTaskResponse = CreateTaskResponses[keyof CreateTaskResponses];
+
+export type CompleteTasksBatchData = {
+    body: TaskCompleteBatchRequest;
+    path?: never;
+    query?: never;
+    url: '/tasks/complete-batch';
+};
+
+export type CompleteTasksBatchErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+};
+
+export type CompleteTasksBatchResponses = {
+    /**
+     * Resultado por id
+     */
+    200: TaskCompleteBatchResult;
+};
+
+export type CompleteTasksBatchResponse = CompleteTasksBatchResponses[keyof CompleteTasksBatchResponses];
+
+export type GetTaskData = {
+    body?: never;
+    path: {
+        task_id: string;
+    };
+    query?: never;
+    url: '/tasks/{task_id}';
+};
+
+export type GetTaskErrors = {
+    /**
+     * Tarefa inexistente
+     */
+    404: unknown;
+};
+
+export type GetTaskResponses = {
+    200: Task;
+};
+
+export type GetTaskResponse = GetTaskResponses[keyof GetTaskResponses];
+
+export type UpdateTaskData = {
+    body: TaskUpdate;
+    path: {
+        task_id: string;
+    };
+    query?: never;
+    url: '/tasks/{task_id}';
+};
+
+export type UpdateTaskErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+    /**
+     * Tarefa inexistente
+     */
+    404: unknown;
+};
+
+export type UpdateTaskResponses = {
+    200: Task;
+};
+
+export type UpdateTaskResponse = UpdateTaskResponses[keyof UpdateTaskResponses];
+
+export type CompleteTaskData = {
+    body?: never;
+    path: {
+        task_id: string;
+    };
+    query?: never;
+    url: '/tasks/{task_id}/complete';
+};
+
+export type CompleteTaskErrors = {
+    /**
+     * Tarefa inexistente
+     */
+    404: unknown;
+    /**
+     * Transição inválida
+     */
+    409: unknown;
+};
+
+export type CompleteTaskResponses = {
+    200: Task;
+};
+
+export type CompleteTaskResponse = CompleteTaskResponses[keyof CompleteTaskResponses];
+
+export type CancelTaskData = {
+    body?: never;
+    path: {
+        task_id: string;
+    };
+    query?: never;
+    url: '/tasks/{task_id}/cancel';
+};
+
+export type CancelTaskErrors = {
+    /**
+     * Tarefa inexistente
+     */
+    404: unknown;
+    /**
+     * Transição inválida
+     */
+    409: unknown;
+};
+
+export type CancelTaskResponses = {
+    200: Task;
+};
+
+export type CancelTaskResponse = CancelTaskResponses[keyof CancelTaskResponses];
+
+export type ReopenTaskData = {
+    body?: never;
+    path: {
+        task_id: string;
+    };
+    query?: never;
+    url: '/tasks/{task_id}/reopen';
+};
+
+export type ReopenTaskErrors = {
+    /**
+     * Tarefa inexistente
+     */
+    404: unknown;
+    /**
+     * Transição inválida
+     */
+    409: unknown;
+};
+
+export type ReopenTaskResponses = {
+    200: Task;
+};
+
+export type ReopenTaskResponse = ReopenTaskResponses[keyof ReopenTaskResponses];
+
+export type SuggestTaskActionsData = {
+    body?: never;
+    path: {
+        task_id: string;
+    };
+    query?: never;
+    url: '/tasks/{task_id}/suggest-actions';
+};
+
+export type SuggestTaskActionsErrors = {
+    /**
+     * Tarefa inexistente
+     */
+    404: unknown;
+    /**
+     * LLM indisponível
+     */
+    503: unknown;
+};
+
+export type SuggestTaskActionsResponses = {
+    /**
+     * Acções sugeridas
+     */
+    200: TaskSuggestActionsResult;
+};
+
+export type SuggestTaskActionsResponse = SuggestTaskActionsResponses[keyof SuggestTaskActionsResponses];
+
+export type ExecuteTaskActionData = {
+    body: TaskExecuteActionRequest;
+    path: {
+        task_id: string;
+    };
+    query?: never;
+    url: '/tasks/{task_id}/actions/execute';
+};
+
+export type ExecuteTaskActionErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+    /**
+     * Scope insuficiente
+     */
+    403: unknown;
+    /**
+     * Tarefa inexistente
+     */
+    404: unknown;
+    /**
+     * Tarefa fechada
+     */
+    409: unknown;
+};
+
+export type ExecuteTaskActionResponses = {
+    /**
+     * Resultado da execução
+     */
+    200: TaskExecuteActionResult;
+};
+
+export type ExecuteTaskActionResponse = ExecuteTaskActionResponses[keyof ExecuteTaskActionResponses];
+
+export type ListTaskAttachmentsData = {
+    body?: never;
+    path: {
+        task_id: string;
+    };
+    query?: never;
+    url: '/tasks/{task_id}/attachments';
+};
+
+export type ListTaskAttachmentsErrors = {
+    /**
+     * Tarefa inexistente
+     */
+    404: unknown;
+};
+
+export type ListTaskAttachmentsResponses = {
+    /**
+     * Anexos
+     */
+    200: TaskAttachmentList;
+};
+
+export type ListTaskAttachmentsResponse = ListTaskAttachmentsResponses[keyof ListTaskAttachmentsResponses];
+
+export type UploadTaskAttachmentData = {
+    body: {
+        file: Blob | File;
+    };
+    path: {
+        task_id: string;
+    };
+    query?: never;
+    url: '/tasks/{task_id}/attachments/upload';
+};
+
+export type UploadTaskAttachmentErrors = {
+    /**
+     * Form inválido / MIME / limite
+     */
+    400: unknown;
+    /**
+     * Tarefa inexistente
+     */
+    404: unknown;
+    /**
+     * Object store indisponível
+     */
+    503: unknown;
+};
+
+export type UploadTaskAttachmentResponses = {
+    /**
+     * Anexo criado
+     */
+    201: TaskAttachment;
+};
+
+export type UploadTaskAttachmentResponse = UploadTaskAttachmentResponses[keyof UploadTaskAttachmentResponses];
+
+export type DeleteTaskAttachmentData = {
+    body?: never;
+    path: {
+        task_id: string;
+        attachment_id: string;
+    };
+    query?: never;
+    url: '/tasks/{task_id}/attachments/{attachment_id}';
+};
+
+export type DeleteTaskAttachmentErrors = {
+    /**
+     * Anexo ou tarefa inexistente
+     */
+    404: unknown;
+};
+
+export type DeleteTaskAttachmentResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type DeleteTaskAttachmentResponse = DeleteTaskAttachmentResponses[keyof DeleteTaskAttachmentResponses];
+
+export type GetTaskAttachmentContentData = {
+    body?: never;
+    path: {
+        task_id: string;
+        attachment_id: string;
+    };
+    query?: never;
+    url: '/tasks/{task_id}/attachments/{attachment_id}/content';
+};
+
+export type GetTaskAttachmentContentErrors = {
+    /**
+     * Anexo inexistente
+     */
+    404: unknown;
+    /**
+     * Object store indisponível
+     */
+    503: unknown;
+};
+
+export type GetTaskAttachmentContentResponses = {
+    /**
+     * Bytes do ficheiro
+     */
+    200: Blob | File;
+};
+
+export type GetTaskAttachmentContentResponse = GetTaskAttachmentContentResponses[keyof GetTaskAttachmentContentResponses];
+
+export type ListCouncilRolesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/council/roles';
+};
+
+export type ListCouncilRolesResponses = {
+    200: CouncilRoleList;
+};
+
+export type ListCouncilRolesResponse = ListCouncilRolesResponses[keyof ListCouncilRolesResponses];
+
+export type ListCouncilSeatsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/council/seats';
+};
+
+export type ListCouncilSeatsResponses = {
+    200: CouncilSeatList;
+};
+
+export type ListCouncilSeatsResponse = ListCouncilSeatsResponses[keyof ListCouncilSeatsResponses];
+
+export type CreateCouncilSeatData = {
+    body: CouncilSeatCreate;
+    path?: never;
+    query?: never;
+    url: '/council/seats';
+};
+
+export type CreateCouncilSeatErrors = {
+    /**
+     * Pedido inválido
+     */
+    400: unknown;
+    /**
+     * Slug já existe
+     */
+    409: unknown;
+};
+
+export type CreateCouncilSeatResponses = {
+    201: CouncilSeat;
+};
+
+export type CreateCouncilSeatResponse = CreateCouncilSeatResponses[keyof CreateCouncilSeatResponses];
+
+export type ListCouncilSeatToolCatalogData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/council/seats/tool-catalog';
+};
+
+export type ListCouncilSeatToolCatalogResponses = {
+    200: CouncilSeatToolCatalog;
+};
+
+export type ListCouncilSeatToolCatalogResponse = ListCouncilSeatToolCatalogResponses[keyof ListCouncilSeatToolCatalogResponses];
+
+export type DeleteCouncilSeatData = {
+    body?: never;
+    path: {
+        slug: string;
+    };
+    query?: never;
+    url: '/council/seats/{slug}';
+};
+
+export type DeleteCouncilSeatErrors = {
+    /**
+     * Não é custom / chair
+     */
+    400: unknown;
+    /**
+     * Não encontrada
+     */
+    404: unknown;
+};
+
+export type DeleteCouncilSeatResponses = {
+    /**
+     * Removida
+     */
+    204: void;
+};
+
+export type DeleteCouncilSeatResponse = DeleteCouncilSeatResponses[keyof DeleteCouncilSeatResponses];
+
+export type GetCouncilSeatData = {
+    body?: never;
+    path: {
+        slug: string;
+    };
+    query?: never;
+    url: '/council/seats/{slug}';
+};
+
+export type GetCouncilSeatErrors = {
+    /**
+     * Não encontrada
+     */
+    404: unknown;
+};
+
+export type GetCouncilSeatResponses = {
+    200: CouncilSeat;
+};
+
+export type GetCouncilSeatResponse = GetCouncilSeatResponses[keyof GetCouncilSeatResponses];
+
+export type UpdateCouncilSeatData = {
+    body: CouncilSeatUpdate;
+    path: {
+        slug: string;
+    };
+    query?: never;
+    url: '/council/seats/{slug}';
+};
+
+export type UpdateCouncilSeatErrors = {
+    /**
+     * Pedido inválido
+     */
+    400: unknown;
+    /**
+     * Não encontrada
+     */
+    404: unknown;
+};
+
+export type UpdateCouncilSeatResponses = {
+    200: CouncilSeat;
+};
+
+export type UpdateCouncilSeatResponse = UpdateCouncilSeatResponses[keyof UpdateCouncilSeatResponses];
+
+export type SetCouncilSeatEnabledData = {
+    body: CouncilSeatEnabled;
+    path: {
+        slug: string;
+    };
+    query?: never;
+    url: '/council/seats/{slug}/enabled';
+};
+
+export type SetCouncilSeatEnabledErrors = {
+    /**
+     * Chair obrigatória
+     */
+    400: unknown;
+    /**
+     * Não encontrada
+     */
+    404: unknown;
+};
+
+export type SetCouncilSeatEnabledResponses = {
+    200: CouncilSeat;
+};
+
+export type SetCouncilSeatEnabledResponse = SetCouncilSeatEnabledResponses[keyof SetCouncilSeatEnabledResponses];
+
+export type ListCouncilOkrsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        scope?: 'tenant' | 'seat';
+        seat_slug?: string;
+    };
+    url: '/council/okrs';
+};
+
+export type ListCouncilOkrsResponses = {
+    200: CouncilOkrList;
+};
+
+export type ListCouncilOkrsResponse = ListCouncilOkrsResponses[keyof ListCouncilOkrsResponses];
+
+export type CreateCouncilOkrData = {
+    body: CouncilOkrCreate;
+    path?: never;
+    query?: never;
+    url: '/council/okrs';
+};
+
+export type CreateCouncilOkrErrors = {
+    /**
+     * Pedido inválido
+     */
+    400: unknown;
+};
+
+export type CreateCouncilOkrResponses = {
+    201: CouncilOkr;
+};
+
+export type CreateCouncilOkrResponse = CreateCouncilOkrResponses[keyof CreateCouncilOkrResponses];
+
+export type DeleteCouncilOkrData = {
+    body?: never;
+    path: {
+        okr_id: string;
+    };
+    query?: never;
+    url: '/council/okrs/{okr_id}';
+};
+
+export type DeleteCouncilOkrErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type DeleteCouncilOkrResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type DeleteCouncilOkrResponse = DeleteCouncilOkrResponses[keyof DeleteCouncilOkrResponses];
+
+export type GetCouncilOkrData = {
+    body?: never;
+    path: {
+        okr_id: string;
+    };
+    query?: never;
+    url: '/council/okrs/{okr_id}';
+};
+
+export type GetCouncilOkrErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type GetCouncilOkrResponses = {
+    200: CouncilOkr;
+};
+
+export type GetCouncilOkrResponse = GetCouncilOkrResponses[keyof GetCouncilOkrResponses];
+
+export type UpdateCouncilOkrData = {
+    body: CouncilOkrUpdate;
+    path: {
+        okr_id: string;
+    };
+    query?: never;
+    url: '/council/okrs/{okr_id}';
+};
+
+export type UpdateCouncilOkrErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type UpdateCouncilOkrResponses = {
+    200: CouncilOkr;
+};
+
+export type UpdateCouncilOkrResponse = UpdateCouncilOkrResponses[keyof UpdateCouncilOkrResponses];
+
+export type CreateCouncilOkrKeyResultData = {
+    body: CouncilOkrKeyResultCreate;
+    path: {
+        okr_id: string;
+    };
+    query?: never;
+    url: '/council/okrs/{okr_id}/key-results';
+};
+
+export type CreateCouncilOkrKeyResultErrors = {
+    /**
+     * Pedido inválido
+     */
+    400: unknown;
+    /**
+     * OKR não encontrado
+     */
+    404: unknown;
+};
+
+export type CreateCouncilOkrKeyResultResponses = {
+    201: CouncilOkrKeyResult;
+};
+
+export type CreateCouncilOkrKeyResultResponse = CreateCouncilOkrKeyResultResponses[keyof CreateCouncilOkrKeyResultResponses];
+
+export type DeleteCouncilOkrKeyResultData = {
+    body?: never;
+    path: {
+        okr_id: string;
+        kr_id: string;
+    };
+    query?: never;
+    url: '/council/okrs/{okr_id}/key-results/{kr_id}';
+};
+
+export type DeleteCouncilOkrKeyResultErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type DeleteCouncilOkrKeyResultResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type DeleteCouncilOkrKeyResultResponse = DeleteCouncilOkrKeyResultResponses[keyof DeleteCouncilOkrKeyResultResponses];
+
+export type UpdateCouncilOkrKeyResultData = {
+    body: CouncilOkrKeyResultUpdate;
+    path: {
+        okr_id: string;
+        kr_id: string;
+    };
+    query?: never;
+    url: '/council/okrs/{okr_id}/key-results/{kr_id}';
+};
+
+export type UpdateCouncilOkrKeyResultErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type UpdateCouncilOkrKeyResultResponses = {
+    200: CouncilOkrKeyResult;
+};
+
+export type UpdateCouncilOkrKeyResultResponse = UpdateCouncilOkrKeyResultResponses[keyof UpdateCouncilOkrKeyResultResponses];
+
+export type ListCouncilSessionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        status?: CouncilSessionStatus;
+    };
+    url: '/council/sessions';
+};
+
+export type ListCouncilSessionsResponses = {
+    200: CouncilSessionListPage;
+};
+
+export type ListCouncilSessionsResponse = ListCouncilSessionsResponses[keyof ListCouncilSessionsResponses];
+
+export type GetCouncilSessionData = {
+    body?: never;
+    path: {
+        session_id: string;
+    };
+    query?: never;
+    url: '/council/sessions/{session_id}';
+};
+
+export type GetCouncilSessionErrors = {
+    /**
+     * Sessão inexistente
+     */
+    404: unknown;
+};
+
+export type GetCouncilSessionResponses = {
+    200: CouncilSession;
+};
+
+export type GetCouncilSessionResponse = GetCouncilSessionResponses[keyof GetCouncilSessionResponses];
+
+export type RunCouncilDiagnosticData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/council/run';
+};
+
+export type RunCouncilDiagnosticResponses = {
+    201: CouncilSession;
+};
+
+export type RunCouncilDiagnosticResponse = RunCouncilDiagnosticResponses[keyof RunCouncilDiagnosticResponses];
+
+export type AskCouncilData = {
+    body: CouncilAskRequest;
+    path?: never;
+    query?: never;
+    url: '/council/ask';
+};
+
+export type AskCouncilErrors = {
+    /**
+     * Prompt inválido
+     */
+    400: unknown;
+};
+
+export type AskCouncilResponses = {
+    201: CouncilSession;
+};
+
+export type AskCouncilResponse = AskCouncilResponses[keyof AskCouncilResponses];
+
+export type ListCouncilMetricsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/council/metrics';
+};
+
+export type ListCouncilMetricsResponses = {
+    200: CouncilMetricListPage;
+};
+
+export type ListCouncilMetricsResponse = ListCouncilMetricsResponses[keyof ListCouncilMetricsResponses];
+
+export type CreateCouncilMetricData = {
+    body: CouncilMetricCreate;
+    path?: never;
+    query?: never;
+    url: '/council/metrics';
+};
+
+export type CreateCouncilMetricErrors = {
+    /**
+     * Pedido inválido
+     */
+    400: unknown;
+};
+
+export type CreateCouncilMetricResponses = {
+    201: CouncilMetric;
+};
+
+export type CreateCouncilMetricResponse = CreateCouncilMetricResponses[keyof CreateCouncilMetricResponses];
+
+export type PreviewCouncilMetricData = {
+    body: CouncilMetricPreviewRequest;
+    path?: never;
+    query?: never;
+    url: '/council/metrics/preview';
+};
+
+export type PreviewCouncilMetricErrors = {
+    /**
+     * Prompt inválido ou scope insuficiente
+     */
+    400: unknown;
+};
+
+export type PreviewCouncilMetricResponses = {
+    200: CouncilMetricPreviewResponse;
+};
+
+export type PreviewCouncilMetricResponse = PreviewCouncilMetricResponses[keyof PreviewCouncilMetricResponses];
+
+export type DeleteCouncilMetricData = {
+    body?: never;
+    path: {
+        metric_id: string;
+    };
+    query?: never;
+    url: '/council/metrics/{metric_id}';
+};
+
+export type DeleteCouncilMetricErrors = {
+    /**
+     * Não encontrada
+     */
+    404: unknown;
+};
+
+export type DeleteCouncilMetricResponses = {
+    /**
+     * Removida
+     */
+    204: void;
+};
+
+export type DeleteCouncilMetricResponse = DeleteCouncilMetricResponses[keyof DeleteCouncilMetricResponses];
+
+export type GetCouncilMetricData = {
+    body?: never;
+    path: {
+        metric_id: string;
+    };
+    query?: never;
+    url: '/council/metrics/{metric_id}';
+};
+
+export type GetCouncilMetricErrors = {
+    /**
+     * Não encontrada
+     */
+    404: unknown;
+};
+
+export type GetCouncilMetricResponses = {
+    200: CouncilMetric;
+};
+
+export type GetCouncilMetricResponse = GetCouncilMetricResponses[keyof GetCouncilMetricResponses];
+
+export type UpdateCouncilMetricData = {
+    body: CouncilMetricUpdate;
+    path: {
+        metric_id: string;
+    };
+    query?: never;
+    url: '/council/metrics/{metric_id}';
+};
+
+export type UpdateCouncilMetricErrors = {
+    /**
+     * Não encontrada
+     */
+    404: unknown;
+};
+
+export type UpdateCouncilMetricResponses = {
+    200: CouncilMetric;
+};
+
+export type UpdateCouncilMetricResponse = UpdateCouncilMetricResponses[keyof UpdateCouncilMetricResponses];
+
+export type GetGoogleAdsIntegrationData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/integrations/google-ads';
+};
+
+export type GetGoogleAdsIntegrationResponses = {
+    /**
+     * Estado OAuth
+     */
+    200: GoogleIntegrationStatus;
+};
+
+export type GetGoogleAdsIntegrationResponse = GetGoogleAdsIntegrationResponses[keyof GetGoogleAdsIntegrationResponses];
+
+export type SetGoogleAdsLoginCustomerIdData = {
+    body: GoogleAdsLoginCustomerIdRequest;
+    path?: never;
+    query?: never;
+    url: '/integrations/google-ads';
+};
+
+export type SetGoogleAdsLoginCustomerIdErrors = {
+    /**
+     * ID inválido (só dígitos, 10 no formato Google)
+     */
+    400: unknown;
+};
+
+export type SetGoogleAdsLoginCustomerIdResponses = {
+    /**
+     * Estado actualizado
+     */
+    200: GoogleIntegrationStatus;
+};
+
+export type SetGoogleAdsLoginCustomerIdResponse = SetGoogleAdsLoginCustomerIdResponses[keyof SetGoogleAdsLoginCustomerIdResponses];
+
+export type ListGoogleAdsAccountsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/integrations/google-ads/accounts';
+};
+
+export type ListGoogleAdsAccountsErrors = {
+    /**
+     * OAuth não ligado ou erro Google
+     */
+    400: unknown;
+};
+
+export type ListGoogleAdsAccountsResponses = {
+    /**
+     * Lista de contas
+     */
+    200: GoogleAdsAccountList;
+};
+
+export type ListGoogleAdsAccountsResponse = ListGoogleAdsAccountsResponses[keyof ListGoogleAdsAccountsResponses];
+
+export type AuthorizeGoogleAdsOauthData = {
+    body: GoogleIntegrationOauthAuthorizeRequest;
+    path?: never;
+    query?: never;
+    url: '/integrations/google-ads/oauth/authorize';
+};
+
+export type AuthorizeGoogleAdsOauthResponses = {
+    /**
+     * URL de autorização
+     */
+    200: GoogleIntegrationOauthAuthorizeResult;
+};
+
+export type AuthorizeGoogleAdsOauthResponse = AuthorizeGoogleAdsOauthResponses[keyof AuthorizeGoogleAdsOauthResponses];
+
+export type RevokeGoogleAdsOauthData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/integrations/google-ads/oauth/revoke';
+};
+
+export type RevokeGoogleAdsOauthResponses = {
+    /**
+     * Revogado
+     */
+    200: {
+        ok: boolean;
+    };
+};
+
+export type RevokeGoogleAdsOauthResponse = RevokeGoogleAdsOauthResponses[keyof RevokeGoogleAdsOauthResponses];
+
+export type GetGa4IntegrationData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/integrations/ga4';
+};
+
+export type GetGa4IntegrationResponses = {
+    /**
+     * Estado OAuth
+     */
+    200: GoogleIntegrationStatus;
+};
+
+export type GetGa4IntegrationResponse = GetGa4IntegrationResponses[keyof GetGa4IntegrationResponses];
+
+export type SetGa4PropertyData = {
+    body: Ga4PropertyBindingRequest;
+    path?: never;
+    query?: never;
+    url: '/integrations/ga4';
+};
+
+export type SetGa4PropertyErrors = {
+    /**
+     * property_id inválido
+     */
+    400: unknown;
+};
+
+export type SetGa4PropertyResponses = {
+    /**
+     * Estado actualizado
+     */
+    200: GoogleIntegrationStatus;
+};
+
+export type SetGa4PropertyResponse = SetGa4PropertyResponses[keyof SetGa4PropertyResponses];
+
+export type ListGa4PropertiesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/integrations/ga4/properties';
+};
+
+export type ListGa4PropertiesErrors = {
+    /**
+     * OAuth não ligado ou erro Google
+     */
+    400: unknown;
+};
+
+export type ListGa4PropertiesResponses = {
+    /**
+     * Lista de properties
+     */
+    200: Ga4PropertyList;
+};
+
+export type ListGa4PropertiesResponse = ListGa4PropertiesResponses[keyof ListGa4PropertiesResponses];
+
+export type AuthorizeGa4OauthData = {
+    body: GoogleIntegrationOauthAuthorizeRequest;
+    path?: never;
+    query?: never;
+    url: '/integrations/ga4/oauth/authorize';
+};
+
+export type AuthorizeGa4OauthResponses = {
+    /**
+     * URL de autorização
+     */
+    200: GoogleIntegrationOauthAuthorizeResult;
+};
+
+export type AuthorizeGa4OauthResponse = AuthorizeGa4OauthResponses[keyof AuthorizeGa4OauthResponses];
+
+export type RevokeGa4OauthData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/integrations/ga4/oauth/revoke';
+};
+
+export type RevokeGa4OauthResponses = {
+    /**
+     * Revogado
+     */
+    200: {
+        ok: boolean;
+    };
+};
+
+export type RevokeGa4OauthResponse = RevokeGa4OauthResponses[keyof RevokeGa4OauthResponses];
+
+export type ListExtMcpTemplatesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/ext-mcp/templates';
+};
+
+export type ListExtMcpTemplatesResponses = {
+    /**
+     * Templates curados
+     */
+    200: ExtMcpTemplateList;
+};
+
+export type ListExtMcpTemplatesResponse = ListExtMcpTemplatesResponses[keyof ListExtMcpTemplatesResponses];
+
+export type ListExtMcpCatalogData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Busca full-text / semântica Smithery
+         */
+        q?: string;
+        verified_only?: boolean;
+        page?: number;
+        page_size?: number;
+    };
+    url: '/ext-mcp/catalog';
+};
+
+export type ListExtMcpCatalogErrors = {
+    /**
+     * Smithery não configurado ou sync falhou
+     */
+    503: unknown;
+};
+
+export type ListExtMcpCatalogResponses = {
+    /**
+     * Página do catálogo
+     */
+    200: ExtMcpCatalogPage;
+};
+
+export type ListExtMcpCatalogResponse = ListExtMcpCatalogResponses[keyof ListExtMcpCatalogResponses];
+
+export type SyncExtMcpCatalogData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/ext-mcp/catalog/sync';
+};
+
+export type SyncExtMcpCatalogErrors = {
+    /**
+     * Smithery não configurado
+     */
+    503: unknown;
+};
+
+export type SyncExtMcpCatalogResponses = {
+    /**
+     * Sync concluído
+     */
+    200: ExtMcpCatalogSyncResult;
+};
+
+export type SyncExtMcpCatalogResponse = SyncExtMcpCatalogResponses[keyof SyncExtMcpCatalogResponses];
+
+export type CreateExtMcpConnectionFromCatalogData = {
+    body: ExtMcpFromCatalogCreate;
+    path?: never;
+    query?: never;
+    url: '/ext-mcp/connections/from-catalog';
+};
+
+export type CreateExtMcpConnectionFromCatalogErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+    /**
+     * Smithery não configurado
+     */
+    503: unknown;
+};
+
+export type CreateExtMcpConnectionFromCatalogResponses = {
+    /**
+     * Conexão criada (pode estar draft à espera de setup)
+     */
+    201: ExtMcpFromCatalogResult;
+};
+
+export type CreateExtMcpConnectionFromCatalogResponse = CreateExtMcpConnectionFromCatalogResponses[keyof CreateExtMcpConnectionFromCatalogResponses];
+
+export type ListExtMcpConnectionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
+    url: '/ext-mcp/connections';
+};
+
+export type ListExtMcpConnectionsResponses = {
+    /**
+     * Lista de conexões
+     */
+    200: ExtMcpConnectionList;
+};
+
+export type ListExtMcpConnectionsResponse = ListExtMcpConnectionsResponses[keyof ListExtMcpConnectionsResponses];
+
+export type CreateExtMcpConnectionData = {
+    body: ExtMcpConnectionCreate;
+    path?: never;
+    query?: never;
+    url: '/ext-mcp/connections';
+};
+
+export type CreateExtMcpConnectionErrors = {
+    /**
+     * Payload inválido ou URL bloqueada (SSRF)
+     */
+    400: unknown;
+};
+
+export type CreateExtMcpConnectionResponses = {
+    /**
+     * Conexão criada (segredos nunca devolvidos)
+     */
+    201: ExtMcpConnection;
+};
+
+export type CreateExtMcpConnectionResponse = CreateExtMcpConnectionResponses[keyof CreateExtMcpConnectionResponses];
+
+export type DeleteExtMcpConnectionData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/ext-mcp/connections/{connection_id}';
+};
+
+export type DeleteExtMcpConnectionErrors = {
+    /**
+     * Conexão inexistente
+     */
+    404: unknown;
+};
+
+export type DeleteExtMcpConnectionResponses = {
+    /**
+     * Apagada
+     */
+    204: void;
+};
+
+export type DeleteExtMcpConnectionResponse = DeleteExtMcpConnectionResponses[keyof DeleteExtMcpConnectionResponses];
+
+export type GetExtMcpConnectionData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/ext-mcp/connections/{connection_id}';
+};
+
+export type GetExtMcpConnectionErrors = {
+    /**
+     * Conexão inexistente
+     */
+    404: unknown;
+};
+
+export type GetExtMcpConnectionResponses = {
+    200: ExtMcpConnection;
+};
+
+export type GetExtMcpConnectionResponse = GetExtMcpConnectionResponses[keyof GetExtMcpConnectionResponses];
+
+export type UpdateExtMcpConnectionData = {
+    body: ExtMcpConnectionUpdate;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/ext-mcp/connections/{connection_id}';
+};
+
+export type UpdateExtMcpConnectionErrors = {
+    /**
+     * Conexão inexistente
+     */
+    404: unknown;
+};
+
+export type UpdateExtMcpConnectionResponses = {
+    200: ExtMcpConnection;
+};
+
+export type UpdateExtMcpConnectionResponse = UpdateExtMcpConnectionResponses[keyof UpdateExtMcpConnectionResponses];
+
+export type TestExtMcpConnectionData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/ext-mcp/connections/{connection_id}/test';
+};
+
+export type TestExtMcpConnectionErrors = {
+    /**
+     * Conexão inexistente
+     */
+    404: unknown;
+};
+
+export type TestExtMcpConnectionResponses = {
+    200: ExtMcpTestResult;
+};
+
+export type TestExtMcpConnectionResponse = TestExtMcpConnectionResponses[keyof TestExtMcpConnectionResponses];
+
+export type RefreshExtMcpConnectionToolsData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/ext-mcp/connections/{connection_id}/refresh-tools';
+};
+
+export type RefreshExtMcpConnectionToolsErrors = {
+    /**
+     * Discovery remoto falhou
+     */
+    400: unknown;
+    /**
+     * Conexão inexistente
+     */
+    404: unknown;
+};
+
+export type RefreshExtMcpConnectionToolsResponses = {
+    200: ExtMcpConnection;
+};
+
+export type RefreshExtMcpConnectionToolsResponse = RefreshExtMcpConnectionToolsResponses[keyof RefreshExtMcpConnectionToolsResponses];
+
+export type AuthorizeExtMcpOauthData = {
+    body: ExtMcpOauthAuthorizeRequestWritable;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/ext-mcp/connections/{connection_id}/oauth/authorize';
+};
+
+export type AuthorizeExtMcpOauthErrors = {
+    /**
+     * Pedido inválido
+     */
+    400: unknown;
+    /**
+     * Conexão inexistente
+     */
+    404: unknown;
+};
+
+export type AuthorizeExtMcpOauthResponses = {
+    200: ExtMcpOauthAuthorizeResult;
+};
+
+export type AuthorizeExtMcpOauthResponse = AuthorizeExtMcpOauthResponses[keyof AuthorizeExtMcpOauthResponses];
+
+export type RevokeExtMcpOauthData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/ext-mcp/connections/{connection_id}/oauth/revoke';
+};
+
+export type RevokeExtMcpOauthErrors = {
+    /**
+     * Conexão inexistente
+     */
+    404: unknown;
+};
+
+export type RevokeExtMcpOauthResponses = {
+    200: ExtMcpConnection;
+};
+
+export type RevokeExtMcpOauthResponse = RevokeExtMcpOauthResponses[keyof RevokeExtMcpOauthResponses];
+
+export type GetExtMcpConnectionSetupData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/ext-mcp/connections/{connection_id}/setup';
+};
+
+export type GetExtMcpConnectionSetupErrors = {
+    /**
+     * Conexão inexistente
+     */
+    404: unknown;
+};
+
+export type GetExtMcpConnectionSetupResponses = {
+    200: ExtMcpSetupResult;
+};
+
+export type GetExtMcpConnectionSetupResponse = GetExtMcpConnectionSetupResponses[keyof GetExtMcpConnectionSetupResponses];
+
+export type SyncExtMcpConnectionSmitheryData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/ext-mcp/connections/{connection_id}/smithery-sync';
+};
+
+export type SyncExtMcpConnectionSmitheryErrors = {
+    /**
+     * Não é conexão Smithery ou sync falhou
+     */
+    400: unknown;
+    /**
+     * Conexão inexistente
+     */
+    404: unknown;
+    /**
+     * Smithery não configurado
+     */
+    503: unknown;
+};
+
+export type SyncExtMcpConnectionSmitheryResponses = {
+    200: ExtMcpFromCatalogResult;
+};
+
+export type SyncExtMcpConnectionSmitheryResponse = SyncExtMcpConnectionSmitheryResponses[keyof SyncExtMcpConnectionSmitheryResponses];
+
+export type ListMessageTemplatesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
     url: '/message-templates';
 };
 
@@ -8240,115 +25959,288 @@ export type UpsertMessageBrandingResponses = {
 
 export type UpsertMessageBrandingResponse = UpsertMessageBrandingResponses[keyof UpsertMessageBrandingResponses];
 
-export type ListUsersData = {
+export type GetMessageEmailDeliverabilityData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/message-email-deliverability';
+};
+
+export type GetMessageEmailDeliverabilityResponses = {
+    /**
+     * Relatório de entregabilidade
+     */
+    200: MessageEmailDeliverability;
+};
+
+export type GetMessageEmailDeliverabilityResponse = GetMessageEmailDeliverabilityResponses[keyof GetMessageEmailDeliverabilityResponses];
+
+export type SetupMessageEmailDeliverabilityData = {
+    body?: MessageEmailDeliverabilitySetup;
+    path?: never;
+    query?: never;
+    url: '/message-email-deliverability';
+};
+
+export type SetupMessageEmailDeliverabilityErrors = {
+    /**
+     * from_email/domínio em falta ou inválido
+     */
+    400: unknown;
+    /**
+     * Provisionamento Postal indisponível (POSTAL_MYSQL_DSN)
+     */
+    503: unknown;
+};
+
+export type SetupMessageEmailDeliverabilityResponses = {
+    /**
+     * Domínio preparado + relatório
+     */
+    200: MessageEmailDeliverability;
+};
+
+export type SetupMessageEmailDeliverabilityResponse = SetupMessageEmailDeliverabilityResponses[keyof SetupMessageEmailDeliverabilityResponses];
+
+export type ListStaffsData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
         tenant_id?: string;
+        status?: StaffStatus;
+        /**
+         * Filtra staffs que contenham esta tag de área (normalizada lower-case)
+         */
+        group?: string;
         /**
          * Busca case-insensitive por substring em campos de texto do recurso.
          */
         search?: string;
     };
-    url: '/users';
+    url: '/staffs';
 };
 
-export type ListUsersResponses = {
-    200: UserListPage;
+export type ListStaffsResponses = {
+    200: StaffListPage;
 };
 
-export type ListUsersResponse = ListUsersResponses[keyof ListUsersResponses];
+export type ListStaffsResponse = ListStaffsResponses[keyof ListStaffsResponses];
 
-export type CreateUserData = {
-    body: UserCreate;
+export type CreateStaffData = {
+    body: StaffCreate;
     path?: never;
     query?: never;
-    url: '/users';
+    url: '/staffs';
 };
 
-export type CreateUserErrors = {
+export type CreateStaffErrors = {
     /**
      * E-mail já registado
      */
     409: unknown;
 };
 
-export type CreateUserResponses = {
-    201: UserCreated;
+export type CreateStaffResponses = {
+    201: StaffCreated;
 };
 
-export type CreateUserResponse = CreateUserResponses[keyof CreateUserResponses];
+export type CreateStaffResponse = CreateStaffResponses[keyof CreateStaffResponses];
 
-export type GetUserData = {
+export type GetStaffData = {
     body?: never;
     path: {
-        user_id: string;
+        staff_id: string;
     };
     query?: never;
-    url: '/users/{user_id}';
+    url: '/staffs/{staff_id}';
 };
 
-export type GetUserErrors = {
+export type GetStaffErrors = {
     /**
-     * Utilizador não encontrado
+     * Staff não encontrado
      */
     404: unknown;
 };
 
-export type GetUserResponses = {
-    200: User;
+export type GetStaffResponses = {
+    200: Staff;
 };
 
-export type GetUserResponse = GetUserResponses[keyof GetUserResponses];
+export type GetStaffResponse = GetStaffResponses[keyof GetStaffResponses];
 
-export type UpdateUserData = {
-    body: UserUpdate;
+export type UpdateStaffData = {
+    body: StaffUpdate;
     path: {
-        user_id: string;
+        staff_id: string;
     };
     query?: never;
-    url: '/users/{user_id}';
+    url: '/staffs/{staff_id}';
 };
 
-export type UpdateUserErrors = {
+export type UpdateStaffErrors = {
     /**
-     * Utilizador não encontrado
+     * Staff não encontrado
      */
     404: unknown;
 };
 
-export type UpdateUserResponses = {
-    200: User;
+export type UpdateStaffResponses = {
+    200: Staff;
 };
 
-export type UpdateUserResponse = UpdateUserResponses[keyof UpdateUserResponses];
+export type UpdateStaffResponse = UpdateStaffResponses[keyof UpdateStaffResponses];
 
-export type InviteUserData = {
+export type InviteStaffData = {
     body?: never;
     path: {
-        user_id: string;
+        staff_id: string;
     };
     query?: never;
-    url: '/users/{user_id}/invite';
+    url: '/staffs/{staff_id}/invite';
 };
 
-export type InviteUserErrors = {
+export type InviteStaffErrors = {
     /**
-     * Utilizador não encontrado
+     * Staff não encontrado
      */
     404: unknown;
 };
 
-export type InviteUserResponses = {
-    200: UserInviteResult;
+export type InviteStaffResponses = {
+    200: StaffInviteResult;
 };
 
-export type InviteUserResponse = InviteUserResponses[keyof InviteUserResponses];
+export type InviteStaffResponse = InviteStaffResponses[keyof InviteStaffResponses];
+
+export type ListStaffPermissionGroupsData = {
+    body?: never;
+    path: {
+        staff_id: string;
+    };
+    query?: never;
+    url: '/staffs/{staff_id}/permission-groups';
+};
+
+export type ListStaffPermissionGroupsErrors = {
+    /**
+     * Staff não encontrado
+     */
+    404: unknown;
+};
+
+export type ListStaffPermissionGroupsResponses = {
+    200: PrincipalGroupAssignment;
+};
+
+export type ListStaffPermissionGroupsResponse = ListStaffPermissionGroupsResponses[keyof ListStaffPermissionGroupsResponses];
+
+export type SetStaffPermissionGroupsData = {
+    body: PrincipalGroupAssignmentUpdate;
+    path: {
+        staff_id: string;
+    };
+    query?: never;
+    url: '/staffs/{staff_id}/permission-groups';
+};
+
+export type SetStaffPermissionGroupsErrors = {
+    /**
+     * Tecto de delegação — grupos concedem mais do que o autor tem
+     */
+    403: unknown;
+    /**
+     * Staff não encontrado
+     */
+    404: unknown;
+};
+
+export type SetStaffPermissionGroupsResponses = {
+    200: PrincipalGroupAssignment;
+};
+
+export type SetStaffPermissionGroupsResponse = SetStaffPermissionGroupsResponses[keyof SetStaffPermissionGroupsResponses];
+
+export type ListPermissionGroupsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/permission-groups';
+};
+
+export type ListPermissionGroupsResponses = {
+    200: PermissionGroupList;
+};
+
+export type ListPermissionGroupsResponse = ListPermissionGroupsResponses[keyof ListPermissionGroupsResponses];
+
+export type DeletePermissionGroupData = {
+    body?: never;
+    path: {
+        slug: string;
+    };
+    query?: never;
+    url: '/permission-groups/{slug}';
+};
+
+export type DeletePermissionGroupErrors = {
+    /**
+     * Grupo não encontrado
+     */
+    404: unknown;
+};
+
+export type DeletePermissionGroupResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type DeletePermissionGroupResponse = DeletePermissionGroupResponses[keyof DeletePermissionGroupResponses];
+
+export type UpsertPermissionGroupData = {
+    body: PermissionGroupUpsert;
+    path: {
+        slug: string;
+    };
+    query?: never;
+    url: '/permission-groups/{slug}';
+};
+
+export type UpsertPermissionGroupErrors = {
+    /**
+     * Tecto de delegação — o grupo concede mais do que o autor tem
+     */
+    403: unknown;
+};
+
+export type UpsertPermissionGroupResponses = {
+    200: PermissionGroup;
+};
+
+export type UpsertPermissionGroupResponse = UpsertPermissionGroupResponses[keyof UpsertPermissionGroupResponses];
 
 export type ListChannelsData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
     url: '/channels';
 };
 
@@ -8379,6 +26271,35 @@ export type CreateChannelResponses = {
 };
 
 export type CreateChannelResponse = CreateChannelResponses[keyof CreateChannelResponses];
+
+export type DeleteChannelData = {
+    body?: never;
+    path: {
+        channel_id: string;
+    };
+    query?: never;
+    url: '/channels/{channel_id}';
+};
+
+export type DeleteChannelErrors = {
+    /**
+     * Canal inexistente
+     */
+    404: unknown;
+    /**
+     * Canal em uso ou é o padrão — desative em vez de excluir
+     */
+    409: unknown;
+};
+
+export type DeleteChannelResponses = {
+    /**
+     * Canal removido
+     */
+    204: void;
+};
+
+export type DeleteChannelResponse = DeleteChannelResponses[keyof DeleteChannelResponses];
 
 export type GetChannelData = {
     body?: never;
@@ -8428,10 +26349,87 @@ export type UpdateChannelResponses = {
 
 export type UpdateChannelResponse = UpdateChannelResponses[keyof UpdateChannelResponses];
 
-export type ListMarketplaceConnectionsData = {
+export type ConfigureChannelDnsData = {
+    body?: never;
+    path: {
+        channel_id: string;
+    };
+    query?: never;
+    url: '/channels/{channel_id}/configure-dns';
+};
+
+export type ConfigureChannelDnsErrors = {
+    /**
+     * Canal não é storefront ou faltam hostnames
+     */
+    400: unknown;
+    /**
+     * Canal inexistente
+     */
+    404: unknown;
+    /**
+     * Nenhum hostname passou na verificação DNS
+     */
+    502: unknown;
+};
+
+export type ConfigureChannelDnsResponses = {
+    200: ChannelDnsConfigureResult;
+};
+
+export type ConfigureChannelDnsResponse = ConfigureChannelDnsResponses[keyof ConfigureChannelDnsResponses];
+
+export type GetChannelAssociationsData = {
+    body?: never;
+    path: {
+        channel_id: string;
+    };
+    query?: never;
+    url: '/channels/{channel_id}/associations';
+};
+
+export type GetChannelAssociationsErrors = {
+    /**
+     * Canal inexistente
+     */
+    404: unknown;
+};
+
+export type GetChannelAssociationsResponses = {
+    200: ChannelAssociations;
+};
+
+export type GetChannelAssociationsResponse = GetChannelAssociationsResponses[keyof GetChannelAssociationsResponses];
+
+export type ListMarketplaceChannelsData = {
     body?: never;
     path?: never;
     query?: never;
+    url: '/marketplace/channels';
+};
+
+export type ListMarketplaceChannelsResponses = {
+    /**
+     * Canais com adapter carregado
+     */
+    200: MarketplaceChannelList;
+};
+
+export type ListMarketplaceChannelsResponse = ListMarketplaceChannelsResponses[keyof ListMarketplaceChannelsResponses];
+
+export type ListMarketplaceConnectionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
     url: '/marketplace/connections';
 };
 
@@ -8508,6 +26506,87 @@ export type GetMarketplaceConnectionResponses = {
 
 export type GetMarketplaceConnectionResponse = GetMarketplaceConnectionResponses[keyof GetMarketplaceConnectionResponses];
 
+export type UpdateMarketplaceConnectionData = {
+    body: MarketplaceConnectionUpdate;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/marketplace/connections/{connection_id}';
+};
+
+export type UpdateMarketplaceConnectionErrors = {
+    /**
+     * Config inválida
+     */
+    400: unknown;
+    /**
+     * Conexão não encontrada
+     */
+    404: unknown;
+};
+
+export type UpdateMarketplaceConnectionResponses = {
+    /**
+     * Conexão actualizada
+     */
+    200: MarketplaceConnection;
+};
+
+export type UpdateMarketplaceConnectionResponse = UpdateMarketplaceConnectionResponses[keyof UpdateMarketplaceConnectionResponses];
+
+export type PreviewMarketplaceConnectionPricingData = {
+    body: MarketplacePricingPreviewRequest;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/marketplace/connections/{connection_id}/preview-pricing';
+};
+
+export type PreviewMarketplaceConnectionPricingErrors = {
+    /**
+     * Conexão ou produto não encontrado
+     */
+    404: unknown;
+};
+
+export type PreviewMarketplaceConnectionPricingResponses = {
+    /**
+     * Preview
+     */
+    200: MarketplacePricingPreview;
+};
+
+export type PreviewMarketplaceConnectionPricingResponse = PreviewMarketplaceConnectionPricingResponses[keyof PreviewMarketplaceConnectionPricingResponses];
+
+export type ListMarketplaceSyncLogsData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/marketplace/connections/{connection_id}/sync-logs';
+};
+
+export type ListMarketplaceSyncLogsErrors = {
+    /**
+     * Conexão não encontrada
+     */
+    404: unknown;
+};
+
+export type ListMarketplaceSyncLogsResponses = {
+    /**
+     * Logs do último sync
+     */
+    200: {
+        data?: Array<MarketplaceSyncLogEntry>;
+    };
+};
+
+export type ListMarketplaceSyncLogsResponse = ListMarketplaceSyncLogsResponses[keyof ListMarketplaceSyncLogsResponses];
+
 export type SyncMarketplaceConnectionData = {
     body?: never;
     path: {
@@ -8536,7 +26615,16 @@ export type ListMarketplaceListingsData = {
     path: {
         connection_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
     url: '/marketplace/connections/{connection_id}/listings';
 };
 
@@ -8552,6 +26640,182 @@ export type ListMarketplaceListingsResponses = {
 };
 
 export type ListMarketplaceListingsResponse = ListMarketplaceListingsResponses[keyof ListMarketplaceListingsResponses];
+
+export type ListMarketplaceMapsData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: {
+        kind?: 'category' | 'attribute' | 'brand' | 'freight' | 'status' | 'listing_bind';
+    };
+    url: '/marketplace/connections/{connection_id}/maps';
+};
+
+export type ListMarketplaceMapsErrors = {
+    /**
+     * Conexão não encontrada
+     */
+    404: unknown;
+};
+
+export type ListMarketplaceMapsResponses = {
+    200: Array<MarketplaceMap>;
+};
+
+export type ListMarketplaceMapsResponse = ListMarketplaceMapsResponses[keyof ListMarketplaceMapsResponses];
+
+export type ApplyMarketplaceMapData = {
+    body: MarketplaceMapApply;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/marketplace/connections/{connection_id}/maps';
+};
+
+export type ApplyMarketplaceMapErrors = {
+    /**
+     * Pedido inválido
+     */
+    400: unknown;
+    /**
+     * Conexão não encontrada
+     */
+    404: unknown;
+};
+
+export type ApplyMarketplaceMapResponses = {
+    201: MarketplaceMap;
+};
+
+export type ApplyMarketplaceMapResponse = ApplyMarketplaceMapResponses[keyof ApplyMarketplaceMapResponses];
+
+export type OnboardMarketplaceConnectionData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/marketplace/connections/{connection_id}/onboard';
+};
+
+export type OnboardMarketplaceConnectionErrors = {
+    /**
+     * Conexão não encontrada
+     */
+    404: unknown;
+};
+
+export type OnboardMarketplaceConnectionResponses = {
+    /**
+     * Onboarding aceite
+     */
+    202: MarketplaceOnboardResult;
+};
+
+export type OnboardMarketplaceConnectionResponse = OnboardMarketplaceConnectionResponses[keyof OnboardMarketplaceConnectionResponses];
+
+export type ListMarketplaceMapProposalsData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: {
+        status?: 'pending' | 'accepted' | 'rejected';
+    };
+    url: '/marketplace/connections/{connection_id}/map-proposals';
+};
+
+export type ListMarketplaceMapProposalsErrors = {
+    /**
+     * Conexão não encontrada
+     */
+    404: unknown;
+};
+
+export type ListMarketplaceMapProposalsResponses = {
+    200: Array<MarketplaceMapProposal>;
+};
+
+export type ListMarketplaceMapProposalsResponse = ListMarketplaceMapProposalsResponses[keyof ListMarketplaceMapProposalsResponses];
+
+export type DecideMarketplaceMapProposalData = {
+    body: MarketplaceMapProposalDecide;
+    path: {
+        connection_id: string;
+        proposal_id: string;
+    };
+    query?: never;
+    url: '/marketplace/connections/{connection_id}/map-proposals/{proposal_id}/decide';
+};
+
+export type DecideMarketplaceMapProposalErrors = {
+    /**
+     * Pedido inválido
+     */
+    400: unknown;
+    /**
+     * Proposta ou conexão não encontrada
+     */
+    404: unknown;
+};
+
+export type DecideMarketplaceMapProposalResponses = {
+    /**
+     * Decisão aplicada
+     */
+    200: MarketplaceMapProposal;
+};
+
+export type DecideMarketplaceMapProposalResponse = DecideMarketplaceMapProposalResponses[keyof DecideMarketplaceMapProposalResponses];
+
+export type GetMarketplaceMappingStatsData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/marketplace/connections/{connection_id}/mapping-stats';
+};
+
+export type GetMarketplaceMappingStatsErrors = {
+    /**
+     * Conexão não encontrada
+     */
+    404: unknown;
+};
+
+export type GetMarketplaceMappingStatsResponses = {
+    200: MarketplaceMappingStats;
+};
+
+export type GetMarketplaceMappingStatsResponse = GetMarketplaceMappingStatsResponses[keyof GetMarketplaceMappingStatsResponses];
+
+export type DetectMarketplaceDriftData = {
+    body?: never;
+    path: {
+        connection_id: string;
+    };
+    query?: never;
+    url: '/marketplace/connections/{connection_id}/detect-drift';
+};
+
+export type DetectMarketplaceDriftErrors = {
+    /**
+     * Conexão não encontrada
+     */
+    404: unknown;
+};
+
+export type DetectMarketplaceDriftResponses = {
+    /**
+     * Detecção concluída
+     */
+    202: MarketplaceDriftResult;
+};
+
+export type DetectMarketplaceDriftResponse = DetectMarketplaceDriftResponses[keyof DetectMarketplaceDriftResponses];
 
 export type GetMarketplaceOAuthAuthorizeData = {
     body?: never;
@@ -8570,6 +26834,64 @@ export type GetMarketplaceOAuthAuthorizeErrors = {
      */
     404: unknown;
 };
+
+export type BeginMarketplaceOAuthUserCodeData = {
+    body: MarketplaceOAuthUserCodeBegin;
+    path: {
+        channel: string;
+    };
+    query?: never;
+    url: '/marketplace/oauth/user-code/{channel}';
+};
+
+export type BeginMarketplaceOAuthUserCodeErrors = {
+    /**
+     * Canal sem user_code_oauth ou pedido inválido
+     */
+    400: unknown;
+    /**
+     * Canal ou conexão não encontrados
+     */
+    404: unknown;
+};
+
+export type BeginMarketplaceOAuthUserCodeResponses = {
+    /**
+     * Challenge userCode
+     */
+    200: MarketplaceOAuthUserCodeChallenge;
+};
+
+export type BeginMarketplaceOAuthUserCodeResponse = BeginMarketplaceOAuthUserCodeResponses[keyof BeginMarketplaceOAuthUserCodeResponses];
+
+export type CompleteMarketplaceOAuthUserCodeData = {
+    body: MarketplaceOAuthUserCodeComplete;
+    path: {
+        channel: string;
+    };
+    query?: never;
+    url: '/marketplace/oauth/user-code/{channel}';
+};
+
+export type CompleteMarketplaceOAuthUserCodeErrors = {
+    /**
+     * Código inválido ou expirado
+     */
+    400: unknown;
+    /**
+     * Canal ou conexão não encontrados
+     */
+    404: unknown;
+};
+
+export type CompleteMarketplaceOAuthUserCodeResponses = {
+    /**
+     * Conexão activada
+     */
+    200: MarketplaceConnection;
+};
+
+export type CompleteMarketplaceOAuthUserCodeResponse = CompleteMarketplaceOAuthUserCodeResponses[keyof CompleteMarketplaceOAuthUserCodeResponses];
 
 export type GetMarketplaceOAuthCallbackData = {
     body?: never;
@@ -8629,6 +26951,14 @@ export type ListApiTokensData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
         kind?: AccessTokenKind;
     };
     url: '/api-tokens';
@@ -8739,24 +27069,194 @@ export type GetMemberMeResponses = {
 export type GetMemberMeResponse = GetMemberMeResponses[keyof GetMemberMeResponses];
 
 export type CancelOrderData = {
-    body?: {
-        reason?: string;
-    };
+    body?: CancelOrderRequest;
     path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
         order_id: string;
     };
     query?: never;
     url: '/orders/{order_id}/commands/cancel';
 };
 
+export type CancelOrderErrors = {
+    /**
+     * Pedido sem pagamento elegível para estorno pedido
+     */
+    400: unknown;
+    /**
+     * Pedido em status terminal que não admite cancelamento
+     */
+    409: unknown;
+    /**
+     * Falha no gateway de estorno — cancelamento não aplicado
+     */
+    502: unknown;
+};
+
 export type CancelOrderResponses = {
     /**
-     * Cancelamento solicitado
+     * Cancelamento solicitado ou confirmado
      */
     202: Order;
 };
 
 export type CancelOrderResponse = CancelOrderResponses[keyof CancelOrderResponses];
+
+export type RejectOrderCancelData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/reject-cancel';
+};
+
+export type RejectOrderCancelErrors = {
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+    /**
+     * Pedido não está em cancellation_requested
+     */
+    409: unknown;
+};
+
+export type RejectOrderCancelResponses = {
+    /**
+     * Pedido restaurado ao status anterior
+     */
+    202: Order;
+};
+
+export type RejectOrderCancelResponse = RejectOrderCancelResponses[keyof RejectOrderCancelResponses];
+
+export type PreviewOrderChangeData = {
+    body: ChangeOrderPreviewRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/change-order/preview';
+};
+
+export type PreviewOrderChangeErrors = {
+    /**
+     * Pedido não elegível (faturado, fulfillment, etc.)
+     */
+    409: unknown;
+    /**
+     * Composição excede teto pago ou stock soft-block
+     */
+    422: unknown;
+};
+
+export type PreviewOrderChangeResponses = {
+    /**
+     * Preview com seal e plano de settlement
+     */
+    200: OrderChangePreview;
+};
+
+export type PreviewOrderChangeResponse = PreviewOrderChangeResponses[keyof PreviewOrderChangeResponses];
+
+export type ChangeOrderData = {
+    body: ChangeOrderRequest;
+    headers?: {
+        /**
+         * Chave idempotente para retries seguros (submit, place-order, initiate payment).
+         */
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/change-order';
+};
+
+export type ChangeOrderErrors = {
+    /**
+     * Seal inválido, fulfillment activo, ou settlement unsupported
+     */
+    409: unknown;
+    /**
+     * Teto pago ou stock insuficiente
+     */
+    422: unknown;
+};
+
+export type ChangeOrderResponses = {
+    /**
+     * Pedido alterado
+     */
+    200: Order;
+};
+
+export type ChangeOrderResponse = ChangeOrderResponses[keyof ChangeOrderResponses];
+
+export type ListOrderChangesData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: {
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/orders/{order_id}/changes';
+};
+
+export type ListOrderChangesErrors = {
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+};
+
+export type ListOrderChangesResponses = {
+    /**
+     * Página de alterações
+     */
+    200: OrderChangeListPage;
+};
+
+export type ListOrderChangesResponse = ListOrderChangesResponses[keyof ListOrderChangesResponses];
+
+export type GetOrderSalesFacetsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        tenant_id?: string;
+        warehouse_id?: string;
+        date_from?: string;
+        date_to?: string;
+    };
+    url: '/orders/sales-facets';
+};
+
+export type GetOrderSalesFacetsResponses = {
+    /**
+     * Facets agregados
+     */
+    200: OrderSalesFacets;
+};
+
+export type GetOrderSalesFacetsResponse = GetOrderSalesFacetsResponses[keyof GetOrderSalesFacetsResponses];
 
 export type ListOrderFulfillmentQueueData = {
     body?: never;
@@ -8776,6 +27276,23 @@ export type ListOrderFulfillmentQueueResponses = {
 
 export type ListOrderFulfillmentQueueResponse = ListOrderFulfillmentQueueResponses[keyof ListOrderFulfillmentQueueResponses];
 
+export type ListOrderPickupQueueData = {
+    body?: never;
+    path?: never;
+    query: {
+        limit?: number;
+        cursor?: string;
+        warehouse_id: string;
+    };
+    url: '/orders/pickup-queue';
+};
+
+export type ListOrderPickupQueueResponses = {
+    200: OrderListPage;
+};
+
+export type ListOrderPickupQueueResponse = ListOrderPickupQueueResponses[keyof ListOrderPickupQueueResponses];
+
 export type StartOrderPickingData = {
     body?: WmsPickingSessionStart;
     headers?: {
@@ -8785,6 +27302,9 @@ export type StartOrderPickingData = {
         'Idempotency-Key'?: string;
     };
     path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
         order_id: string;
     };
     query?: never;
@@ -8806,6 +27326,9 @@ export type CompleteOrderPickingData = {
         'Idempotency-Key'?: string;
     };
     path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
         order_id: string;
     };
     query?: never;
@@ -8827,6 +27350,9 @@ export type PackOrderData = {
         'Idempotency-Key'?: string;
     };
     path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
         order_id: string;
     };
     query?: never;
@@ -8848,6 +27374,9 @@ export type DispatchOrderData = {
         'Idempotency-Key'?: string;
     };
     path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
         order_id: string;
     };
     query?: never;
@@ -8860,11 +27389,378 @@ export type DispatchOrderResponses = {
 
 export type DispatchOrderResponse = DispatchOrderResponses[keyof DispatchOrderResponses];
 
+export type CreateOrderShippingLabelData = {
+    body?: CreateShippingLabelRequest;
+    headers?: {
+        /**
+         * Chave idempotente para retries seguros (submit, place-order, initiate payment).
+         */
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/create-shipping-label';
+};
+
+export type CreateOrderShippingLabelErrors = {
+    /**
+     * Pedido sem endereço/método ou credenciais CWS em falta
+     */
+    400: unknown;
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+    /**
+     * Falha na API Correios
+     */
+    502: unknown;
+};
+
+export type CreateOrderShippingLabelResponses = {
+    200: OrderShippingLabel;
+};
+
+export type CreateOrderShippingLabelResponse = CreateOrderShippingLabelResponses[keyof CreateOrderShippingLabelResponses];
+
+export type GetOrderShippingLabelData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/shipping-label';
+};
+
+export type GetOrderShippingLabelErrors = {
+    /**
+     * Pedido ou etiqueta não encontrados
+     */
+    404: unknown;
+};
+
+export type GetOrderShippingLabelResponses = {
+    200: OrderShippingLabel;
+};
+
+export type GetOrderShippingLabelResponse = GetOrderShippingLabelResponses[keyof GetOrderShippingLabelResponses];
+
+export type UpdateOrderShippingTrackingData = {
+    body: UpdateShippingTrackingRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/update-shipping-tracking';
+};
+
+export type UpdateOrderShippingTrackingErrors = {
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+};
+
+export type UpdateOrderShippingTrackingResponses = {
+    200: Order;
+};
+
+export type UpdateOrderShippingTrackingResponse = UpdateOrderShippingTrackingResponses[keyof UpdateOrderShippingTrackingResponses];
+
+export type RefreshOrderShippingTrackingData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/refresh-shipping-tracking';
+};
+
+export type RefreshOrderShippingTrackingErrors = {
+    /**
+     * Sem tracking_code ou credenciais
+     */
+    400: unknown;
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+};
+
+export type RefreshOrderShippingTrackingResponses = {
+    200: Order;
+};
+
+export type RefreshOrderShippingTrackingResponse = RefreshOrderShippingTrackingResponses[keyof RefreshOrderShippingTrackingResponses];
+
+export type MarkOrderProducedData = {
+    body?: never;
+    headers?: {
+        /**
+         * Chave idempotente para retries seguros (submit, place-order, initiate payment).
+         */
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/mark-produced';
+};
+
+export type MarkOrderProducedErrors = {
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+};
+
+export type MarkOrderProducedResponses = {
+    202: OrderOpsProgress;
+};
+
+export type MarkOrderProducedResponse = MarkOrderProducedResponses[keyof MarkOrderProducedResponses];
+
+export type MarkOrderPackedData = {
+    body?: never;
+    headers?: {
+        /**
+         * Chave idempotente para retries seguros (submit, place-order, initiate payment).
+         */
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/mark-packed';
+};
+
+export type MarkOrderPackedErrors = {
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+};
+
+export type MarkOrderPackedResponses = {
+    202: OrderOpsProgress;
+};
+
+export type MarkOrderPackedResponse = MarkOrderPackedResponses[keyof MarkOrderPackedResponses];
+
+export type MarkOrderDispatchedData = {
+    body?: never;
+    headers?: {
+        /**
+         * Chave idempotente para retries seguros (submit, place-order, initiate payment).
+         */
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/mark-dispatched';
+};
+
+export type MarkOrderDispatchedErrors = {
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+};
+
+export type MarkOrderDispatchedResponses = {
+    202: OrderOpsProgress;
+};
+
+export type MarkOrderDispatchedResponse = MarkOrderDispatchedResponses[keyof MarkOrderDispatchedResponses];
+
+export type MarkOrderReadyForPickupData = {
+    body?: never;
+    headers?: {
+        /**
+         * Chave idempotente para retries seguros (submit, place-order, initiate payment).
+         */
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/mark-ready-for-pickup';
+};
+
+export type MarkOrderReadyForPickupErrors = {
+    /**
+     * Estado ou fulfillment incompatível
+     */
+    409: unknown;
+};
+
+export type MarkOrderReadyForPickupResponses = {
+    202: Order;
+};
+
+export type MarkOrderReadyForPickupResponse = MarkOrderReadyForPickupResponses[keyof MarkOrderReadyForPickupResponses];
+
+export type ConfirmOrderPickupData = {
+    body?: ConfirmOrderPickupRequest;
+    headers?: {
+        /**
+         * Chave idempotente para retries seguros (submit, place-order, initiate payment).
+         */
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/confirm-pickup';
+};
+
+export type ConfirmOrderPickupErrors = {
+    /**
+     * scan_code inválido
+     */
+    400: unknown;
+    /**
+     * Estado incompatível
+     */
+    409: unknown;
+};
+
+export type ConfirmOrderPickupResponses = {
+    202: Order;
+};
+
+export type ConfirmOrderPickupResponse = ConfirmOrderPickupResponses[keyof ConfirmOrderPickupResponses];
+
+export type ApplyOrderPriceOverrideData = {
+    body: OrderPriceOverrideRequestWritable;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/apply-price-override';
+};
+
+export type ApplyOrderPriceOverrideErrors = {
+    /**
+     * PIN inválido ou não configurado
+     */
+    403: unknown;
+    /**
+     * Pedido não editável
+     */
+    409: unknown;
+};
+
+export type ApplyOrderPriceOverrideResponses = {
+    200: Order;
+};
+
+export type ApplyOrderPriceOverrideResponse = ApplyOrderPriceOverrideResponses[keyof ApplyOrderPriceOverrideResponses];
+
+export type RecordOrderTendersData = {
+    body: OrderTendersRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/record-tenders';
+};
+
+export type RecordOrderTendersErrors = {
+    /**
+     * Soma ou método inválido
+     */
+    422: unknown;
+};
+
+export type RecordOrderTendersResponses = {
+    200: Order;
+};
+
+export type RecordOrderTendersResponse = RecordOrderTendersResponses[keyof RecordOrderTendersResponses];
+
+export type FulfillPosCrossWarehouseData = {
+    body: PosCrossWarehouseFulfillRequest;
+    headers?: {
+        /**
+         * Chave idempotente para retries seguros (submit, place-order, initiate payment).
+         */
+        'Idempotency-Key'?: string;
+    };
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/fulfill-pos-cross-warehouse';
+};
+
+export type FulfillPosCrossWarehouseErrors = {
+    /**
+     * Estado incompatível (pedido não pago / já orquestrado noutro mode)
+     */
+    409: unknown;
+    /**
+     * Sem linhas remotas ou stock insuficiente para transfer
+     */
+    422: unknown;
+};
+
+export type FulfillPosCrossWarehouseResponses = {
+    200: PosCrossWarehouseFulfillResult;
+};
+
+export type FulfillPosCrossWarehouseResponse = FulfillPosCrossWarehouseResponses[keyof FulfillPosCrossWarehouseResponses];
+
 export type InitiateOrderPaymentData = {
     body: {
         method: PaymentMethod;
+        deposit_method?: DepositMethod;
         /**
-         * Cloudflare Turnstile token (obrigatório quando CHECKOUT_CAPTCHA_REQUIRED=1).
+         * Cloudflare Turnstile token (obrigatório quando heuristics captcha_required=true).
          */
         captcha_token?: string;
     };
@@ -8875,6 +27771,9 @@ export type InitiateOrderPaymentData = {
         'Idempotency-Key'?: string;
     };
     path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
         order_id: string;
     };
     query?: never;
@@ -8899,16 +27798,297 @@ export type InitiateOrderPaymentErrors = {
 export type InitiateOrderPaymentResponses = {
     200: {
         payment_id?: string;
+        /**
+         * URL do checkout do aluguel (purpose=rental)
+         */
         checkout_url?: string;
+        /**
+         * URL da 2ª sessão (caução). Presente quando há deposit_* no SKU e o meio não é invoice/offline (#1418).
+         */
+        deposit_checkout_url?: string;
         status?: PaymentStatus;
     };
 };
 
 export type InitiateOrderPaymentResponse = InitiateOrderPaymentResponses[keyof InitiateOrderPaymentResponses];
 
+export type RefundOrderPaymentData = {
+    body?: OrderPaymentRefundRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/payments/refund';
+};
+
+export type RefundOrderPaymentErrors = {
+    /**
+     * Pagamento inexistente, inelegível ou provedor sem API de refund
+     */
+    400: unknown;
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+    /**
+     * Gateway recusou ou falhou o estorno
+     */
+    502: unknown;
+};
+
+export type RefundOrderPaymentResponses = {
+    /**
+     * Estorno aceite pelo gateway
+     */
+    200: OrderPaymentRefundResult;
+};
+
+export type RefundOrderPaymentResponse = RefundOrderPaymentResponses[keyof RefundOrderPaymentResponses];
+
+export type GetOrderPaymentProviderData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/payments/provider';
+};
+
+export type GetOrderPaymentProviderErrors = {
+    /**
+     * Pedido ou cobrança de provedor não disponível
+     */
+    404: unknown;
+    /**
+     * Falha ao consultar o adquirente
+     */
+    502: unknown;
+};
+
+export type GetOrderPaymentProviderResponses = {
+    /**
+     * Detalhe sincronizado
+     */
+    200: OrderPaymentProviderDetail;
+};
+
+export type GetOrderPaymentProviderResponse = GetOrderPaymentProviderResponses[keyof GetOrderPaymentProviderResponses];
+
+export type SyncOrderPaymentData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/payments/sync';
+};
+
+export type SyncOrderPaymentErrors = {
+    /**
+     * Provedor não configurado ou payment id inválido
+     */
+    400: unknown;
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+    /**
+     * Falha ao consultar o adquirente
+     */
+    502: unknown;
+};
+
+export type SyncOrderPaymentResponses = {
+    /**
+     * Pedido após sincronização
+     */
+    200: {
+        changed: boolean;
+        order: Order;
+    };
+};
+
+export type SyncOrderPaymentResponse = SyncOrderPaymentResponses[keyof SyncOrderPaymentResponses];
+
+export type GetOrderAnalysisData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/analysis';
+};
+
+export type GetOrderAnalysisErrors = {
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+};
+
+export type GetOrderAnalysisResponses = {
+    /**
+     * Resultado (pode estar unavailable)
+     */
+    200: OrderAnalysisGetResult;
+};
+
+export type GetOrderAnalysisResponse = GetOrderAnalysisResponses[keyof GetOrderAnalysisResponses];
+
+export type CreateOrderAnalysisData = {
+    body?: OrderAnalysisCreateRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/analysis';
+};
+
+export type CreateOrderAnalysisErrors = {
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+    /**
+     * Falha no gateway LLM
+     */
+    502: unknown;
+    /**
+     * LLM não configurado
+     */
+    503: unknown;
+};
+
+export type CreateOrderAnalysisResponses = {
+    /**
+     * Análise gerada ou reusada do cache
+     */
+    200: OrderAnalysis;
+};
+
+export type CreateOrderAnalysisResponse = CreateOrderAnalysisResponses[keyof CreateOrderAnalysisResponses];
+
+export type GetOrderDetailAppData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/detail-app';
+};
+
+export type GetOrderDetailAppErrors = {
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+};
+
+export type GetOrderDetailAppResponses = {
+    /**
+     * Resultado (pode estar unavailable)
+     */
+    200: OrderDetailAppGetResult;
+};
+
+export type GetOrderDetailAppResponse = GetOrderDetailAppResponses[keyof GetOrderDetailAppResponses];
+
+export type CreateOrderDetailAppData = {
+    body?: OrderDetailAppCreateRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/detail-app';
+};
+
+export type CreateOrderDetailAppErrors = {
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+    /**
+     * Falha no gateway LLM
+     */
+    502: unknown;
+    /**
+     * LLM não configurado
+     */
+    503: unknown;
+};
+
+export type CreateOrderDetailAppResponses = {
+    /**
+     * View model gerado ou reusado do cache
+     */
+    200: OrderDetailApp;
+};
+
+export type CreateOrderDetailAppResponse = CreateOrderDetailAppResponses[keyof CreateOrderDetailAppResponses];
+
+export type ExecuteOrderDetailAppActionData = {
+    body: OrderDetailAppActionRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/detail-app/actions';
+};
+
+export type ExecuteOrderDetailAppActionErrors = {
+    /**
+     * Tool não allowlisted ou args inválidos
+     */
+    400: unknown;
+    /**
+     * Sem permissão
+     */
+    403: unknown;
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+};
+
+export type ExecuteOrderDetailAppActionResponses = {
+    /**
+     * Resultado da tool ou pedido de confirmação
+     */
+    200: OrderDetailAppActionResult;
+};
+
+export type ExecuteOrderDetailAppActionResponse = ExecuteOrderDetailAppActionResponses[keyof ExecuteOrderDetailAppActionResponses];
+
 export type GetOrderIdentityVerificationData = {
     body?: never;
     path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
         order_id: string;
     };
     query?: never;
@@ -8931,6 +28111,9 @@ export type GetOrderIdentityVerificationResponse = GetOrderIdentityVerificationR
 export type ApproveOrderIdentityVerificationData = {
     body?: OrderIdentityVerificationReviewRequest;
     path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
         order_id: string;
     };
     query?: never;
@@ -8957,6 +28140,9 @@ export type ApproveOrderIdentityVerificationResponse = ApproveOrderIdentityVerif
 export type RejectOrderIdentityVerificationData = {
     body: OrderIdentityVerificationRejectRequest;
     path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
         order_id: string;
     };
     query?: never;
@@ -9070,6 +28256,154 @@ export type VerifyCustomerMagicLinkResponses = {
 
 export type VerifyCustomerMagicLinkResponse = VerifyCustomerMagicLinkResponses[keyof VerifyCustomerMagicLinkResponses];
 
+export type ListCustomerPasskeysData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/customer/passkeys';
+};
+
+export type ListCustomerPasskeysErrors = {
+    /**
+     * Sessão inválida
+     */
+    401: unknown;
+};
+
+export type ListCustomerPasskeysResponses = {
+    /**
+     * Passkeys registadas
+     */
+    200: Array<CustomerPasskey>;
+};
+
+export type ListCustomerPasskeysResponse = ListCustomerPasskeysResponses[keyof ListCustomerPasskeysResponses];
+
+export type BeginCustomerPasskeyRegisterData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/customer/passkeys/register/begin';
+};
+
+export type BeginCustomerPasskeyRegisterErrors = {
+    /**
+     * Sessão inválida
+     */
+    401: unknown;
+    /**
+     * Storefront do tenant sem URL pública configurada
+     */
+    503: unknown;
+};
+
+export type BeginCustomerPasskeyRegisterResponses = {
+    /**
+     * Opções PublicKeyCredentialCreation
+     */
+    200: CustomerPasskeyBeginResult;
+};
+
+export type BeginCustomerPasskeyRegisterResponse = BeginCustomerPasskeyRegisterResponses[keyof BeginCustomerPasskeyRegisterResponses];
+
+export type FinishCustomerPasskeyRegisterData = {
+    body: CustomerPasskeyFinishRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/customer/passkeys/register/finish';
+};
+
+export type FinishCustomerPasskeyRegisterErrors = {
+    /**
+     * Credencial inválida
+     */
+    400: unknown;
+    /**
+     * Sessão inválida
+     */
+    401: unknown;
+};
+
+export type FinishCustomerPasskeyRegisterResponses = {
+    /**
+     * Passkey registada
+     */
+    201: CustomerPasskey;
+};
+
+export type FinishCustomerPasskeyRegisterResponse = FinishCustomerPasskeyRegisterResponses[keyof FinishCustomerPasskeyRegisterResponses];
+
+export type BeginCustomerPasskeyLoginData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/customer/passkeys/login/begin';
+};
+
+export type BeginCustomerPasskeyLoginErrors = {
+    /**
+     * Storefront do tenant sem URL pública configurada
+     */
+    503: unknown;
+};
+
+export type BeginCustomerPasskeyLoginResponses = {
+    /**
+     * Opções PublicKeyCredentialRequest
+     */
+    200: CustomerPasskeyBeginResult;
+};
+
+export type BeginCustomerPasskeyLoginResponse = BeginCustomerPasskeyLoginResponses[keyof BeginCustomerPasskeyLoginResponses];
+
+export type FinishCustomerPasskeyLoginData = {
+    body: CustomerPasskeyFinishRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/customer/passkeys/login/finish';
+};
+
+export type FinishCustomerPasskeyLoginErrors = {
+    /**
+     * Credencial inválida
+     */
+    401: unknown;
+};
+
+export type FinishCustomerPasskeyLoginResponses = {
+    /**
+     * Sessão criada
+     */
+    200: CustomerSessionCreated;
+};
+
+export type FinishCustomerPasskeyLoginResponse = FinishCustomerPasskeyLoginResponses[keyof FinishCustomerPasskeyLoginResponses];
+
+export type DeleteCustomerPasskeyData = {
+    body?: never;
+    path: {
+        credentialId: string;
+    };
+    query?: never;
+    url: '/auth/customer/passkeys/{credentialId}';
+};
+
+export type DeleteCustomerPasskeyErrors = {
+    /**
+     * Não encontrada
+     */
+    404: unknown;
+};
+
+export type DeleteCustomerPasskeyResponses = {
+    /**
+     * Revogada
+     */
+    204: void;
+};
+
+export type DeleteCustomerPasskeyResponse = DeleteCustomerPasskeyResponses[keyof DeleteCustomerPasskeyResponses];
+
 export type GetCustomerMeData = {
     body?: never;
     path?: never;
@@ -9086,12 +28420,39 @@ export type GetCustomerMeErrors = {
 
 export type GetCustomerMeResponses = {
     /**
-     * Customer
+     * Perfil público do comprador
      */
-    200: Customer;
+    200: CustomerPublicProfile;
 };
 
 export type GetCustomerMeResponse = GetCustomerMeResponses[keyof GetCustomerMeResponses];
+
+export type PatchCustomerMeData = {
+    body: CustomerMePatch;
+    path?: never;
+    query?: never;
+    url: '/auth/customer/me';
+};
+
+export type PatchCustomerMeErrors = {
+    /**
+     * Body inválido
+     */
+    400: unknown;
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+};
+
+export type PatchCustomerMeResponses = {
+    /**
+     * Perfil público actualizado
+     */
+    200: CustomerPublicProfile;
+};
+
+export type PatchCustomerMeResponse = PatchCustomerMeResponses[keyof PatchCustomerMeResponses];
 
 export type RequestStaffMagicLinkData = {
     body: StaffMagicLinkRequest;
@@ -9132,7 +28493,13 @@ export type VerifyStaffMagicLinkErrors = {
      * Código inválido ou expirado
      */
     401: unknown;
+    /**
+     * 2FA obrigatório para o papel e ainda não configurado (#1126). O corpo traz o estado de enrolment; o usuário NÃO é recusado, é levado a configurar — recusar trancaria o owner fora do painel.
+     */
+    428: StaffTotpEnrolmentRequired;
 };
+
+export type VerifyStaffMagicLinkError = VerifyStaffMagicLinkErrors[keyof VerifyStaffMagicLinkErrors];
 
 export type VerifyStaffMagicLinkResponses = {
     /**
@@ -9142,6 +28509,266 @@ export type VerifyStaffMagicLinkResponses = {
 };
 
 export type VerifyStaffMagicLinkResponse = VerifyStaffMagicLinkResponses[keyof VerifyStaffMagicLinkResponses];
+
+export type StartStaffGoogleOAuthData = {
+    body?: StaffGoogleOAuthStartRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/oauth/google/start';
+};
+
+export type StartStaffGoogleOAuthErrors = {
+    /**
+     * OAuth Google staff não configurado
+     */
+    503: unknown;
+};
+
+export type StartStaffGoogleOAuthResponses = {
+    /**
+     * URL de autorização
+     */
+    200: StaffGoogleOAuthStartResult;
+};
+
+export type StartStaffGoogleOAuthResponse = StartStaffGoogleOAuthResponses[keyof StartStaffGoogleOAuthResponses];
+
+export type CompleteStaffAuth2FaData = {
+    body: StaffComplete2FaRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/complete-2fa';
+};
+
+export type CompleteStaffAuth2FaErrors = {
+    /**
+     * Token ou TOTP inválido
+     */
+    401: unknown;
+};
+
+export type CompleteStaffAuth2FaResponses = {
+    /**
+     * Sessão staff criada
+     */
+    200: StaffSessionCreated;
+};
+
+export type CompleteStaffAuth2FaResponse = CompleteStaffAuth2FaResponses[keyof CompleteStaffAuth2FaResponses];
+
+export type GetStaffSecurityData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/security';
+};
+
+export type GetStaffSecurityErrors = {
+    /**
+     * Sessão inválida
+     */
+    401: unknown;
+};
+
+export type GetStaffSecurityResponses = {
+    /**
+     * Estado de segurança
+     */
+    200: StaffSecurity;
+};
+
+export type GetStaffSecurityResponse = GetStaffSecurityResponses[keyof GetStaffSecurityResponses];
+
+export type LinkStaffGoogleOAuthData = {
+    body?: StaffGoogleOAuthStartRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/security/google/link';
+};
+
+export type LinkStaffGoogleOAuthErrors = {
+    /**
+     * Sessão inválida
+     */
+    401: unknown;
+};
+
+export type LinkStaffGoogleOAuthResponses = {
+    /**
+     * URL de autorização para ligar
+     */
+    200: StaffGoogleOAuthStartResult;
+};
+
+export type LinkStaffGoogleOAuthResponse = LinkStaffGoogleOAuthResponses[keyof LinkStaffGoogleOAuthResponses];
+
+export type UnlinkStaffGoogleOAuthData = {
+    body?: never;
+    headers?: {
+        /**
+         * Token de reconfirmação de identidade obtido em `/auth/staff/step-up/finish`.
+         * Obrigatório em acções sensíveis quando quem chama é uma sessão de staff —
+         * um bearer de integração não passa por step-up (não há humano para
+         * reconfirmar) e é governado por scopes.
+         *
+         */
+        'X-Mira-Step-Up'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/auth/staff/security/google';
+};
+
+export type UnlinkStaffGoogleOAuthErrors = {
+    /**
+     * Sessão inválida
+     */
+    401: unknown;
+    /**
+     * Requer reconfirmação de identidade (step-up)
+     */
+    403: unknown;
+};
+
+export type UnlinkStaffGoogleOAuthResponses = {
+    /**
+     * Desligado
+     */
+    204: void;
+};
+
+export type UnlinkStaffGoogleOAuthResponse = UnlinkStaffGoogleOAuthResponses[keyof UnlinkStaffGoogleOAuthResponses];
+
+export type BeginStaffPasskeyRegisterData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/passkeys/register/begin';
+};
+
+export type BeginStaffPasskeyRegisterErrors = {
+    /**
+     * Sessão inválida
+     */
+    401: unknown;
+};
+
+export type BeginStaffPasskeyRegisterResponses = {
+    /**
+     * Opções PublicKeyCredentialCreation
+     */
+    200: StaffPasskeyBeginResult;
+};
+
+export type BeginStaffPasskeyRegisterResponse = BeginStaffPasskeyRegisterResponses[keyof BeginStaffPasskeyRegisterResponses];
+
+export type FinishStaffPasskeyRegisterData = {
+    body: StaffPasskeyFinishRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/passkeys/register/finish';
+};
+
+export type FinishStaffPasskeyRegisterErrors = {
+    /**
+     * Credencial inválida
+     */
+    400: unknown;
+};
+
+export type FinishStaffPasskeyRegisterResponses = {
+    /**
+     * Passkey registada
+     */
+    201: StaffPasskey;
+};
+
+export type FinishStaffPasskeyRegisterResponse = FinishStaffPasskeyRegisterResponses[keyof FinishStaffPasskeyRegisterResponses];
+
+export type BeginStaffPasskeyLoginData = {
+    body: StaffPasskeyLoginBeginRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/passkeys/login/begin';
+};
+
+export type BeginStaffPasskeyLoginErrors = {
+    /**
+     * E-mail sem passkeys
+     */
+    404: unknown;
+};
+
+export type BeginStaffPasskeyLoginResponses = {
+    /**
+     * Opções PublicKeyCredentialRequest
+     */
+    200: StaffPasskeyBeginResult;
+};
+
+export type BeginStaffPasskeyLoginResponse = BeginStaffPasskeyLoginResponses[keyof BeginStaffPasskeyLoginResponses];
+
+export type FinishStaffPasskeyLoginData = {
+    body: StaffPasskeyFinishRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/passkeys/login/finish';
+};
+
+export type FinishStaffPasskeyLoginErrors = {
+    /**
+     * Credencial inválida
+     */
+    401: unknown;
+};
+
+export type FinishStaffPasskeyLoginResponses = {
+    /**
+     * Sessão ou desafio 2FA
+     */
+    200: StaffAuthFinishResult;
+};
+
+export type FinishStaffPasskeyLoginResponse = FinishStaffPasskeyLoginResponses[keyof FinishStaffPasskeyLoginResponses];
+
+export type DeleteStaffPasskeyData = {
+    body?: never;
+    headers?: {
+        /**
+         * Token de reconfirmação de identidade obtido em `/auth/staff/step-up/finish`.
+         * Obrigatório em acções sensíveis quando quem chama é uma sessão de staff —
+         * um bearer de integração não passa por step-up (não há humano para
+         * reconfirmar) e é governado por scopes.
+         *
+         */
+        'X-Mira-Step-Up'?: string;
+    };
+    path: {
+        credentialId: string;
+    };
+    query?: never;
+    url: '/auth/staff/passkeys/{credentialId}';
+};
+
+export type DeleteStaffPasskeyErrors = {
+    /**
+     * Requer reconfirmação de identidade (step-up)
+     */
+    403: unknown;
+    /**
+     * Não encontrada
+     */
+    404: unknown;
+};
+
+export type DeleteStaffPasskeyResponses = {
+    /**
+     * Revogada
+     */
+    204: void;
+};
+
+export type DeleteStaffPasskeyResponse = DeleteStaffPasskeyResponses[keyof DeleteStaffPasskeyResponses];
 
 export type GetStaffMeData = {
     body?: never;
@@ -9159,12 +28786,440 @@ export type GetStaffMeErrors = {
 
 export type GetStaffMeResponses = {
     /**
-     * User
+     * Staff
      */
-    200: User;
+    200: Staff;
 };
 
 export type GetStaffMeResponse = GetStaffMeResponses[keyof GetStaffMeResponses];
+
+export type UpdateStaffMeData = {
+    body: StaffSelfUpdate;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/me';
+};
+
+export type UpdateStaffMeErrors = {
+    /**
+     * Nome inválido
+     */
+    400: unknown;
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+};
+
+export type UpdateStaffMeResponses = {
+    /**
+     * Staff actualizado
+     */
+    200: Staff;
+};
+
+export type UpdateStaffMeResponse = UpdateStaffMeResponses[keyof UpdateStaffMeResponses];
+
+export type DeleteStaffAvatarData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/me/avatar';
+};
+
+export type DeleteStaffAvatarErrors = {
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+};
+
+export type DeleteStaffAvatarResponses = {
+    /**
+     * Staff sem foto
+     */
+    200: Staff;
+};
+
+export type DeleteStaffAvatarResponse = DeleteStaffAvatarResponses[keyof DeleteStaffAvatarResponses];
+
+export type UploadStaffAvatarData = {
+    body: {
+        file: Blob | File;
+    };
+    path?: never;
+    query?: never;
+    url: '/auth/staff/me/avatar';
+};
+
+export type UploadStaffAvatarErrors = {
+    /**
+     * Ficheiro inválido, grande demais ou não é imagem
+     */
+    400: unknown;
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+    /**
+     * Object store indisponível
+     */
+    503: unknown;
+};
+
+export type UploadStaffAvatarResponses = {
+    /**
+     * Staff com o avatar_url novo
+     */
+    200: Staff;
+};
+
+export type UploadStaffAvatarResponse = UploadStaffAvatarResponses[keyof UploadStaffAvatarResponses];
+
+export type SetupStaffTotpData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/me/totp/setup';
+};
+
+export type SetupStaffTotpErrors = {
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+    /**
+     * Já existe 2FA activo — desactivar antes de reconfigurar
+     */
+    409: unknown;
+};
+
+export type SetupStaffTotpResponses = {
+    /**
+     * Segredo pendente
+     */
+    200: StaffTotpSetup;
+};
+
+export type SetupStaffTotpResponse = SetupStaffTotpResponses[keyof SetupStaffTotpResponses];
+
+export type ActivateStaffTotpData = {
+    body: StaffTotpCode;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/me/totp/activate';
+};
+
+export type ActivateStaffTotpErrors = {
+    /**
+     * Código inválido
+     */
+    400: unknown;
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+    /**
+     * Nenhuma configuração pendente — chamar setup primeiro
+     */
+    409: unknown;
+};
+
+export type ActivateStaffTotpResponses = {
+    /**
+     * 2FA activo, com códigos de resgate
+     */
+    200: StaffTotpBackupCodes;
+};
+
+export type ActivateStaffTotpResponse = ActivateStaffTotpResponses[keyof ActivateStaffTotpResponses];
+
+export type DisableStaffTotpData = {
+    body: StaffTotpCode;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/me/totp';
+};
+
+export type DisableStaffTotpErrors = {
+    /**
+     * Código inválido
+     */
+    400: unknown;
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+};
+
+export type DisableStaffTotpResponses = {
+    /**
+     * 2FA desactivado
+     */
+    204: void;
+};
+
+export type DisableStaffTotpResponse = DisableStaffTotpResponses[keyof DisableStaffTotpResponses];
+
+export type RegenerateStaffTotpBackupCodesData = {
+    body: StaffTotpCode;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/me/totp/backup-codes';
+};
+
+export type RegenerateStaffTotpBackupCodesErrors = {
+    /**
+     * Código inválido
+     */
+    400: unknown;
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+    /**
+     * 2FA por autenticador não está activo
+     */
+    409: unknown;
+};
+
+export type RegenerateStaffTotpBackupCodesResponses = {
+    /**
+     * Códigos novos
+     */
+    200: StaffTotpBackupCodes;
+};
+
+export type RegenerateStaffTotpBackupCodesResponse = RegenerateStaffTotpBackupCodesResponses[keyof RegenerateStaffTotpBackupCodesResponses];
+
+export type ListStaffDevicesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/me/devices';
+};
+
+export type ListStaffDevicesErrors = {
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+};
+
+export type ListStaffDevicesResponses = {
+    200: {
+        data: Array<StaffDevice>;
+    };
+};
+
+export type ListStaffDevicesResponse = ListStaffDevicesResponses[keyof ListStaffDevicesResponses];
+
+export type RevokeOtherStaffSessionsData = {
+    body?: never;
+    headers?: {
+        /**
+         * Token de reconfirmação de identidade obtido em `/auth/staff/step-up/finish`.
+         * Obrigatório em acções sensíveis quando quem chama é uma sessão de staff —
+         * um bearer de integração não passa por step-up (não há humano para
+         * reconfirmar) e é governado por scopes.
+         *
+         */
+        'X-Mira-Step-Up'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/auth/staff/me/sessions';
+};
+
+export type RevokeOtherStaffSessionsErrors = {
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+    /**
+     * Requer reconfirmação de identidade (step-up)
+     */
+    403: unknown;
+};
+
+export type RevokeOtherStaffSessionsResponses = {
+    /**
+     * Outras sessões encerradas
+     */
+    204: void;
+};
+
+export type RevokeOtherStaffSessionsResponse = RevokeOtherStaffSessionsResponses[keyof RevokeOtherStaffSessionsResponses];
+
+export type BeginStaffStepUpData = {
+    body: StaffStepUpBeginRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/step-up/begin';
+};
+
+export type BeginStaffStepUpErrors = {
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+    /**
+     * Papel sem permissão para esta acção
+     */
+    403: unknown;
+};
+
+export type BeginStaffStepUpResponses = {
+    200: StaffStepUpChallenge;
+};
+
+export type BeginStaffStepUpResponse = BeginStaffStepUpResponses[keyof BeginStaffStepUpResponses];
+
+export type FinishStaffStepUpData = {
+    body: StaffStepUpFinishRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/step-up/finish';
+};
+
+export type FinishStaffStepUpErrors = {
+    /**
+     * Código inválido
+     */
+    400: unknown;
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+};
+
+export type FinishStaffStepUpResponses = {
+    200: StaffStepUpGrant;
+};
+
+export type FinishStaffStepUpResponse = FinishStaffStepUpResponses[keyof FinishStaffStepUpResponses];
+
+export type SetupStaffEnrolmentTotpData = {
+    body: StaffEnrolmentTokenRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/enrolment/totp/setup';
+};
+
+export type SetupStaffEnrolmentTotpErrors = {
+    /**
+     * Token de enrolment inválido ou expirado
+     */
+    401: unknown;
+};
+
+export type SetupStaffEnrolmentTotpResponses = {
+    200: StaffTotpSetup;
+};
+
+export type SetupStaffEnrolmentTotpResponse = SetupStaffEnrolmentTotpResponses[keyof SetupStaffEnrolmentTotpResponses];
+
+export type ActivateStaffEnrolmentTotpData = {
+    body: StaffEnrolmentActivateRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/staff/enrolment/totp/activate';
+};
+
+export type ActivateStaffEnrolmentTotpErrors = {
+    /**
+     * Código inválido
+     */
+    400: unknown;
+    /**
+     * Token de enrolment inválido ou expirado
+     */
+    401: unknown;
+};
+
+export type ActivateStaffEnrolmentTotpResponses = {
+    /**
+     * Sessão criada, com códigos de resgate
+     */
+    200: StaffEnrolmentActivated;
+};
+
+export type ActivateStaffEnrolmentTotpResponse = ActivateStaffEnrolmentTotpResponses[keyof ActivateStaffEnrolmentTotpResponses];
+
+export type GetStaffAvatarData = {
+    body?: never;
+    path: {
+        avatar_id: string;
+    };
+    query?: never;
+    url: '/staff/avatars/{avatar_id}';
+};
+
+export type GetStaffAvatarErrors = {
+    /**
+     * Sem foto
+     */
+    404: unknown;
+};
+
+export type GetStaffAvatarResponses = {
+    /**
+     * Bytes da imagem
+     */
+    200: Blob | File;
+};
+
+export type GetStaffAvatarResponse = GetStaffAvatarResponses[keyof GetStaffAvatarResponses];
+
+export type GetStaffPreferencesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/staff/me/preferences';
+};
+
+export type GetStaffPreferencesErrors = {
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+};
+
+export type GetStaffPreferencesResponses = {
+    /**
+     * Preferências
+     */
+    200: StaffPreferences;
+};
+
+export type GetStaffPreferencesResponse = GetStaffPreferencesResponses[keyof GetStaffPreferencesResponses];
+
+export type PutStaffPreferencesData = {
+    body: StaffPreferencesUpdate;
+    path?: never;
+    query?: never;
+    url: '/staff/me/preferences';
+};
+
+export type PutStaffPreferencesErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+    /**
+     * Sessão inválida ou expirada
+     */
+    401: unknown;
+};
+
+export type PutStaffPreferencesResponses = {
+    /**
+     * Preferências actualizadas
+     */
+    200: StaffPreferences;
+};
+
+export type PutStaffPreferencesResponse = PutStaffPreferencesResponses[keyof PutStaffPreferencesResponses];
 
 export type CreateCheckoutSessionData = {
     body: CheckoutSessionCreate;
@@ -9259,12 +29314,7 @@ export type PatchCheckoutSessionResponses = {
 export type PatchCheckoutSessionResponse = PatchCheckoutSessionResponses[keyof PatchCheckoutSessionResponses];
 
 export type PlaceCheckoutOrderData = {
-    body?: {
-        /**
-         * Cloudflare Turnstile token (obrigatório quando CHECKOUT_CAPTCHA_REQUIRED=1).
-         */
-        captcha_token?: string;
-    };
+    body?: PlaceCheckoutOrderRequest;
     headers: {
         /**
          * Token emitido em `POST /checkout/sessions` (`cks_tok_…`)
@@ -9303,7 +29353,9 @@ export type PlaceCheckoutOrderErrors = {
      */
     404: unknown;
     /**
-     * Sessão já utilizada, checkout incompleto ou verificação biométrica pendente (identity_review_pending)
+     * Sessão já utilizada, checkout incompleto, identity_review_pending,
+     * composition_stale ou composition_blocked.
+     *
      */
     409: unknown;
     /**
@@ -9616,7 +29668,7 @@ export type AnalyticsAskData = {
 
 export type AnalyticsAskResponses = {
     /**
-     * Spec gerado e preview de dados
+     * Preview tabular e handle para persistir
      */
     200: AnalyticsAskResponse;
 };
@@ -9638,6 +29690,22 @@ export type AnalyticsExecuteResponses = {
 };
 
 export type AnalyticsExecuteResponse = AnalyticsExecuteResponses[keyof AnalyticsExecuteResponses];
+
+export type AnalyticsExecuteBatchData = {
+    body: AnalyticsBatchRequest;
+    path?: never;
+    query?: never;
+    url: '/analytics/execute-batch';
+};
+
+export type AnalyticsExecuteBatchResponses = {
+    /**
+     * Resultados por chave
+     */
+    200: AnalyticsBatchResult;
+};
+
+export type AnalyticsExecuteBatchResponse = AnalyticsExecuteBatchResponses[keyof AnalyticsExecuteBatchResponses];
 
 export type ListAnalyticsReportsData = {
     body?: never;
@@ -9710,7 +29778,7 @@ export type GetAnalyticsReportResponses = {
 export type GetAnalyticsReportResponse = GetAnalyticsReportResponses[keyof GetAnalyticsReportResponses];
 
 export type UpdateAnalyticsReportData = {
-    body: SavedReportUpdate;
+    body: SavedReportUpdateWritable;
     path: {
         report_id: string;
     };
@@ -9957,12 +30025,24 @@ export type CreateSubscriptionData = {
 
 export type CreateSubscriptionErrors = {
     /**
-     * Payload inválido (frequency_days, itens ou política de preço)
+     * Payload inválido (frequency_days, itens, política de preço ou binding)
      */
     400: unknown;
+    /**
+     * Pedido de origem inexistente neste tenant
+     */
+    404: unknown;
+    /**
+     * Pedido de origem ainda não pago, ou checkout_session_id não corresponde
+     */
+    409: unknown;
 };
 
 export type CreateSubscriptionResponses = {
+    /**
+     * Assinatura já existia para este source_order_id (idempotente)
+     */
+    200: Subscription;
     /**
      * Assinatura criada
      */
@@ -10221,7 +30301,7 @@ export type ListPaymentLinksData = {
          */
         status?: 'active' | 'paid' | 'expired' | 'cancelled';
         /**
-         * Filtra pelos links de um pedido
+         * Filtra pelos links de um pedido. Aceita UUID interno ou `order_code` público (mesmo contrato de `createPaymentLink`); a listagem resolve para o UUID antes de filtrar.
          */
         order_id?: string;
     };
@@ -10412,3 +30492,5563 @@ export type PublicPaymentLinkPaymentStatusResponses = {
 };
 
 export type PublicPaymentLinkPaymentStatusResponse = PublicPaymentLinkPaymentStatusResponses[keyof PublicPaymentLinkPaymentStatusResponses];
+
+export type GetExperienceCapabilitiesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/experiences/capabilities';
+};
+
+export type GetExperienceCapabilitiesResponses = {
+    200: ExperienceCapabilities;
+};
+
+export type GetExperienceCapabilitiesResponse = GetExperienceCapabilitiesResponses[keyof GetExperienceCapabilitiesResponses];
+
+export type PutExperienceCapabilitiesData = {
+    body: ExperienceCapabilitiesWritable;
+    path?: never;
+    query?: never;
+    url: '/experiences/capabilities';
+};
+
+export type PutExperienceCapabilitiesErrors = {
+    /**
+     * Manifest inválido
+     */
+    400: unknown;
+};
+
+export type PutExperienceCapabilitiesResponses = {
+    200: ExperienceCapabilities;
+};
+
+export type PutExperienceCapabilitiesResponse = PutExperienceCapabilitiesResponses[keyof PutExperienceCapabilitiesResponses];
+
+export type ListExperienceSurfacesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+    };
+    url: '/experiences/surfaces';
+};
+
+export type ListExperienceSurfacesResponses = {
+    200: ExperienceSurfaceList;
+};
+
+export type ListExperienceSurfacesResponse = ListExperienceSurfacesResponses[keyof ListExperienceSurfacesResponses];
+
+export type CreateExperienceSurfaceData = {
+    body: ExperienceSurfaceCreate;
+    path?: never;
+    query?: never;
+    url: '/experiences/surfaces';
+};
+
+export type CreateExperienceSurfaceErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+    /**
+     * Surface já existe
+     */
+    409: unknown;
+};
+
+export type CreateExperienceSurfaceResponses = {
+    201: ExperienceSurface;
+};
+
+export type CreateExperienceSurfaceResponse = CreateExperienceSurfaceResponses[keyof CreateExperienceSurfaceResponses];
+
+export type GetExperienceSurfaceData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador estável da surface no manifest (ex. `home`, `pdp`, `plp:category`).
+         */
+        surface_key: string;
+    };
+    query?: never;
+    url: '/experiences/surfaces/{surface_key}';
+};
+
+export type GetExperienceSurfaceErrors = {
+    /**
+     * Surface inexistente neste tenant
+     */
+    404: unknown;
+};
+
+export type GetExperienceSurfaceResponses = {
+    200: ExperienceSurface;
+};
+
+export type GetExperienceSurfaceResponse = GetExperienceSurfaceResponses[keyof GetExperienceSurfaceResponses];
+
+export type ListExperienceReleasesData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador estável da surface no manifest (ex. `home`, `pdp`, `plp:category`).
+         */
+        surface_key: string;
+    };
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+        status?: ExperienceReleaseStatus;
+    };
+    url: '/experiences/surfaces/{surface_key}/releases';
+};
+
+export type ListExperienceReleasesErrors = {
+    /**
+     * Surface inexistente
+     */
+    404: unknown;
+};
+
+export type ListExperienceReleasesResponses = {
+    200: ExperienceReleaseList;
+};
+
+export type ListExperienceReleasesResponse = ListExperienceReleasesResponses[keyof ListExperienceReleasesResponses];
+
+export type CreateExperienceReleaseData = {
+    body?: ExperienceReleaseCreate;
+    path: {
+        /**
+         * Identificador estável da surface no manifest (ex. `home`, `pdp`, `plp:category`).
+         */
+        surface_key: string;
+    };
+    query?: never;
+    url: '/experiences/surfaces/{surface_key}/releases';
+};
+
+export type CreateExperienceReleaseErrors = {
+    /**
+     * Surface inexistente
+     */
+    404: unknown;
+};
+
+export type CreateExperienceReleaseResponses = {
+    201: ExperienceRelease;
+};
+
+export type CreateExperienceReleaseResponse = CreateExperienceReleaseResponses[keyof CreateExperienceReleaseResponses];
+
+export type GetExperienceReleaseData = {
+    body?: never;
+    path: {
+        /**
+         * ID da release editorial (draft/publicada) — sempre resolvido dentro do tenant do token.
+         */
+        release_id: string;
+    };
+    query?: never;
+    url: '/experiences/releases/{release_id}';
+};
+
+export type GetExperienceReleaseErrors = {
+    /**
+     * Release inexistente neste tenant
+     */
+    404: unknown;
+};
+
+export type GetExperienceReleaseResponses = {
+    200: ExperienceRelease;
+};
+
+export type GetExperienceReleaseResponse = GetExperienceReleaseResponses[keyof GetExperienceReleaseResponses];
+
+export type UpdateExperienceReleaseData = {
+    body: ExperienceReleaseUpdate;
+    path: {
+        /**
+         * ID da release editorial (draft/publicada) — sempre resolvido dentro do tenant do token.
+         */
+        release_id: string;
+    };
+    query?: never;
+    url: '/experiences/releases/{release_id}';
+};
+
+export type UpdateExperienceReleaseErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+    /**
+     * Release inexistente
+     */
+    404: unknown;
+    /**
+     * Release publicada — imutável (crie outro draft)
+     */
+    409: unknown;
+};
+
+export type UpdateExperienceReleaseResponses = {
+    200: ExperienceRelease;
+};
+
+export type UpdateExperienceReleaseResponse = UpdateExperienceReleaseResponses[keyof UpdateExperienceReleaseResponses];
+
+export type ReplaceExperienceReleasePlacementsData = {
+    body: ExperiencePlacementGraph;
+    path: {
+        /**
+         * ID da release editorial (draft/publicada) — sempre resolvido dentro do tenant do token.
+         */
+        release_id: string;
+    };
+    query?: never;
+    url: '/experiences/releases/{release_id}/placements';
+};
+
+export type ReplaceExperienceReleasePlacementsErrors = {
+    /**
+     * Payload inválido — placement/block desconhecido no manifest, block schema inválido, destino não allowlisted, ou URL externa fora dos hosts permitidos
+     */
+    400: unknown;
+    /**
+     * Release inexistente
+     */
+    404: unknown;
+    /**
+     * Release não está em `draft`
+     */
+    409: unknown;
+};
+
+export type ReplaceExperienceReleasePlacementsResponses = {
+    200: ExperienceRelease;
+};
+
+export type ReplaceExperienceReleasePlacementsResponse = ReplaceExperienceReleasePlacementsResponses[keyof ReplaceExperienceReleasePlacementsResponses];
+
+export type SubmitExperienceReleaseForReviewData = {
+    body?: never;
+    path: {
+        /**
+         * ID da release editorial (draft/publicada) — sempre resolvido dentro do tenant do token.
+         */
+        release_id: string;
+    };
+    query?: never;
+    url: '/experiences/releases/{release_id}/commands/submit-review';
+};
+
+export type SubmitExperienceReleaseForReviewErrors = {
+    /**
+     * Release inexistente
+     */
+    404: unknown;
+    /**
+     * Release não está em `draft`
+     */
+    409: unknown;
+};
+
+export type SubmitExperienceReleaseForReviewResponses = {
+    200: ExperienceRelease;
+};
+
+export type SubmitExperienceReleaseForReviewResponse = SubmitExperienceReleaseForReviewResponses[keyof SubmitExperienceReleaseForReviewResponses];
+
+export type ScheduleExperienceReleaseData = {
+    body: ExperienceReleaseSchedule;
+    path: {
+        /**
+         * ID da release editorial (draft/publicada) — sempre resolvido dentro do tenant do token.
+         */
+        release_id: string;
+    };
+    query?: never;
+    url: '/experiences/releases/{release_id}/commands/schedule';
+};
+
+export type ScheduleExperienceReleaseErrors = {
+    /**
+     * Data de publicação inválida (passado ou vazia)
+     */
+    400: unknown;
+    /**
+     * Release inexistente
+     */
+    404: unknown;
+    /**
+     * Release em estado incompatível com `schedule`
+     */
+    409: unknown;
+};
+
+export type ScheduleExperienceReleaseResponses = {
+    200: ExperienceRelease;
+};
+
+export type ScheduleExperienceReleaseResponse = ScheduleExperienceReleaseResponses[keyof ScheduleExperienceReleaseResponses];
+
+export type PublishExperienceReleaseData = {
+    body?: never;
+    path: {
+        /**
+         * ID da release editorial (draft/publicada) — sempre resolvido dentro do tenant do token.
+         */
+        release_id: string;
+    };
+    query?: never;
+    url: '/experiences/releases/{release_id}/commands/publish';
+};
+
+export type PublishExperienceReleaseErrors = {
+    /**
+     * Manifest ou blocks inválidos
+     */
+    400: unknown;
+    /**
+     * Release inexistente
+     */
+    404: unknown;
+    /**
+     * Release já publicada ou em estado incompatível
+     */
+    409: unknown;
+};
+
+export type PublishExperienceReleaseResponses = {
+    200: ExperienceRelease;
+};
+
+export type PublishExperienceReleaseResponse = PublishExperienceReleaseResponses[keyof PublishExperienceReleaseResponses];
+
+export type ArchiveExperienceReleaseData = {
+    body?: never;
+    path: {
+        /**
+         * ID da release editorial (draft/publicada) — sempre resolvido dentro do tenant do token.
+         */
+        release_id: string;
+    };
+    query?: never;
+    url: '/experiences/releases/{release_id}/commands/archive';
+};
+
+export type ArchiveExperienceReleaseErrors = {
+    /**
+     * Release inexistente
+     */
+    404: unknown;
+    /**
+     * Release publicada corrente — faça rollback antes de arquivar
+     */
+    409: unknown;
+};
+
+export type ArchiveExperienceReleaseResponses = {
+    200: ExperienceRelease;
+};
+
+export type ArchiveExperienceReleaseResponse = ArchiveExperienceReleaseResponses[keyof ArchiveExperienceReleaseResponses];
+
+export type RollbackExperienceSurfaceData = {
+    body: ExperienceRollback;
+    path: {
+        /**
+         * Identificador estável da surface no manifest (ex. `home`, `pdp`, `plp:category`).
+         */
+        surface_key: string;
+    };
+    query?: never;
+    url: '/experiences/surfaces/{surface_key}/commands/rollback';
+};
+
+export type RollbackExperienceSurfaceErrors = {
+    /**
+     * Payload inválido (release não pertence à surface ou não publicada)
+     */
+    400: unknown;
+    /**
+     * Surface inexistente
+     */
+    404: unknown;
+};
+
+export type RollbackExperienceSurfaceResponses = {
+    200: ExperienceSurface;
+};
+
+export type RollbackExperienceSurfaceResponse = RollbackExperienceSurfaceResponses[keyof RollbackExperienceSurfaceResponses];
+
+export type CreateExperiencePreviewTokenData = {
+    body: ExperiencePreviewTokenCreate;
+    path?: never;
+    query?: never;
+    url: '/experiences/preview-tokens';
+};
+
+export type CreateExperiencePreviewTokenErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+    /**
+     * Release inexistente
+     */
+    404: unknown;
+};
+
+export type CreateExperiencePreviewTokenResponses = {
+    201: ExperiencePreviewTokenCreated;
+};
+
+export type CreateExperiencePreviewTokenResponse = CreateExperiencePreviewTokenResponses[keyof CreateExperiencePreviewTokenResponses];
+
+export type ListMerchandisingCollectionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/experiences/collections';
+};
+
+export type ListMerchandisingCollectionsResponses = {
+    200: MerchandisingCollectionList;
+};
+
+export type ListMerchandisingCollectionsResponse = ListMerchandisingCollectionsResponses[keyof ListMerchandisingCollectionsResponses];
+
+export type CreateMerchandisingCollectionData = {
+    body: MerchandisingCollectionCreate;
+    path?: never;
+    query?: never;
+    url: '/experiences/collections';
+};
+
+export type CreateMerchandisingCollectionErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+};
+
+export type CreateMerchandisingCollectionResponses = {
+    201: MerchandisingCollection;
+};
+
+export type CreateMerchandisingCollectionResponse = CreateMerchandisingCollectionResponses[keyof CreateMerchandisingCollectionResponses];
+
+export type GetMerchandisingCollectionData = {
+    body?: never;
+    path: {
+        collection_id: string;
+    };
+    query?: never;
+    url: '/experiences/collections/{collection_id}';
+};
+
+export type GetMerchandisingCollectionErrors = {
+    /**
+     * Collection inexistente neste tenant
+     */
+    404: unknown;
+};
+
+export type GetMerchandisingCollectionResponses = {
+    200: MerchandisingCollection;
+};
+
+export type GetMerchandisingCollectionResponse = GetMerchandisingCollectionResponses[keyof GetMerchandisingCollectionResponses];
+
+export type UpdateMerchandisingCollectionData = {
+    body: MerchandisingCollectionUpdate;
+    path: {
+        collection_id: string;
+    };
+    query?: never;
+    url: '/experiences/collections/{collection_id}';
+};
+
+export type UpdateMerchandisingCollectionErrors = {
+    /**
+     * Collection inexistente
+     */
+    404: unknown;
+};
+
+export type UpdateMerchandisingCollectionResponses = {
+    200: MerchandisingCollection;
+};
+
+export type UpdateMerchandisingCollectionResponse = UpdateMerchandisingCollectionResponses[keyof UpdateMerchandisingCollectionResponses];
+
+export type ListExperienceAssetsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/experiences/assets';
+};
+
+export type ListExperienceAssetsResponses = {
+    200: ExperienceAssetList;
+};
+
+export type ListExperienceAssetsResponse = ListExperienceAssetsResponses[keyof ListExperienceAssetsResponses];
+
+export type CreateExperienceAssetData = {
+    body: ExperienceAssetCreate;
+    path?: never;
+    query?: never;
+    url: '/experiences/assets';
+};
+
+export type CreateExperienceAssetErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+};
+
+export type CreateExperienceAssetResponses = {
+    201: ExperienceAsset;
+};
+
+export type CreateExperienceAssetResponse = CreateExperienceAssetResponses[keyof CreateExperienceAssetResponses];
+
+export type UploadExperienceAssetData = {
+    body: {
+        file: Blob | File;
+    };
+    path?: never;
+    query?: never;
+    url: '/experiences/assets/upload';
+};
+
+export type UploadExperienceAssetErrors = {
+    /**
+     * Ficheiro inválido ou tipo não suportado
+     */
+    400: unknown;
+    /**
+     * Object store indisponível
+     */
+    503: unknown;
+};
+
+export type UploadExperienceAssetResponses = {
+    201: ExperienceAsset;
+};
+
+export type UploadExperienceAssetResponse = UploadExperienceAssetResponses[keyof UploadExperienceAssetResponses];
+
+export type GetStorefrontExperienceMediaData = {
+    body?: never;
+    path: {
+        asset_id: string;
+    };
+    query?: never;
+    url: '/storefront/experiences/media/{asset_id}';
+};
+
+export type GetStorefrontExperienceMediaErrors = {
+    /**
+     * Asset inexistente
+     */
+    404: unknown;
+};
+
+export type GetStorefrontExperienceMediaResponses = {
+    /**
+     * Bytes da imagem
+     */
+    200: Blob | File;
+};
+
+export type GetStorefrontExperienceMediaResponse = GetStorefrontExperienceMediaResponses[keyof GetStorefrontExperienceMediaResponses];
+
+export type ListStorefrontProductsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Filtra por categoria (match exato, case-insensitive — #1070)
+         */
+        category?: string;
+        /**
+         * Busca case-insensitive por substring em campos de texto do recurso.
+         */
+        search?: string;
+        limit?: number;
+        cursor?: string;
+        /**
+         * Canal de venda para resolução de preço (default all)
+         */
+        channel?: PriceChannel;
+        /**
+         * Tenant alvo (platform scope). Member ignora — usa o próprio.
+         */
+        member_id?: string;
+        /**
+         * Restringe preço e saldo a um armazém/loja
+         */
+        warehouse_id?: string;
+    };
+    url: '/storefront/products';
+};
+
+export type ListStorefrontProductsResponses = {
+    /**
+     * Página de cards de PLP
+     */
+    200: StorefrontProductListPage;
+};
+
+export type ListStorefrontProductsResponse = ListStorefrontProductsResponses[keyof ListStorefrontProductsResponses];
+
+export type GetStorefrontProductDetailData = {
+    body?: never;
+    path: {
+        /**
+         * Slug canônico, UUID ou SKU do produto agrupador
+         */
+        slug_or_id: string;
+    };
+    query?: {
+        /**
+         * Canal de venda para resolução de preço (default all)
+         */
+        channel?: PriceChannel;
+        /**
+         * Tenant alvo (platform scope). Member ignora — usa o próprio.
+         */
+        member_id?: string;
+        /**
+         * Restringe preço e saldo a um armazém/loja
+         */
+        warehouse_id?: string;
+        /**
+         * Inclui variantes sem saldo (default true — o storefront precisa delas para desenhar o seletor com estado «esgotado»).
+         *
+         */
+        include_out_of_stock?: boolean;
+    };
+    url: '/storefront/products/{slug_or_id}';
+};
+
+export type GetStorefrontProductDetailErrors = {
+    /**
+     * Produto inexistente ou inativo
+     */
+    404: unknown;
+};
+
+export type GetStorefrontProductDetailResponses = {
+    /**
+     * PDP consolidada
+     */
+    200: StorefrontProductDetail;
+};
+
+export type GetStorefrontProductDetailResponse = GetStorefrontProductDetailResponses[keyof GetStorefrontProductDetailResponses];
+
+export type GetStorefrontExperienceData = {
+    body?: never;
+    path: {
+        surface: string;
+    };
+    query?: {
+        /**
+         * Filtra por chaves de placement (CSV, ex.: home.hero,home.featured)
+         */
+        placements?: string;
+        channel?: 'web' | 'app' | 'kiosk';
+        locale?: string;
+        device?: 'mobile' | 'tablet' | 'desktop';
+        resolve?: 'none' | 'products';
+    };
+    url: '/storefront/experiences/{surface}';
+};
+
+export type GetStorefrontExperienceErrors = {
+    /**
+     * Surface sem release publicada para o contexto
+     */
+    404: unknown;
+};
+
+export type GetStorefrontExperienceResponses = {
+    200: ExperienceResolved;
+};
+
+export type GetStorefrontExperienceResponse = GetStorefrontExperienceResponses[keyof GetStorefrontExperienceResponses];
+
+export type ResolveStorefrontExperienceData = {
+    body: ExperienceResolveRequest;
+    path?: never;
+    query?: never;
+    url: '/storefront/experiences/resolve';
+};
+
+export type ResolveStorefrontExperienceErrors = {
+    /**
+     * Surface sem release publicada para o contexto
+     */
+    404: unknown;
+};
+
+export type ResolveStorefrontExperienceResponses = {
+    200: ExperienceResolved;
+};
+
+export type ResolveStorefrontExperienceResponse = ResolveStorefrontExperienceResponses[keyof ResolveStorefrontExperienceResponses];
+
+export type GetStorefrontExperiencePreviewData = {
+    body?: never;
+    path: {
+        /**
+         * Token de preview — é a CREDENCIAL do endpoint público (ADR 0041). O banco guarda apenas o SHA-256 (`token_hash`); o valor em claro só existe na resposta da emissão. Nunca logar, nunca ecoar noutro payload.
+         */
+        token: string;
+    };
+    query?: never;
+    url: '/storefront/experiences/preview/{token}';
+};
+
+export type GetStorefrontExperiencePreviewErrors = {
+    /**
+     * Token inválido, expirado ou release inexistente
+     */
+    404: unknown;
+};
+
+export type GetStorefrontExperiencePreviewResponses = {
+    200: ExperienceResolved;
+};
+
+export type GetStorefrontExperiencePreviewResponse = GetStorefrontExperiencePreviewResponses[keyof GetStorefrontExperiencePreviewResponses];
+
+export type PutStorefrontExperiencePreviewPlacementsData = {
+    body: ExperiencePlacementGraph;
+    path: {
+        /**
+         * Token de preview — é a CREDENCIAL do endpoint público (ADR 0041). O banco guarda apenas o SHA-256 (`token_hash`); o valor em claro só existe na resposta da emissão. Nunca logar, nunca ecoar noutro payload.
+         */
+        token: string;
+    };
+    query?: never;
+    url: '/storefront/experiences/preview/{token}/placements';
+};
+
+export type PutStorefrontExperiencePreviewPlacementsErrors = {
+    /**
+     * Payload inválido (manifest / schema)
+     */
+    400: unknown;
+    /**
+     * Token sem permissão de escrita
+     */
+    403: unknown;
+    /**
+     * Token inválido, expirado ou release inexistente
+     */
+    404: unknown;
+    /**
+     * Release não está em draft
+     */
+    409: unknown;
+};
+
+export type PutStorefrontExperiencePreviewPlacementsResponses = {
+    200: ExperienceResolved;
+};
+
+export type PutStorefrontExperiencePreviewPlacementsResponse = PutStorefrontExperiencePreviewPlacementsResponses[keyof PutStorefrontExperiencePreviewPlacementsResponses];
+
+export type UploadStorefrontExperiencePreviewAssetData = {
+    body: {
+        file: Blob | File;
+    };
+    path: {
+        /**
+         * Token de preview — é a CREDENCIAL do endpoint público (ADR 0041). O banco guarda apenas o SHA-256 (`token_hash`); o valor em claro só existe na resposta da emissão. Nunca logar, nunca ecoar noutro payload.
+         */
+        token: string;
+    };
+    query?: never;
+    url: '/storefront/experiences/preview/{token}/assets/upload';
+};
+
+export type UploadStorefrontExperiencePreviewAssetErrors = {
+    /**
+     * Ficheiro inválido ou tipo não suportado
+     */
+    400: unknown;
+    /**
+     * Token sem permissão de escrita
+     */
+    403: unknown;
+    /**
+     * Token inválido ou expirado
+     */
+    404: unknown;
+    /**
+     * Object store indisponível
+     */
+    503: unknown;
+};
+
+export type UploadStorefrontExperiencePreviewAssetResponses = {
+    201: ExperienceAsset;
+};
+
+export type UploadStorefrontExperiencePreviewAssetResponse = UploadStorefrontExperiencePreviewAssetResponses[keyof UploadStorefrontExperiencePreviewAssetResponses];
+
+export type ListRentalAssetsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+        /**
+         * Busca case-insensitive por substring em campos de texto do recurso.
+         */
+        search?: string;
+        product_id?: string;
+        warehouse_id?: string;
+        /**
+         * Filtra por status exacto. Quando presente, tem precedência sobre include_inactive.
+         */
+        status?: 'active' | 'inactive' | 'retired';
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/rental/assets';
+};
+
+export type ListRentalAssetsResponses = {
+    /**
+     * OK
+     */
+    200: RentalAssetListPage;
+};
+
+export type ListRentalAssetsResponse = ListRentalAssetsResponses[keyof ListRentalAssetsResponses];
+
+export type CreateRentalAssetData = {
+    body: RentalAssetCreate;
+    path?: never;
+    query?: never;
+    url: '/rental/assets';
+};
+
+export type CreateRentalAssetResponses = {
+    /**
+     * Created
+     */
+    201: RentalAsset;
+};
+
+export type CreateRentalAssetResponse = CreateRentalAssetResponses[keyof CreateRentalAssetResponses];
+
+export type GetRentalAssetData = {
+    body?: never;
+    path: {
+        asset_id: string;
+    };
+    query?: never;
+    url: '/rental/assets/{asset_id}';
+};
+
+export type GetRentalAssetErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetRentalAssetResponses = {
+    /**
+     * OK
+     */
+    200: RentalAsset;
+};
+
+export type GetRentalAssetResponse = GetRentalAssetResponses[keyof GetRentalAssetResponses];
+
+export type UpdateRentalAssetData = {
+    body: RentalAssetUpdate;
+    path: {
+        asset_id: string;
+    };
+    query?: never;
+    url: '/rental/assets/{asset_id}';
+};
+
+export type UpdateRentalAssetErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type UpdateRentalAssetResponses = {
+    /**
+     * OK
+     */
+    200: RentalAsset;
+};
+
+export type UpdateRentalAssetResponse = UpdateRentalAssetResponses[keyof UpdateRentalAssetResponses];
+
+export type ListRentalAssetBlocksData = {
+    body?: never;
+    path: {
+        asset_id: string;
+    };
+    query?: never;
+    url: '/rental/assets/{asset_id}/blocks';
+};
+
+export type ListRentalAssetBlocksErrors = {
+    /**
+     * Asset not found
+     */
+    404: unknown;
+};
+
+export type ListRentalAssetBlocksResponses = {
+    /**
+     * OK
+     */
+    200: RentalBlockList;
+};
+
+export type ListRentalAssetBlocksResponse = ListRentalAssetBlocksResponses[keyof ListRentalAssetBlocksResponses];
+
+export type CreateRentalAssetBlockData = {
+    body: RentalBlockCreate;
+    path: {
+        asset_id: string;
+    };
+    query?: never;
+    url: '/rental/assets/{asset_id}/blocks';
+};
+
+export type CreateRentalAssetBlockErrors = {
+    /**
+     * Período inválido
+     */
+    400: unknown;
+    /**
+     * Asset not found
+     */
+    404: unknown;
+};
+
+export type CreateRentalAssetBlockResponses = {
+    /**
+     * Created
+     */
+    201: RentalBlock;
+};
+
+export type CreateRentalAssetBlockResponse = CreateRentalAssetBlockResponses[keyof CreateRentalAssetBlockResponses];
+
+export type DeleteRentalBlockData = {
+    body?: never;
+    path: {
+        block_id: string;
+    };
+    query?: never;
+    url: '/rental/blocks/{block_id}';
+};
+
+export type DeleteRentalBlockErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type DeleteRentalBlockResponses = {
+    /**
+     * Deleted
+     */
+    204: void;
+};
+
+export type DeleteRentalBlockResponse = DeleteRentalBlockResponses[keyof DeleteRentalBlockResponses];
+
+export type GetRentalAvailabilityData = {
+    body?: never;
+    path?: never;
+    query: {
+        product_id?: string;
+        sku?: string;
+        warehouse_id?: string;
+        period_start: string;
+        period_end: string;
+        quantity?: number;
+    };
+    url: '/rental/availability';
+};
+
+export type GetRentalAvailabilityErrors = {
+    /**
+     * Parâmetros inválidos
+     */
+    400: unknown;
+};
+
+export type GetRentalAvailabilityResponses = {
+    /**
+     * OK
+     */
+    200: RentalAvailability;
+};
+
+export type GetRentalAvailabilityResponse = GetRentalAvailabilityResponses[keyof GetRentalAvailabilityResponses];
+
+export type QuoteRentalData = {
+    body: RentalQuoteRequest;
+    path?: never;
+    query?: never;
+    url: '/rental/quote';
+};
+
+export type QuoteRentalErrors = {
+    /**
+     * SKU/período inválido
+     */
+    400: unknown;
+};
+
+export type QuoteRentalResponses = {
+    /**
+     * OK
+     */
+    200: RentalQuoteResult;
+};
+
+export type QuoteRentalResponse = QuoteRentalResponses[keyof QuoteRentalResponses];
+
+export type GetOrderRentalGatesData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/rental-gates';
+};
+
+export type GetOrderRentalGatesErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetOrderRentalGatesResponses = {
+    /**
+     * OK
+     */
+    200: RentalOrderGates;
+};
+
+export type GetOrderRentalGatesResponse = GetOrderRentalGatesResponses[keyof GetOrderRentalGatesResponses];
+
+export type ListOrderFulfillmentEvidenceData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: {
+        kind?: FulfillmentEvidenceKind;
+    };
+    url: '/orders/{order_id}/fulfillment-evidence';
+};
+
+export type ListOrderFulfillmentEvidenceErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type ListOrderFulfillmentEvidenceResponses = {
+    200: OrderFulfillmentEvidenceList;
+};
+
+export type ListOrderFulfillmentEvidenceResponse = ListOrderFulfillmentEvidenceResponses[keyof ListOrderFulfillmentEvidenceResponses];
+
+export type CreateOrderFulfillmentEvidenceUploadUrlData = {
+    body: FulfillmentEvidenceUploadUrlRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/fulfillment-evidence/upload-url';
+};
+
+export type CreateOrderFulfillmentEvidenceUploadUrlErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type CreateOrderFulfillmentEvidenceUploadUrlResponses = {
+    200: FulfillmentEvidenceUploadUrl;
+};
+
+export type CreateOrderFulfillmentEvidenceUploadUrlResponse = CreateOrderFulfillmentEvidenceUploadUrlResponses[keyof CreateOrderFulfillmentEvidenceUploadUrlResponses];
+
+export type UploadOrderFulfillmentEvidenceAssetData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query: {
+        storage_key: string;
+    };
+    url: '/orders/{order_id}/fulfillment-evidence/assets';
+};
+
+export type UploadOrderFulfillmentEvidenceAssetErrors = {
+    /**
+     * storage_key inválido
+     */
+    400: unknown;
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type UploadOrderFulfillmentEvidenceAssetResponses = {
+    201: OrderFulfillmentEvidence;
+};
+
+export type UploadOrderFulfillmentEvidenceAssetResponse = UploadOrderFulfillmentEvidenceAssetResponses[keyof UploadOrderFulfillmentEvidenceAssetResponses];
+
+export type ConfirmOrderReturnData = {
+    body?: ConfirmOrderReturnRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/confirm-return';
+};
+
+export type ConfirmOrderReturnErrors = {
+    /**
+     * Fotos de devolução em falta ou gates
+     */
+    409: unknown;
+};
+
+export type ConfirmOrderReturnResponses = {
+    200: Order;
+};
+
+export type ConfirmOrderReturnResponse = ConfirmOrderReturnResponses[keyof ConfirmOrderReturnResponses];
+
+export type ExtendOrderRentalData = {
+    body: RentalExtendRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/extend-rental';
+};
+
+export type ExtendOrderRentalErrors = {
+    /**
+     * Pedido sem reserva rental, período inválido, ou outra extensão pending
+     */
+    400: unknown;
+    /**
+     * Pedido não encontrado
+     */
+    404: unknown;
+    /**
+     * Asset indisponível no novo período
+     */
+    409: unknown;
+};
+
+export type ExtendOrderRentalResponses = {
+    /**
+     * Pedido filho de extensão (pagar este id; `extends_order_id` = pai)
+     */
+    200: Order;
+};
+
+export type ExtendOrderRentalResponse = ExtendOrderRentalResponses[keyof ExtendOrderRentalResponses];
+
+export type GetOrderRentalAgreementData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/rental-agreement';
+};
+
+export type GetOrderRentalAgreementErrors = {
+    /**
+     * Contrato não encontrado
+     */
+    404: unknown;
+};
+
+export type GetOrderRentalAgreementResponses = {
+    /**
+     * Contrato encontrado
+     */
+    200: RentalAgreement;
+};
+
+export type GetOrderRentalAgreementResponse = GetOrderRentalAgreementResponses[keyof GetOrderRentalAgreementResponses];
+
+export type StartOrderRentalAgreementData = {
+    body?: RentalAgreementStartRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/rental-agreement/start';
+};
+
+export type StartOrderRentalAgreementResponses = {
+    /**
+     * Token enviado
+     */
+    200: RentalAgreement;
+};
+
+export type StartOrderRentalAgreementResponse = StartOrderRentalAgreementResponses[keyof StartOrderRentalAgreementResponses];
+
+export type ConfirmOrderRentalAgreementData = {
+    body: RentalAgreementConfirmRequest;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/rental-agreement/confirm';
+};
+
+export type ConfirmOrderRentalAgreementErrors = {
+    /**
+     * Token inválido ou expirado
+     */
+    400: unknown;
+};
+
+export type ConfirmOrderRentalAgreementResponses = {
+    /**
+     * Assinado
+     */
+    200: RentalAgreement;
+};
+
+export type ConfirmOrderRentalAgreementResponse = ConfirmOrderRentalAgreementResponses[keyof ConfirmOrderRentalAgreementResponses];
+
+export type ListOrderDownloadsData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/downloads';
+};
+
+export type ListOrderDownloadsResponses = {
+    /**
+     * OK
+     */
+    200: OrderDownloadList;
+};
+
+export type ListOrderDownloadsResponse = ListOrderDownloadsResponses[keyof ListOrderDownloadsResponses];
+
+export type CaptureOrderDepositData = {
+    body?: {
+        /**
+         * Omitir = captura total do authorized_amount
+         */
+        amount?: number;
+    };
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+        payment_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/payments/{payment_id}/commands/capture-deposit';
+};
+
+export type CaptureOrderDepositResponses = {
+    /**
+     * OK
+     */
+    200: OrderPayment;
+};
+
+export type CaptureOrderDepositResponse = CaptureOrderDepositResponses[keyof CaptureOrderDepositResponses];
+
+export type VoidOrderDepositData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+        payment_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/payments/{payment_id}/commands/void-deposit';
+};
+
+export type VoidOrderDepositResponses = {
+    /**
+     * OK
+     */
+    200: OrderPayment;
+};
+
+export type VoidOrderDepositResponse = VoidOrderDepositResponses[keyof VoidOrderDepositResponses];
+
+export type ListCommissionProgramsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        include_inactive?: boolean;
+    };
+    url: '/commission/programs';
+};
+
+export type ListCommissionProgramsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Forbidden
+     */
+    403: unknown;
+};
+
+export type ListCommissionProgramsResponses = {
+    /**
+     * OK
+     */
+    200: CommissionProgramListPage;
+};
+
+export type ListCommissionProgramsResponse = ListCommissionProgramsResponses[keyof ListCommissionProgramsResponses];
+
+export type CreateCommissionProgramData = {
+    body: CommissionProgramCreate;
+    path?: never;
+    query?: never;
+    url: '/commission/programs';
+};
+
+export type CreateCommissionProgramErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Forbidden
+     */
+    403: unknown;
+};
+
+export type CreateCommissionProgramResponses = {
+    /**
+     * Created
+     */
+    201: CommissionProgram;
+};
+
+export type CreateCommissionProgramResponse = CreateCommissionProgramResponses[keyof CreateCommissionProgramResponses];
+
+export type GetCommissionProgramData = {
+    body?: never;
+    path: {
+        program_id: string;
+    };
+    query?: never;
+    url: '/commission/programs/{program_id}';
+};
+
+export type GetCommissionProgramErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetCommissionProgramResponses = {
+    /**
+     * OK
+     */
+    200: CommissionProgram;
+};
+
+export type GetCommissionProgramResponse = GetCommissionProgramResponses[keyof GetCommissionProgramResponses];
+
+export type UpdateCommissionProgramData = {
+    body: CommissionProgramUpdate;
+    path: {
+        program_id: string;
+    };
+    query?: never;
+    url: '/commission/programs/{program_id}';
+};
+
+export type UpdateCommissionProgramErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type UpdateCommissionProgramResponses = {
+    /**
+     * OK
+     */
+    200: CommissionProgram;
+};
+
+export type UpdateCommissionProgramResponse = UpdateCommissionProgramResponses[keyof UpdateCommissionProgramResponses];
+
+export type ListCommissionActorsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        kind?: CommissionActorKind;
+        include_inactive?: boolean;
+    };
+    url: '/commission/actors';
+};
+
+export type ListCommissionActorsResponses = {
+    /**
+     * OK
+     */
+    200: CommissionActorListPage;
+};
+
+export type ListCommissionActorsResponse = ListCommissionActorsResponses[keyof ListCommissionActorsResponses];
+
+export type CreateCommissionActorData = {
+    body: CommissionActorCreate;
+    path?: never;
+    query?: never;
+    url: '/commission/actors';
+};
+
+export type CreateCommissionActorErrors = {
+    /**
+     * Conflict
+     */
+    409: unknown;
+};
+
+export type CreateCommissionActorResponses = {
+    /**
+     * Created
+     */
+    201: CommissionActor;
+};
+
+export type CreateCommissionActorResponse = CreateCommissionActorResponses[keyof CreateCommissionActorResponses];
+
+export type GetCommissionActorData = {
+    body?: never;
+    path: {
+        actor_id: string;
+    };
+    query?: never;
+    url: '/commission/actors/{actor_id}';
+};
+
+export type GetCommissionActorErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetCommissionActorResponses = {
+    /**
+     * OK
+     */
+    200: CommissionActor;
+};
+
+export type GetCommissionActorResponse = GetCommissionActorResponses[keyof GetCommissionActorResponses];
+
+export type UpdateCommissionActorData = {
+    body: CommissionActorUpdate;
+    path: {
+        actor_id: string;
+    };
+    query?: never;
+    url: '/commission/actors/{actor_id}';
+};
+
+export type UpdateCommissionActorResponses = {
+    /**
+     * OK
+     */
+    200: CommissionActor;
+};
+
+export type UpdateCommissionActorResponse = UpdateCommissionActorResponses[keyof UpdateCommissionActorResponses];
+
+export type ListCommissionRulesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        program_id?: string;
+    };
+    url: '/commission/rules';
+};
+
+export type ListCommissionRulesResponses = {
+    /**
+     * OK
+     */
+    200: CommissionRuleListPage;
+};
+
+export type ListCommissionRulesResponse = ListCommissionRulesResponses[keyof ListCommissionRulesResponses];
+
+export type CreateCommissionRuleData = {
+    body: CommissionRuleCreate;
+    path?: never;
+    query?: never;
+    url: '/commission/rules';
+};
+
+export type CreateCommissionRuleResponses = {
+    /**
+     * Created
+     */
+    201: CommissionRule;
+};
+
+export type CreateCommissionRuleResponse = CreateCommissionRuleResponses[keyof CreateCommissionRuleResponses];
+
+export type GetCommissionRuleData = {
+    body?: never;
+    path: {
+        rule_id: string;
+    };
+    query?: never;
+    url: '/commission/rules/{rule_id}';
+};
+
+export type GetCommissionRuleErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetCommissionRuleResponses = {
+    /**
+     * OK
+     */
+    200: CommissionRule;
+};
+
+export type GetCommissionRuleResponse = GetCommissionRuleResponses[keyof GetCommissionRuleResponses];
+
+export type UpdateCommissionRuleData = {
+    body: CommissionRuleUpdate;
+    path: {
+        rule_id: string;
+    };
+    query?: never;
+    url: '/commission/rules/{rule_id}';
+};
+
+export type UpdateCommissionRuleResponses = {
+    /**
+     * OK
+     */
+    200: CommissionRule;
+};
+
+export type UpdateCommissionRuleResponse = UpdateCommissionRuleResponses[keyof UpdateCommissionRuleResponses];
+
+export type ListCommissionLedgerData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        actor_id?: string;
+        status?: CommissionLedgerStatus;
+        order_id?: string;
+    };
+    url: '/commission/ledger';
+};
+
+export type ListCommissionLedgerResponses = {
+    /**
+     * OK
+     */
+    200: CommissionLedgerListPage;
+};
+
+export type ListCommissionLedgerResponse = ListCommissionLedgerResponses[keyof ListCommissionLedgerResponses];
+
+export type MarkCommissionLedgerPaidData = {
+    body?: never;
+    path: {
+        entry_id: string;
+    };
+    query?: never;
+    url: '/commission/ledger/{entry_id}/commands/mark-paid';
+};
+
+export type MarkCommissionLedgerPaidErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Conflict
+     */
+    409: unknown;
+};
+
+export type MarkCommissionLedgerPaidResponses = {
+    /**
+     * OK
+     */
+    200: CommissionLedgerEntry;
+};
+
+export type MarkCommissionLedgerPaidResponse = MarkCommissionLedgerPaidResponses[keyof MarkCommissionLedgerPaidResponses];
+
+export type SetOrderAttributionData = {
+    body: OrderAttributionSet;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/attribution';
+};
+
+export type SetOrderAttributionErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type SetOrderAttributionResponses = {
+    /**
+     * OK
+     */
+    200: Order;
+};
+
+export type SetOrderAttributionResponse = SetOrderAttributionResponses[keyof SetOrderAttributionResponses];
+
+export type GetOrderFiscalData = {
+    body?: never;
+    path: {
+        order_id: string;
+    };
+    query?: {
+        /**
+         * Se true e status pending, consulta o emitter
+         */
+        refresh?: boolean;
+    };
+    url: '/orders/{order_id}/fiscal';
+};
+
+export type GetOrderFiscalErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetOrderFiscalResponses = {
+    200: OrderFiscal;
+};
+
+export type GetOrderFiscalResponse = GetOrderFiscalResponses[keyof GetOrderFiscalResponses];
+
+export type EmitOrderFiscalData = {
+    body?: FiscalEmitRequest;
+    path: {
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/fiscal/emit';
+};
+
+export type EmitOrderFiscalErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Já emitido / conflito
+     */
+    409: unknown;
+};
+
+export type EmitOrderFiscalResponses = {
+    /**
+     * Enfileirado
+     */
+    202: OrderFiscal;
+};
+
+export type EmitOrderFiscalResponse = EmitOrderFiscalResponses[keyof EmitOrderFiscalResponses];
+
+export type ListReturnRequestsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        status?: ReturnRequestStatus;
+        order_id?: string;
+        origin?: ReturnRequestOrigin;
+    };
+    url: '/returns';
+};
+
+export type ListReturnRequestsResponses = {
+    /**
+     * OK
+     */
+    200: ReturnRequestListPage;
+};
+
+export type ListReturnRequestsResponse = ListReturnRequestsResponses[keyof ListReturnRequestsResponses];
+
+export type CreateReturnRequestData = {
+    body: ReturnRequestCreate;
+    path?: never;
+    query?: never;
+    url: '/returns';
+};
+
+export type CreateReturnRequestErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Conflict
+     */
+    409: unknown;
+};
+
+export type CreateReturnRequestResponses = {
+    /**
+     * Created
+     */
+    201: ReturnRequest;
+};
+
+export type CreateReturnRequestResponse = CreateReturnRequestResponses[keyof CreateReturnRequestResponses];
+
+export type GetReturnRequestData = {
+    body?: never;
+    path: {
+        return_id: string;
+    };
+    query?: never;
+    url: '/returns/{return_id}';
+};
+
+export type GetReturnRequestErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetReturnRequestResponses = {
+    /**
+     * OK
+     */
+    200: ReturnRequest;
+};
+
+export type GetReturnRequestResponse = GetReturnRequestResponses[keyof GetReturnRequestResponses];
+
+export type ApproveReturnRequestData = {
+    body?: never;
+    path: {
+        return_id: string;
+    };
+    query?: never;
+    url: '/returns/{return_id}/commands/approve';
+};
+
+export type ApproveReturnRequestErrors = {
+    /**
+     * Conflict
+     */
+    409: unknown;
+};
+
+export type ApproveReturnRequestResponses = {
+    /**
+     * OK
+     */
+    200: ReturnRequest;
+};
+
+export type ApproveReturnRequestResponse = ApproveReturnRequestResponses[keyof ApproveReturnRequestResponses];
+
+export type RejectReturnRequestData = {
+    body?: {
+        reason?: string;
+    };
+    path: {
+        return_id: string;
+    };
+    query?: never;
+    url: '/returns/{return_id}/commands/reject';
+};
+
+export type RejectReturnRequestErrors = {
+    /**
+     * Conflict
+     */
+    409: unknown;
+};
+
+export type RejectReturnRequestResponses = {
+    /**
+     * OK
+     */
+    200: ReturnRequest;
+};
+
+export type RejectReturnRequestResponse = RejectReturnRequestResponses[keyof RejectReturnRequestResponses];
+
+export type CompleteReturnRequestData = {
+    body?: ReturnRequestComplete;
+    path: {
+        return_id: string;
+    };
+    query?: never;
+    url: '/returns/{return_id}/commands/complete';
+};
+
+export type CompleteReturnRequestErrors = {
+    /**
+     * Conflict
+     */
+    409: unknown;
+    /**
+     * Unprocessable
+     */
+    422: unknown;
+};
+
+export type CompleteReturnRequestResponses = {
+    /**
+     * OK
+     */
+    200: ReturnRequest;
+};
+
+export type CompleteReturnRequestResponse = CompleteReturnRequestResponses[keyof CompleteReturnRequestResponses];
+
+export type EmitReturnFiscalData = {
+    body?: FiscalEmitRequest;
+    path: {
+        return_id: string;
+    };
+    query?: never;
+    url: '/returns/{return_id}/fiscal/emit';
+};
+
+export type EmitReturnFiscalErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Conflict
+     */
+    409: unknown;
+};
+
+export type EmitReturnFiscalResponses = {
+    /**
+     * Enfileirado
+     */
+    202: OrderFiscal;
+};
+
+export type EmitReturnFiscalResponse = EmitReturnFiscalResponses[keyof EmitReturnFiscalResponses];
+
+export type ListCompaniesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        include_inactive?: boolean;
+    };
+    url: '/companies';
+};
+
+export type ListCompaniesResponses = {
+    /**
+     * OK
+     */
+    200: CompanyListPage;
+};
+
+export type ListCompaniesResponse = ListCompaniesResponses[keyof ListCompaniesResponses];
+
+export type CreateCompanyData = {
+    body: CompanyCreate;
+    path?: never;
+    query?: never;
+    url: '/companies';
+};
+
+export type CreateCompanyErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+};
+
+export type CreateCompanyResponses = {
+    /**
+     * Created
+     */
+    201: Company;
+};
+
+export type CreateCompanyResponse = CreateCompanyResponses[keyof CreateCompanyResponses];
+
+export type GetCompanyData = {
+    body?: never;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/companies/{company_id}';
+};
+
+export type GetCompanyErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetCompanyResponses = {
+    /**
+     * OK
+     */
+    200: Company;
+};
+
+export type GetCompanyResponse = GetCompanyResponses[keyof GetCompanyResponses];
+
+export type UpdateCompanyData = {
+    body: CompanyUpdate;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/companies/{company_id}';
+};
+
+export type UpdateCompanyErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type UpdateCompanyResponses = {
+    /**
+     * OK
+     */
+    200: Company;
+};
+
+export type UpdateCompanyResponse = UpdateCompanyResponses[keyof UpdateCompanyResponses];
+
+export type ListCompanyMembersData = {
+    body?: never;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/companies/{company_id}/members';
+};
+
+export type ListCompanyMembersResponses = {
+    /**
+     * OK
+     */
+    200: CompanyMemberListPage;
+};
+
+export type ListCompanyMembersResponse = ListCompanyMembersResponses[keyof ListCompanyMembersResponses];
+
+export type CreateCompanyMemberData = {
+    body: CompanyMemberCreate;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/companies/{company_id}/members';
+};
+
+export type CreateCompanyMemberErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+};
+
+export type CreateCompanyMemberResponses = {
+    /**
+     * Created
+     */
+    201: CompanyMember;
+};
+
+export type CreateCompanyMemberResponse = CreateCompanyMemberResponses[keyof CreateCompanyMemberResponses];
+
+export type DeleteCompanyMemberData = {
+    body?: never;
+    path: {
+        company_id: string;
+        member_id: string;
+    };
+    query?: never;
+    url: '/companies/{company_id}/members/{member_id}';
+};
+
+export type DeleteCompanyMemberErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type DeleteCompanyMemberResponses = {
+    /**
+     * No content
+     */
+    204: void;
+};
+
+export type DeleteCompanyMemberResponse = DeleteCompanyMemberResponses[keyof DeleteCompanyMemberResponses];
+
+export type UpdateCompanyMemberData = {
+    body: CompanyMemberUpdate;
+    path: {
+        company_id: string;
+        member_id: string;
+    };
+    query?: never;
+    url: '/companies/{company_id}/members/{member_id}';
+};
+
+export type UpdateCompanyMemberErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type UpdateCompanyMemberResponses = {
+    /**
+     * OK
+     */
+    200: CompanyMember;
+};
+
+export type UpdateCompanyMemberResponse = UpdateCompanyMemberResponses[keyof UpdateCompanyMemberResponses];
+
+export type ListCompanyCreditRequestsByCompanyData = {
+    body?: never;
+    path: {
+        company_id: string;
+    };
+    query?: {
+        status?: CompanyCreditRequestStatus;
+        kind?: CompanyCreditRequestKind;
+        /**
+         * Filtra pelo responsável (storefront pós-KYC)
+         */
+        customer_id?: string;
+        limit?: number;
+    };
+    url: '/companies/{company_id}/credit-requests';
+};
+
+export type ListCompanyCreditRequestsByCompanyErrors = {
+    /**
+     * Forbidden
+     */
+    403: unknown;
+    /**
+     * Company not found
+     */
+    404: unknown;
+};
+
+export type ListCompanyCreditRequestsByCompanyResponses = {
+    /**
+     * OK
+     */
+    200: CompanyCreditRequestListPage;
+};
+
+export type ListCompanyCreditRequestsByCompanyResponse = ListCompanyCreditRequestsByCompanyResponses[keyof ListCompanyCreditRequestsByCompanyResponses];
+
+export type CreateCompanyCreditRequestData = {
+    body: CompanyCreditRequestCreate;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/companies/{company_id}/credit-requests';
+};
+
+export type CreateCompanyCreditRequestErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Forbidden
+     */
+    403: unknown;
+    /**
+     * Company or member not found
+     */
+    404: unknown;
+    /**
+     * Already pending invoice_intent for this company+customer
+     */
+    409: CompanyCreditRequest;
+    /**
+     * Company blocked / already ready for invoice
+     */
+    422: unknown;
+};
+
+export type CreateCompanyCreditRequestError = CreateCompanyCreditRequestErrors[keyof CreateCompanyCreditRequestErrors];
+
+export type CreateCompanyCreditRequestResponses = {
+    /**
+     * Created
+     */
+    201: CompanyCreditRequest;
+};
+
+export type CreateCompanyCreditRequestResponse = CreateCompanyCreditRequestResponses[keyof CreateCompanyCreditRequestResponses];
+
+export type GetCompanyTermsData = {
+    body?: never;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/companies/{company_id}/terms';
+};
+
+export type GetCompanyTermsErrors = {
+    /**
+     * Company not found
+     */
+    404: unknown;
+};
+
+export type GetCompanyTermsResponses = {
+    /**
+     * OK
+     */
+    200: CommercialTerms;
+};
+
+export type GetCompanyTermsResponse = GetCompanyTermsResponses[keyof GetCompanyTermsResponses];
+
+export type PutCompanyTermsData = {
+    body: CommercialTermsUpdate;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/companies/{company_id}/terms';
+};
+
+export type PutCompanyTermsErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Company not found
+     */
+    404: unknown;
+};
+
+export type PutCompanyTermsResponses = {
+    /**
+     * OK
+     */
+    200: CommercialTerms;
+};
+
+export type PutCompanyTermsResponse = PutCompanyTermsResponses[keyof PutCompanyTermsResponses];
+
+export type ListCompanyTermsHistoryData = {
+    body?: never;
+    path: {
+        company_id: string;
+    };
+    query?: {
+        limit?: number;
+    };
+    url: '/companies/{company_id}/terms/history';
+};
+
+export type ListCompanyTermsHistoryErrors = {
+    /**
+     * Company not found
+     */
+    404: unknown;
+};
+
+export type ListCompanyTermsHistoryResponses = {
+    /**
+     * OK
+     */
+    200: CommercialTermsListPage;
+};
+
+export type ListCompanyTermsHistoryResponse = ListCompanyTermsHistoryResponses[keyof ListCompanyTermsHistoryResponses];
+
+export type ApproveCompanyOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/approve-company';
+};
+
+export type ApproveCompanyOrderErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Not awaiting company approval
+     */
+    422: unknown;
+};
+
+export type ApproveCompanyOrderResponses = {
+    /**
+     * OK
+     */
+    200: Order;
+};
+
+export type ApproveCompanyOrderResponse = ApproveCompanyOrderResponses[keyof ApproveCompanyOrderResponses];
+
+export type RejectCompanyOrderData = {
+    body?: {
+        reason?: string;
+    };
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/orders/{order_id}/commands/reject-company';
+};
+
+export type RejectCompanyOrderErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Not awaiting company approval
+     */
+    422: unknown;
+};
+
+export type RejectCompanyOrderResponses = {
+    /**
+     * OK
+     */
+    200: Order;
+};
+
+export type RejectCompanyOrderResponse = RejectCompanyOrderResponses[keyof RejectCompanyOrderResponses];
+
+export type CampaignPerformanceData = {
+    body?: never;
+    path?: never;
+    query?: {
+        date_from?: string;
+        date_to?: string;
+        limit?: number;
+    };
+    url: '/incentives/campaign-performance';
+};
+
+export type CampaignPerformanceResponses = {
+    /**
+     * OK
+     */
+    200: CampaignPerformancePage;
+};
+
+export type CampaignPerformanceResponse = CampaignPerformanceResponses[keyof CampaignPerformanceResponses];
+
+export type SimulateIncentivesData = {
+    body: IncentiveSimulationRequest;
+    path?: never;
+    query?: never;
+    url: '/incentives/simulate';
+};
+
+export type SimulateIncentivesErrors = {
+    /**
+     * Carrinho inválido
+     */
+    400: unknown;
+};
+
+export type SimulateIncentivesResponses = {
+    /**
+     * OK
+     */
+    200: IncentiveSimulationResult;
+};
+
+export type SimulateIncentivesResponse = SimulateIncentivesResponses[keyof SimulateIncentivesResponses];
+
+export type ListGiftCardsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: 'active' | 'expired' | 'cancelled';
+        limit?: number;
+    };
+    url: '/gift-cards';
+};
+
+export type ListGiftCardsResponses = {
+    /**
+     * OK
+     */
+    200: GiftCardListPage;
+};
+
+export type ListGiftCardsResponse = ListGiftCardsResponses[keyof ListGiftCardsResponses];
+
+export type IssueGiftCardData = {
+    body: GiftCardIssueWritable;
+    path?: never;
+    query?: never;
+    url: '/gift-cards';
+};
+
+export type IssueGiftCardErrors = {
+    /**
+     * Valor inválido
+     */
+    400: unknown;
+};
+
+export type IssueGiftCardResponses = {
+    /**
+     * Criado — `code` só aqui
+     */
+    201: GiftCardIssued;
+};
+
+export type IssueGiftCardResponse = IssueGiftCardResponses[keyof IssueGiftCardResponses];
+
+export type CancelGiftCardData = {
+    body?: never;
+    path: {
+        gift_card_id: string;
+    };
+    query?: never;
+    url: '/gift-cards/{gift_card_id}/commands/cancel';
+};
+
+export type CancelGiftCardErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type CancelGiftCardResponses = {
+    /**
+     * OK
+     */
+    200: GiftCard;
+};
+
+export type CancelGiftCardResponse = CancelGiftCardResponses[keyof CancelGiftCardResponses];
+
+export type LookupGiftCardData = {
+    body: GiftCardLookup;
+    path?: never;
+    query?: never;
+    url: '/gift-cards/lookup';
+};
+
+export type LookupGiftCardErrors = {
+    /**
+     * Código inválido, expirado ou cancelado
+     */
+    404: unknown;
+};
+
+export type LookupGiftCardResponses = {
+    /**
+     * OK
+     */
+    200: TenderInstrument;
+};
+
+export type LookupGiftCardResponse = LookupGiftCardResponses[keyof LookupGiftCardResponses];
+
+export type ClaimGiftCardData = {
+    body: GiftCardClaim;
+    path?: never;
+    query?: never;
+    url: '/gift-cards/claim';
+};
+
+export type ClaimGiftCardErrors = {
+    /**
+     * Código/PIN inválido ou sem saldo
+     */
+    400: unknown;
+    /**
+     * Sessão customer necessária
+     */
+    401: unknown;
+};
+
+export type ClaimGiftCardResponses = {
+    /**
+     * Creditado na conta store_credit
+     */
+    200: GiftCardClaimed;
+};
+
+export type ClaimGiftCardResponse = ClaimGiftCardResponses[keyof ClaimGiftCardResponses];
+
+export type ListGiftCardProvidersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/gift-card-providers';
+};
+
+export type ListGiftCardProvidersResponses = {
+    /**
+     * OK
+     */
+    200: GiftCardProviderListPage;
+};
+
+export type ListGiftCardProvidersResponse = ListGiftCardProvidersResponses[keyof ListGiftCardProvidersResponses];
+
+export type UpsertGiftCardProviderData = {
+    body: GiftCardProviderUpsert;
+    path?: never;
+    query?: never;
+    url: '/gift-card-providers';
+};
+
+export type UpsertGiftCardProviderErrors = {
+    /**
+     * Payload inválido
+     */
+    400: unknown;
+};
+
+export type UpsertGiftCardProviderResponses = {
+    /**
+     * Upserted
+     */
+    200: GiftCardProvider;
+};
+
+export type UpsertGiftCardProviderResponse = UpsertGiftCardProviderResponses[keyof UpsertGiftCardProviderResponses];
+
+export type ListCompanyCreditRequestsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        status?: CompanyCreditRequestStatus;
+        company_id?: string;
+    };
+    url: '/credits/company-credit-requests';
+};
+
+export type ListCompanyCreditRequestsResponses = {
+    /**
+     * OK
+     */
+    200: CompanyCreditRequestListPage;
+};
+
+export type ListCompanyCreditRequestsResponse = ListCompanyCreditRequestsResponses[keyof ListCompanyCreditRequestsResponses];
+
+export type ApproveCompanyCreditRequestData = {
+    body?: CompanyCreditRequestDecide;
+    path: {
+        request_id: string;
+    };
+    query?: never;
+    url: '/credits/company-credit-requests/{request_id}/commands/approve';
+};
+
+export type ApproveCompanyCreditRequestErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Not pending
+     */
+    422: unknown;
+};
+
+export type ApproveCompanyCreditRequestResponses = {
+    /**
+     * OK
+     */
+    200: CompanyCreditRequest;
+};
+
+export type ApproveCompanyCreditRequestResponse = ApproveCompanyCreditRequestResponses[keyof ApproveCompanyCreditRequestResponses];
+
+export type RejectCompanyCreditRequestData = {
+    body?: CompanyCreditRequestDecide;
+    path: {
+        request_id: string;
+    };
+    query?: never;
+    url: '/credits/company-credit-requests/{request_id}/commands/reject';
+};
+
+export type RejectCompanyCreditRequestErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Not pending
+     */
+    422: unknown;
+};
+
+export type RejectCompanyCreditRequestResponses = {
+    /**
+     * OK
+     */
+    200: CompanyCreditRequest;
+};
+
+export type RejectCompanyCreditRequestResponse = RejectCompanyCreditRequestResponses[keyof RejectCompanyCreditRequestResponses];
+
+export type ListCreditAccountsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        kind?: CreditAccountKind;
+        owner_type?: CreditOwnerType;
+        owner_id?: string;
+    };
+    url: '/credits/accounts';
+};
+
+export type ListCreditAccountsResponses = {
+    /**
+     * OK
+     */
+    200: CreditAccountListPage;
+};
+
+export type ListCreditAccountsResponse = ListCreditAccountsResponses[keyof ListCreditAccountsResponses];
+
+export type EnsureCreditAccountData = {
+    body: CreditAccountEnsure;
+    path?: never;
+    query?: never;
+    url: '/credits/accounts';
+};
+
+export type EnsureCreditAccountErrors = {
+    /**
+     * Parâmetros inválidos
+     */
+    400: unknown;
+};
+
+export type EnsureCreditAccountResponses = {
+    /**
+     * Conta já existia
+     */
+    200: CreditAccount;
+    /**
+     * Conta criada
+     */
+    201: CreditAccount;
+};
+
+export type EnsureCreditAccountResponse = EnsureCreditAccountResponses[keyof EnsureCreditAccountResponses];
+
+export type ListCreditEntriesData = {
+    body?: never;
+    path: {
+        account_id: string;
+    };
+    query?: {
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/credits/accounts/{account_id}/entries';
+};
+
+export type ListCreditEntriesErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type ListCreditEntriesResponses = {
+    /**
+     * OK
+     */
+    200: CreditEntryListPage;
+};
+
+export type ListCreditEntriesResponse = ListCreditEntriesResponses[keyof ListCreditEntriesResponses];
+
+export type AdjustCreditAccountData = {
+    body: CreditAdjustRequest;
+    path: {
+        account_id: string;
+    };
+    query?: never;
+    url: '/credits/accounts/{account_id}/adjust';
+};
+
+export type AdjustCreditAccountErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type AdjustCreditAccountResponses = {
+    /**
+     * OK
+     */
+    200: CreditAccount;
+};
+
+export type AdjustCreditAccountResponse = AdjustCreditAccountResponses[keyof AdjustCreditAccountResponses];
+
+export type CreateCreditChallengeData = {
+    body: CreditChallengeCreate;
+    path?: never;
+    query?: never;
+    url: '/credits/challenges';
+};
+
+export type CreateCreditChallengeErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Saldo insuficiente
+     */
+    422: unknown;
+};
+
+export type CreateCreditChallengeResponses = {
+    /**
+     * Challenge criado (código só no e-mail; em dev pode vir `dev_code`)
+     */
+    201: CreditChallenge;
+};
+
+export type CreateCreditChallengeResponse = CreateCreditChallengeResponses[keyof CreateCreditChallengeResponses];
+
+export type ConfirmCreditChallengeData = {
+    body: CreditChallengeConfirm;
+    path: {
+        challenge_id: string;
+    };
+    query?: never;
+    url: '/credits/challenges/{challenge_id}/confirm';
+};
+
+export type ConfirmCreditChallengeErrors = {
+    /**
+     * Código inválido ou expirado
+     */
+    400: unknown;
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type ConfirmCreditChallengeResponses = {
+    /**
+     * OK
+     */
+    200: CreditChallengeConfirmed;
+};
+
+export type ConfirmCreditChallengeResponse = ConfirmCreditChallengeResponses[keyof ConfirmCreditChallengeResponses];
+
+export type ReserveCreditData = {
+    body: CreditReserveRequest;
+    path?: never;
+    query?: never;
+    url: '/credits/reserve';
+};
+
+export type ReserveCreditErrors = {
+    /**
+     * Token inválido
+     */
+    400: unknown;
+    /**
+     * Saldo insuficiente
+     */
+    422: unknown;
+};
+
+export type ReserveCreditResponses = {
+    /**
+     * OK
+     */
+    200: CreditAccount;
+};
+
+export type ReserveCreditResponse = ReserveCreditResponses[keyof ReserveCreditResponses];
+
+export type GetCashbackSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/cashback/settings';
+};
+
+export type GetCashbackSettingsResponses = {
+    /**
+     * OK
+     */
+    200: CashbackSettings;
+};
+
+export type GetCashbackSettingsResponse = GetCashbackSettingsResponses[keyof GetCashbackSettingsResponses];
+
+export type PutCashbackSettingsData = {
+    body: CashbackSettings;
+    path?: never;
+    query?: never;
+    url: '/cashback/settings';
+};
+
+export type PutCashbackSettingsResponses = {
+    /**
+     * OK
+     */
+    200: CashbackSettings;
+};
+
+export type PutCashbackSettingsResponse = PutCashbackSettingsResponses[keyof PutCashbackSettingsResponses];
+
+export type CustomerListCreditsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/customer/credits';
+};
+
+export type CustomerListCreditsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+};
+
+export type CustomerListCreditsResponses = {
+    /**
+     * OK
+     */
+    200: CreditAccountListPage;
+};
+
+export type CustomerListCreditsResponse = CustomerListCreditsResponses[keyof CustomerListCreditsResponses];
+
+export type CustomerListCompaniesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/customer/companies';
+};
+
+export type CustomerListCompaniesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+};
+
+export type CustomerListCompaniesResponses = {
+    /**
+     * OK
+     */
+    200: CustomerCompanyMembershipListPage;
+};
+
+export type CustomerListCompaniesResponse = CustomerListCompaniesResponses[keyof CustomerListCompaniesResponses];
+
+export type CustomerGetCompanyData = {
+    body?: never;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}';
+};
+
+export type CustomerGetCompanyErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Not a member of this company
+     */
+    403: unknown;
+    /**
+     * Company not found
+     */
+    404: unknown;
+};
+
+export type CustomerGetCompanyResponses = {
+    /**
+     * OK
+     */
+    200: CustomerCompanyMembership;
+};
+
+export type CustomerGetCompanyResponse = CustomerGetCompanyResponses[keyof CustomerGetCompanyResponses];
+
+export type CustomerGetCompanyCreditData = {
+    body?: never;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}/credit';
+};
+
+export type CustomerGetCompanyCreditErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Not a member of this company
+     */
+    403: unknown;
+    /**
+     * Credit account not found
+     */
+    404: unknown;
+};
+
+export type CustomerGetCompanyCreditResponses = {
+    /**
+     * OK
+     */
+    200: CreditAccount;
+};
+
+export type CustomerGetCompanyCreditResponse = CustomerGetCompanyCreditResponses[keyof CustomerGetCompanyCreditResponses];
+
+export type CustomerGetCompanyTermsData = {
+    body?: never;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}/terms';
+};
+
+export type CustomerGetCompanyTermsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Not a member of this company
+     */
+    403: unknown;
+    /**
+     * Company not found
+     */
+    404: unknown;
+};
+
+export type CustomerGetCompanyTermsResponses = {
+    /**
+     * OK
+     */
+    200: CommercialTerms;
+};
+
+export type CustomerGetCompanyTermsResponse = CustomerGetCompanyTermsResponses[keyof CustomerGetCompanyTermsResponses];
+
+export type CustomerListCompanyMembersData = {
+    body?: never;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}/members';
+};
+
+export type CustomerListCompanyMembersErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Not a member of this company
+     */
+    403: unknown;
+};
+
+export type CustomerListCompanyMembersResponses = {
+    /**
+     * OK
+     */
+    200: CompanyMemberListPage;
+};
+
+export type CustomerListCompanyMembersResponse = CustomerListCompanyMembersResponses[keyof CustomerListCompanyMembersResponses];
+
+export type CustomerCreateCompanyMemberData = {
+    body: CompanyMemberCreate;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}/members';
+};
+
+export type CustomerCreateCompanyMemberErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Owner role required
+     */
+    403: unknown;
+};
+
+export type CustomerCreateCompanyMemberResponses = {
+    /**
+     * Created
+     */
+    201: CompanyMember;
+};
+
+export type CustomerCreateCompanyMemberResponse = CustomerCreateCompanyMemberResponses[keyof CustomerCreateCompanyMemberResponses];
+
+export type CustomerDeleteCompanyMemberData = {
+    body?: never;
+    path: {
+        company_id: string;
+        member_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}/members/{member_id}';
+};
+
+export type CustomerDeleteCompanyMemberErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Owner role required
+     */
+    403: unknown;
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type CustomerDeleteCompanyMemberResponses = {
+    /**
+     * No content
+     */
+    204: void;
+};
+
+export type CustomerDeleteCompanyMemberResponse = CustomerDeleteCompanyMemberResponses[keyof CustomerDeleteCompanyMemberResponses];
+
+export type CustomerUpdateCompanyMemberData = {
+    body: CompanyMemberUpdate;
+    path: {
+        company_id: string;
+        member_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}/members/{member_id}';
+};
+
+export type CustomerUpdateCompanyMemberErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Owner role required
+     */
+    403: unknown;
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type CustomerUpdateCompanyMemberResponses = {
+    /**
+     * OK
+     */
+    200: CompanyMember;
+};
+
+export type CustomerUpdateCompanyMemberResponse = CustomerUpdateCompanyMemberResponses[keyof CustomerUpdateCompanyMemberResponses];
+
+export type CustomerListCompanyInvitesData = {
+    body?: never;
+    path: {
+        company_id: string;
+    };
+    query?: {
+        status?: CompanyInviteStatus;
+    };
+    url: '/auth/customer/companies/{company_id}/invites';
+};
+
+export type CustomerListCompanyInvitesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Owner role required
+     */
+    403: unknown;
+};
+
+export type CustomerListCompanyInvitesResponses = {
+    /**
+     * OK
+     */
+    200: CompanyInviteListPage;
+};
+
+export type CustomerListCompanyInvitesResponse = CustomerListCompanyInvitesResponses[keyof CustomerListCompanyInvitesResponses];
+
+export type CustomerCreateCompanyInviteData = {
+    body: CompanyInviteCreate;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}/invites';
+};
+
+export type CustomerCreateCompanyInviteErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Owner role required
+     */
+    403: unknown;
+    /**
+     * Already member or pending invite exists
+     */
+    409: unknown;
+};
+
+export type CustomerCreateCompanyInviteResponses = {
+    /**
+     * Created
+     */
+    201: CompanyInvite;
+};
+
+export type CustomerCreateCompanyInviteResponse = CustomerCreateCompanyInviteResponses[keyof CustomerCreateCompanyInviteResponses];
+
+export type CustomerRevokeCompanyInviteData = {
+    body?: never;
+    path: {
+        company_id: string;
+        invite_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}/invites/{invite_id}/revoke';
+};
+
+export type CustomerRevokeCompanyInviteErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Owner role required
+     */
+    403: unknown;
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Invite not pending
+     */
+    409: unknown;
+};
+
+export type CustomerRevokeCompanyInviteResponses = {
+    /**
+     * OK
+     */
+    200: CompanyInvite;
+};
+
+export type CustomerRevokeCompanyInviteResponse = CustomerRevokeCompanyInviteResponses[keyof CustomerRevokeCompanyInviteResponses];
+
+export type CustomerResendCompanyInviteData = {
+    body?: never;
+    path: {
+        company_id: string;
+        invite_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}/invites/{invite_id}/resend';
+};
+
+export type CustomerResendCompanyInviteErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Owner role required
+     */
+    403: unknown;
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Invite not pending or cooldown
+     */
+    409: unknown;
+};
+
+export type CustomerResendCompanyInviteResponses = {
+    /**
+     * OK
+     */
+    200: CompanyInvite;
+};
+
+export type CustomerResendCompanyInviteResponse = CustomerResendCompanyInviteResponses[keyof CustomerResendCompanyInviteResponses];
+
+export type CustomerGetCompanyInvitePublicData = {
+    body?: never;
+    path: {
+        token: string;
+    };
+    query?: never;
+    url: '/auth/customer/company-invites/public/{token}';
+};
+
+export type CustomerGetCompanyInvitePublicErrors = {
+    /**
+     * Token inválido ou desconhecido (resposta indistinta)
+     */
+    404: unknown;
+};
+
+export type CustomerGetCompanyInvitePublicResponses = {
+    /**
+     * OK
+     */
+    200: CompanyInvitePublic;
+};
+
+export type CustomerGetCompanyInvitePublicResponse = CustomerGetCompanyInvitePublicResponses[keyof CustomerGetCompanyInvitePublicResponses];
+
+export type CustomerAcceptCompanyInviteData = {
+    body: CompanyInviteAccept;
+    path?: never;
+    query?: never;
+    url: '/auth/customer/company-invites/accept';
+};
+
+export type CustomerAcceptCompanyInviteErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Email mismatch
+     */
+    403: unknown;
+    /**
+     * Invite not found
+     */
+    404: unknown;
+    /**
+     * Invite not pending or expired
+     */
+    409: unknown;
+};
+
+export type CustomerAcceptCompanyInviteResponses = {
+    /**
+     * OK
+     */
+    200: CompanyMember;
+};
+
+export type CustomerAcceptCompanyInviteResponse = CustomerAcceptCompanyInviteResponses[keyof CustomerAcceptCompanyInviteResponses];
+
+export type CustomerTransferCompanyOwnershipData = {
+    body: CompanyOwnershipTransfer;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}/transfer-ownership';
+};
+
+export type CustomerTransferCompanyOwnershipErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Owner role required
+     */
+    403: unknown;
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Conflict (já é owner / inactivo)
+     */
+    409: unknown;
+};
+
+export type CustomerTransferCompanyOwnershipResponses = {
+    /**
+     * Novo owner
+     */
+    200: CompanyMember;
+};
+
+export type CustomerTransferCompanyOwnershipResponse = CustomerTransferCompanyOwnershipResponses[keyof CustomerTransferCompanyOwnershipResponses];
+
+export type CustomerListCompanyInvoicesData = {
+    body?: never;
+    path: {
+        company_id: string;
+    };
+    query?: {
+        status?: FinanceDocumentStatus;
+    };
+    url: '/auth/customer/companies/{company_id}/invoices';
+};
+
+export type CustomerListCompanyInvoicesErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Financial role required
+     */
+    403: unknown;
+};
+
+export type CustomerListCompanyInvoicesResponses = {
+    /**
+     * OK
+     */
+    200: CompanyInvoiceListPage;
+};
+
+export type CustomerListCompanyInvoicesResponse = CustomerListCompanyInvoicesResponses[keyof CustomerListCompanyInvoicesResponses];
+
+export type CustomerPayCompanyInvoiceData = {
+    body?: never;
+    path: {
+        company_id: string;
+        invoice_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}/invoices/{invoice_id}/commands/pay';
+};
+
+export type CustomerPayCompanyInvoiceErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Financial role required
+     */
+    403: unknown;
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Already paid / not payable
+     */
+    409: unknown;
+};
+
+export type CustomerPayCompanyInvoiceResponses = {
+    /**
+     * Pix iniciado
+     */
+    200: CompanyInvoicePayResult;
+};
+
+export type CustomerPayCompanyInvoiceResponse = CustomerPayCompanyInvoiceResponses[keyof CustomerPayCompanyInvoiceResponses];
+
+export type CustomerListCompanyCreditRequestsData = {
+    body?: never;
+    path: {
+        company_id: string;
+    };
+    query?: {
+        status?: CompanyCreditRequestStatus;
+    };
+    url: '/auth/customer/companies/{company_id}/credit-requests';
+};
+
+export type CustomerListCompanyCreditRequestsErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Not a member of this company
+     */
+    403: unknown;
+};
+
+export type CustomerListCompanyCreditRequestsResponses = {
+    /**
+     * OK
+     */
+    200: CompanyCreditRequestListPage;
+};
+
+export type CustomerListCompanyCreditRequestsResponse = CustomerListCompanyCreditRequestsResponses[keyof CustomerListCompanyCreditRequestsResponses];
+
+export type CustomerCreateCompanyCreditRequestData = {
+    body: CompanyCreditRequestCreate;
+    path: {
+        company_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/companies/{company_id}/credit-requests';
+};
+
+export type CustomerCreateCompanyCreditRequestErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Role cannot request credit
+     */
+    403: unknown;
+};
+
+export type CustomerCreateCompanyCreditRequestResponses = {
+    /**
+     * Created
+     */
+    201: CompanyCreditRequest;
+};
+
+export type CustomerCreateCompanyCreditRequestResponse = CustomerCreateCompanyCreditRequestResponses[keyof CustomerCreateCompanyCreditRequestResponses];
+
+export type CustomerListCompanyOrdersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        /**
+         * pending (default) | approved | rejected | all
+         */
+        approval_status?: 'pending' | 'approved' | 'rejected' | 'all';
+    };
+    url: '/auth/customer/company-orders';
+};
+
+export type CustomerListCompanyOrdersErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+};
+
+export type CustomerListCompanyOrdersResponses = {
+    /**
+     * OK
+     */
+    200: OrderListPage;
+};
+
+export type CustomerListCompanyOrdersResponse = CustomerListCompanyOrdersResponses[keyof CustomerListCompanyOrdersResponses];
+
+export type CustomerApproveCompanyOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/orders/{order_id}/commands/approve-company';
+};
+
+export type CustomerApproveCompanyOrderErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Not a member or insufficient role
+     */
+    403: unknown;
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Not awaiting company approval
+     */
+    422: unknown;
+};
+
+export type CustomerApproveCompanyOrderResponses = {
+    /**
+     * OK
+     */
+    200: Order;
+};
+
+export type CustomerApproveCompanyOrderResponse = CustomerApproveCompanyOrderResponses[keyof CustomerApproveCompanyOrderResponses];
+
+export type CustomerRejectCompanyOrderData = {
+    body?: {
+        reason?: string;
+    };
+    path: {
+        /**
+         * Identificador do pedido: UUID interno ou `order_code` curto (8 chars, alfabeto sem ambiguidades). O front usa o código; integrações podem continuar a passar o UUID.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/auth/customer/orders/{order_id}/commands/reject-company';
+};
+
+export type CustomerRejectCompanyOrderErrors = {
+    /**
+     * Unauthorized
+     */
+    401: unknown;
+    /**
+     * Not a member or insufficient role
+     */
+    403: unknown;
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Not awaiting company approval
+     */
+    422: unknown;
+};
+
+export type CustomerRejectCompanyOrderResponses = {
+    /**
+     * OK
+     */
+    200: Order;
+};
+
+export type CustomerRejectCompanyOrderResponse = CustomerRejectCompanyOrderResponses[keyof CustomerRejectCompanyOrderResponses];
+
+export type ListSalesQuotesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        company_id?: string;
+        status?: string;
+    };
+    url: '/sales-quotes';
+};
+
+export type ListSalesQuotesResponses = {
+    /**
+     * OK
+     */
+    200: SalesQuoteListPage;
+};
+
+export type ListSalesQuotesResponse = ListSalesQuotesResponses[keyof ListSalesQuotesResponses];
+
+export type CreateSalesQuoteData = {
+    body: SalesQuoteCreate;
+    path?: never;
+    query?: never;
+    url: '/sales-quotes';
+};
+
+export type CreateSalesQuoteErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+    /**
+     * Company not found
+     */
+    404: unknown;
+};
+
+export type CreateSalesQuoteResponses = {
+    /**
+     * Created
+     */
+    201: SalesQuote;
+};
+
+export type CreateSalesQuoteResponse = CreateSalesQuoteResponses[keyof CreateSalesQuoteResponses];
+
+export type CancelSalesQuoteData = {
+    body?: never;
+    path: {
+        quote_id: string;
+    };
+    query?: never;
+    url: '/sales-quotes/{quote_id}';
+};
+
+export type CancelSalesQuoteErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Quote cannot be cancelled in current status
+     */
+    422: unknown;
+};
+
+export type CancelSalesQuoteResponses = {
+    /**
+     * OK
+     */
+    200: SalesQuote;
+};
+
+export type CancelSalesQuoteResponse = CancelSalesQuoteResponses[keyof CancelSalesQuoteResponses];
+
+export type GetSalesQuoteData = {
+    body?: never;
+    path: {
+        quote_id: string;
+    };
+    query?: never;
+    url: '/sales-quotes/{quote_id}';
+};
+
+export type GetSalesQuoteErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetSalesQuoteResponses = {
+    /**
+     * OK
+     */
+    200: SalesQuote;
+};
+
+export type GetSalesQuoteResponse = GetSalesQuoteResponses[keyof GetSalesQuoteResponses];
+
+export type UpdateSalesQuoteData = {
+    body: SalesQuoteUpdate;
+    path: {
+        quote_id: string;
+    };
+    query?: never;
+    url: '/sales-quotes/{quote_id}';
+};
+
+export type UpdateSalesQuoteErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Quote not in draft status
+     */
+    422: unknown;
+};
+
+export type UpdateSalesQuoteResponses = {
+    /**
+     * OK
+     */
+    200: SalesQuote;
+};
+
+export type UpdateSalesQuoteResponse = UpdateSalesQuoteResponses[keyof UpdateSalesQuoteResponses];
+
+export type SendSalesQuoteData = {
+    body?: never;
+    path: {
+        quote_id: string;
+    };
+    query?: never;
+    url: '/sales-quotes/{quote_id}/commands/send';
+};
+
+export type SendSalesQuoteErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Quote not in draft status
+     */
+    422: unknown;
+};
+
+export type SendSalesQuoteResponses = {
+    /**
+     * OK
+     */
+    200: SalesQuote;
+};
+
+export type SendSalesQuoteResponse = SendSalesQuoteResponses[keyof SendSalesQuoteResponses];
+
+export type AcceptSalesQuoteData = {
+    body?: never;
+    path: {
+        quote_id: string;
+    };
+    query?: never;
+    url: '/sales-quotes/{quote_id}/commands/accept';
+};
+
+export type AcceptSalesQuoteErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Quote not in sent status
+     */
+    422: unknown;
+};
+
+export type AcceptSalesQuoteResponses = {
+    /**
+     * OK
+     */
+    200: SalesQuote;
+};
+
+export type AcceptSalesQuoteResponse = AcceptSalesQuoteResponses[keyof AcceptSalesQuoteResponses];
+
+export type RejectSalesQuoteData = {
+    body?: never;
+    path: {
+        quote_id: string;
+    };
+    query?: never;
+    url: '/sales-quotes/{quote_id}/commands/reject';
+};
+
+export type RejectSalesQuoteErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Quote not in sent status
+     */
+    422: unknown;
+};
+
+export type RejectSalesQuoteResponses = {
+    /**
+     * OK
+     */
+    200: SalesQuote;
+};
+
+export type RejectSalesQuoteResponse = RejectSalesQuoteResponses[keyof RejectSalesQuoteResponses];
+
+export type ListInventoryCostsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        warehouse_id?: string;
+        product_id?: string;
+    };
+    url: '/inventory/cost';
+};
+
+export type ListInventoryCostsResponses = {
+    /**
+     * OK
+     */
+    200: InventoryCostListPage;
+};
+
+export type ListInventoryCostsResponse = ListInventoryCostsResponses[keyof ListInventoryCostsResponses];
+
+export type ListInventoryCostMarginsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        warehouse_id?: string;
+    };
+    url: '/inventory/cost/margin';
+};
+
+export type ListInventoryCostMarginsResponses = {
+    /**
+     * OK
+     */
+    200: InventoryCostMarginListPage;
+};
+
+export type ListInventoryCostMarginsResponse = ListInventoryCostMarginsResponses[keyof ListInventoryCostMarginsResponses];
+
+export type ListSuppliersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        status?: SupplierStatus;
+        include_inactive?: boolean;
+    };
+    url: '/suppliers';
+};
+
+export type ListSuppliersResponses = {
+    /**
+     * OK
+     */
+    200: SupplierListPage;
+};
+
+export type ListSuppliersResponse = ListSuppliersResponses[keyof ListSuppliersResponses];
+
+export type CreateSupplierData = {
+    body: SupplierCreate;
+    path?: never;
+    query?: never;
+    url: '/suppliers';
+};
+
+export type CreateSupplierResponses = {
+    /**
+     * Created
+     */
+    201: Supplier;
+};
+
+export type CreateSupplierResponse = CreateSupplierResponses[keyof CreateSupplierResponses];
+
+export type GetSupplierData = {
+    body?: never;
+    path: {
+        supplier_id: string;
+    };
+    query?: never;
+    url: '/suppliers/{supplier_id}';
+};
+
+export type GetSupplierErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetSupplierResponses = {
+    /**
+     * OK
+     */
+    200: Supplier;
+};
+
+export type GetSupplierResponse = GetSupplierResponses[keyof GetSupplierResponses];
+
+export type UpdateSupplierData = {
+    body: SupplierUpdate;
+    path: {
+        supplier_id: string;
+    };
+    query?: never;
+    url: '/suppliers/{supplier_id}';
+};
+
+export type UpdateSupplierErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type UpdateSupplierResponses = {
+    /**
+     * OK
+     */
+    200: Supplier;
+};
+
+export type UpdateSupplierResponse = UpdateSupplierResponses[keyof UpdateSupplierResponses];
+
+export type ListPurchaseOrdersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        status?: PurchaseOrderStatus;
+        supplier_id?: string;
+    };
+    url: '/purchase-orders';
+};
+
+export type ListPurchaseOrdersResponses = {
+    /**
+     * OK
+     */
+    200: PurchaseOrderListPage;
+};
+
+export type ListPurchaseOrdersResponse = ListPurchaseOrdersResponses[keyof ListPurchaseOrdersResponses];
+
+export type CreatePurchaseOrderData = {
+    body: PurchaseOrderCreate;
+    path?: never;
+    query?: never;
+    url: '/purchase-orders';
+};
+
+export type CreatePurchaseOrderResponses = {
+    /**
+     * Created
+     */
+    201: PurchaseOrder;
+};
+
+export type CreatePurchaseOrderResponse = CreatePurchaseOrderResponses[keyof CreatePurchaseOrderResponses];
+
+export type GetPurchaseOrderData = {
+    body?: never;
+    path: {
+        purchase_order_id: string;
+    };
+    query?: never;
+    url: '/purchase-orders/{purchase_order_id}';
+};
+
+export type GetPurchaseOrderErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetPurchaseOrderResponses = {
+    /**
+     * OK
+     */
+    200: PurchaseOrder;
+};
+
+export type GetPurchaseOrderResponse = GetPurchaseOrderResponses[keyof GetPurchaseOrderResponses];
+
+export type UpdatePurchaseOrderData = {
+    body: PurchaseOrderUpdate;
+    path: {
+        purchase_order_id: string;
+    };
+    query?: never;
+    url: '/purchase-orders/{purchase_order_id}';
+};
+
+export type UpdatePurchaseOrderErrors = {
+    /**
+     * Só draft editável
+     */
+    409: unknown;
+};
+
+export type UpdatePurchaseOrderResponses = {
+    /**
+     * OK
+     */
+    200: PurchaseOrder;
+};
+
+export type UpdatePurchaseOrderResponse = UpdatePurchaseOrderResponses[keyof UpdatePurchaseOrderResponses];
+
+export type SubmitPurchaseOrderData = {
+    body?: never;
+    path: {
+        purchase_order_id: string;
+    };
+    query?: never;
+    url: '/purchase-orders/{purchase_order_id}/commands/submit';
+};
+
+export type SubmitPurchaseOrderErrors = {
+    /**
+     * Estado inválido
+     */
+    409: unknown;
+};
+
+export type SubmitPurchaseOrderResponses = {
+    /**
+     * OK
+     */
+    200: PurchaseOrder;
+};
+
+export type SubmitPurchaseOrderResponse = SubmitPurchaseOrderResponses[keyof SubmitPurchaseOrderResponses];
+
+export type ReceivePurchaseOrderData = {
+    body: PurchaseOrderReceive;
+    path: {
+        purchase_order_id: string;
+    };
+    query?: never;
+    url: '/purchase-orders/{purchase_order_id}/commands/receive';
+};
+
+export type ReceivePurchaseOrderErrors = {
+    /**
+     * Estado inválido / qty
+     */
+    409: unknown;
+};
+
+export type ReceivePurchaseOrderResponses = {
+    /**
+     * OK
+     */
+    200: PurchaseOrder;
+};
+
+export type ReceivePurchaseOrderResponse = ReceivePurchaseOrderResponses[keyof ReceivePurchaseOrderResponses];
+
+export type CancelPurchaseOrderData = {
+    body?: never;
+    path: {
+        purchase_order_id: string;
+    };
+    query?: never;
+    url: '/purchase-orders/{purchase_order_id}/commands/cancel';
+};
+
+export type CancelPurchaseOrderErrors = {
+    /**
+     * Já recebido
+     */
+    409: unknown;
+};
+
+export type CancelPurchaseOrderResponses = {
+    /**
+     * OK
+     */
+    200: PurchaseOrder;
+};
+
+export type CancelPurchaseOrderResponse = CancelPurchaseOrderResponses[keyof CancelPurchaseOrderResponses];
+
+export type ListArDocumentsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        status?: FinanceDocumentStatus;
+        customer_id?: string;
+        order_id?: string;
+    };
+    url: '/ar/documents';
+};
+
+export type ListArDocumentsResponses = {
+    /**
+     * OK
+     */
+    200: ArDocumentListPage;
+};
+
+export type ListArDocumentsResponse = ListArDocumentsResponses[keyof ListArDocumentsResponses];
+
+export type CreateArDocumentData = {
+    body: ArDocumentCreate;
+    path?: never;
+    query?: never;
+    url: '/ar/documents';
+};
+
+export type CreateArDocumentResponses = {
+    /**
+     * Created
+     */
+    201: ArDocument;
+};
+
+export type CreateArDocumentResponse = CreateArDocumentResponses[keyof CreateArDocumentResponses];
+
+export type GetArDocumentData = {
+    body?: never;
+    path: {
+        document_id: string;
+    };
+    query?: never;
+    url: '/ar/documents/{document_id}';
+};
+
+export type GetArDocumentErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetArDocumentResponses = {
+    /**
+     * OK
+     */
+    200: ArDocument;
+};
+
+export type GetArDocumentResponse = GetArDocumentResponses[keyof GetArDocumentResponses];
+
+export type AllocateArDocumentData = {
+    body: FinanceAllocateRequest;
+    path: {
+        document_id: string;
+    };
+    query?: never;
+    url: '/ar/documents/{document_id}/commands/allocate';
+};
+
+export type AllocateArDocumentErrors = {
+    /**
+     * Valor inválido
+     */
+    409: unknown;
+};
+
+export type AllocateArDocumentResponses = {
+    /**
+     * OK
+     */
+    200: ArDocument;
+};
+
+export type AllocateArDocumentResponse = AllocateArDocumentResponses[keyof AllocateArDocumentResponses];
+
+export type WriteOffArDocumentData = {
+    body?: never;
+    path: {
+        document_id: string;
+    };
+    query?: never;
+    url: '/ar/documents/{document_id}/commands/write-off';
+};
+
+export type WriteOffArDocumentErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Estado inválido
+     */
+    409: unknown;
+};
+
+export type WriteOffArDocumentResponses = {
+    /**
+     * OK
+     */
+    200: ArDocument;
+};
+
+export type WriteOffArDocumentResponse = WriteOffArDocumentResponses[keyof WriteOffArDocumentResponses];
+
+export type GetArAgingData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/ar/aging';
+};
+
+export type GetArAgingResponses = {
+    /**
+     * OK
+     */
+    200: FinanceAgingReport;
+};
+
+export type GetArAgingResponse = GetArAgingResponses[keyof GetArAgingResponses];
+
+export type ListApDocumentsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        status?: FinanceDocumentStatus;
+        supplier_id?: string;
+    };
+    url: '/ap/documents';
+};
+
+export type ListApDocumentsResponses = {
+    /**
+     * OK
+     */
+    200: ApDocumentListPage;
+};
+
+export type ListApDocumentsResponse = ListApDocumentsResponses[keyof ListApDocumentsResponses];
+
+export type CreateApDocumentData = {
+    body: ApDocumentCreate;
+    path?: never;
+    query?: never;
+    url: '/ap/documents';
+};
+
+export type CreateApDocumentResponses = {
+    /**
+     * Created
+     */
+    201: ApDocument;
+};
+
+export type CreateApDocumentResponse = CreateApDocumentResponses[keyof CreateApDocumentResponses];
+
+export type GetApDocumentData = {
+    body?: never;
+    path: {
+        document_id: string;
+    };
+    query?: never;
+    url: '/ap/documents/{document_id}';
+};
+
+export type GetApDocumentErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetApDocumentResponses = {
+    /**
+     * OK
+     */
+    200: ApDocument;
+};
+
+export type GetApDocumentResponse = GetApDocumentResponses[keyof GetApDocumentResponses];
+
+export type AllocateApDocumentData = {
+    body: FinanceAllocateRequest;
+    path: {
+        document_id: string;
+    };
+    query?: never;
+    url: '/ap/documents/{document_id}/commands/allocate';
+};
+
+export type AllocateApDocumentErrors = {
+    /**
+     * Valor inválido
+     */
+    409: unknown;
+};
+
+export type AllocateApDocumentResponses = {
+    /**
+     * OK
+     */
+    200: ApDocument;
+};
+
+export type AllocateApDocumentResponse = AllocateApDocumentResponses[keyof AllocateApDocumentResponses];
+
+export type GetApAgendaData = {
+    body?: never;
+    path?: never;
+    query?: {
+        days?: number;
+    };
+    url: '/ap/agenda';
+};
+
+export type GetApAgendaResponses = {
+    /**
+     * OK
+     */
+    200: ApDocumentListPage;
+};
+
+export type GetApAgendaResponse = GetApAgendaResponses[keyof GetApAgendaResponses];
+
+export type ListTreasuryAccountsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/treasury/accounts';
+};
+
+export type ListTreasuryAccountsResponses = {
+    /**
+     * OK
+     */
+    200: TreasuryAccountListPage;
+};
+
+export type ListTreasuryAccountsResponse = ListTreasuryAccountsResponses[keyof ListTreasuryAccountsResponses];
+
+export type CreateTreasuryAccountData = {
+    body: TreasuryAccountCreate;
+    path?: never;
+    query?: never;
+    url: '/treasury/accounts';
+};
+
+export type CreateTreasuryAccountResponses = {
+    /**
+     * Created
+     */
+    201: TreasuryAccount;
+};
+
+export type CreateTreasuryAccountResponse = CreateTreasuryAccountResponses[keyof CreateTreasuryAccountResponses];
+
+export type ListTreasuryTransactionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        account_id?: string;
+    };
+    url: '/treasury/transactions';
+};
+
+export type ListTreasuryTransactionsResponses = {
+    /**
+     * OK
+     */
+    200: TreasuryTransactionListPage;
+};
+
+export type ListTreasuryTransactionsResponse = ListTreasuryTransactionsResponses[keyof ListTreasuryTransactionsResponses];
+
+export type CreateTreasuryTransactionData = {
+    body: TreasuryTransactionCreate;
+    path?: never;
+    query?: never;
+    url: '/treasury/transactions';
+};
+
+export type CreateTreasuryTransactionResponses = {
+    /**
+     * Created
+     */
+    201: TreasuryTransaction;
+};
+
+export type CreateTreasuryTransactionResponse = CreateTreasuryTransactionResponses[keyof CreateTreasuryTransactionResponses];
+
+export type CreateTreasuryReconciliationData = {
+    body: TreasuryReconciliationCreate;
+    path?: never;
+    query?: never;
+    url: '/treasury/reconciliations';
+};
+
+export type CreateTreasuryReconciliationResponses = {
+    /**
+     * Created
+     */
+    201: TreasuryReconciliation;
+};
+
+export type CreateTreasuryReconciliationResponse = CreateTreasuryReconciliationResponses[keyof CreateTreasuryReconciliationResponses];
+
+export type GetTreasuryCashflow30dData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/treasury/cashflow-30d';
+};
+
+export type GetTreasuryCashflow30dResponses = {
+    /**
+     * OK
+     */
+    200: TreasuryCashflowReport;
+};
+
+export type GetTreasuryCashflow30dResponse = GetTreasuryCashflow30dResponses[keyof GetTreasuryCashflow30dResponses];
+
+export type ListAccountingExportsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+    };
+    url: '/accounting-exports';
+};
+
+export type ListAccountingExportsResponses = {
+    /**
+     * OK
+     */
+    200: AccountingExportListPage;
+};
+
+export type ListAccountingExportsResponse = ListAccountingExportsResponses[keyof ListAccountingExportsResponses];
+
+export type CreateAccountingExportData = {
+    body: AccountingExportCreate;
+    path?: never;
+    query?: never;
+    url: '/accounting-exports';
+};
+
+export type CreateAccountingExportResponses = {
+    /**
+     * Created
+     */
+    201: AccountingExport;
+};
+
+export type CreateAccountingExportResponse = CreateAccountingExportResponses[keyof CreateAccountingExportResponses];
+
+export type GetAccountingExportData = {
+    body?: never;
+    path: {
+        export_id: string;
+    };
+    query?: never;
+    url: '/accounting-exports/{export_id}';
+};
+
+export type GetAccountingExportErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetAccountingExportResponses = {
+    /**
+     * OK
+     */
+    200: AccountingExport;
+};
+
+export type GetAccountingExportResponse = GetAccountingExportResponses[keyof GetAccountingExportResponses];
+
+export type DownloadAccountingExportData = {
+    body?: never;
+    path: {
+        export_id: string;
+    };
+    query?: never;
+    url: '/accounting-exports/{export_id}/download';
+};
+
+export type DownloadAccountingExportErrors = {
+    /**
+     * Not ready
+     */
+    409: unknown;
+};
+
+export type DownloadAccountingExportResponses = {
+    /**
+     * OK
+     */
+    200: AccountingExportDownload;
+};
+
+export type DownloadAccountingExportResponse = DownloadAccountingExportResponses[keyof DownloadAccountingExportResponses];
+
+export type ClosePurchaseOrderData = {
+    body?: never;
+    path: {
+        purchase_order_id: string;
+    };
+    query?: never;
+    url: '/purchase-orders/{purchase_order_id}/commands/close';
+};
+
+export type ClosePurchaseOrderErrors = {
+    /**
+     * Invalid status
+     */
+    409: unknown;
+};
+
+export type ClosePurchaseOrderResponses = {
+    /**
+     * OK
+     */
+    200: PurchaseOrder;
+};
+
+export type ClosePurchaseOrderResponse = ClosePurchaseOrderResponses[keyof ClosePurchaseOrderResponses];
+
+export type ListSalesTargetsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+        product_id?: string;
+        sku?: string;
+        channel_code?: string;
+        channel_id?: string;
+        warehouse_id?: string;
+        metric?: SalesTargetMetric;
+        period_from?: string;
+        period_to?: string;
+    };
+    url: '/sales-targets';
+};
+
+export type ListSalesTargetsResponses = {
+    /**
+     * OK
+     */
+    200: SalesTargetListPage;
+};
+
+export type ListSalesTargetsResponse = ListSalesTargetsResponses[keyof ListSalesTargetsResponses];
+
+export type CreateSalesTargetData = {
+    body: SalesTargetCreate;
+    path?: never;
+    query?: never;
+    url: '/sales-targets';
+};
+
+export type CreateSalesTargetResponses = {
+    /**
+     * Created
+     */
+    201: SalesTarget;
+};
+
+export type CreateSalesTargetResponse = CreateSalesTargetResponses[keyof CreateSalesTargetResponses];
+
+export type PutSalesTargetMatrixData = {
+    body: SalesTargetMatrixPut;
+    path?: never;
+    query?: never;
+    url: '/sales-targets/matrix';
+};
+
+export type PutSalesTargetMatrixResponses = {
+    /**
+     * OK
+     */
+    200: SalesTargetMatrixPutResult;
+};
+
+export type PutSalesTargetMatrixResponse = PutSalesTargetMatrixResponses[keyof PutSalesTargetMatrixResponses];
+
+export type GetSalesTargetsProgressData = {
+    body?: never;
+    path?: never;
+    query?: {
+        product_id?: string;
+        sku?: string;
+        channel_code?: string;
+        channel_id?: string;
+        warehouse_id?: string;
+        metric?: SalesTargetMetric;
+        period_from?: string;
+        period_to?: string;
+    };
+    url: '/sales-targets/progress';
+};
+
+export type GetSalesTargetsProgressResponses = {
+    /**
+     * OK
+     */
+    200: SalesTargetProgress;
+};
+
+export type GetSalesTargetsProgressResponse = GetSalesTargetsProgressResponses[keyof GetSalesTargetsProgressResponses];
+
+export type PreviewSalesTargetReplenishmentData = {
+    body: SalesTargetReplenishmentPreviewRequest;
+    path?: never;
+    query?: never;
+    url: '/sales-targets/replenishment/preview';
+};
+
+export type PreviewSalesTargetReplenishmentResponses = {
+    /**
+     * OK
+     */
+    200: SalesTargetReplenishmentPreview;
+};
+
+export type PreviewSalesTargetReplenishmentResponse = PreviewSalesTargetReplenishmentResponses[keyof PreviewSalesTargetReplenishmentResponses];
+
+export type ApplySalesTargetReplenishmentData = {
+    body: SalesTargetReplenishmentApplyRequest;
+    path?: never;
+    query?: never;
+    url: '/sales-targets/replenishment/apply';
+};
+
+export type ApplySalesTargetReplenishmentErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+};
+
+export type ApplySalesTargetReplenishmentResponses = {
+    /**
+     * OK
+     */
+    200: SalesTargetReplenishmentApplyResult;
+};
+
+export type ApplySalesTargetReplenishmentResponse = ApplySalesTargetReplenishmentResponses[keyof ApplySalesTargetReplenishmentResponses];
+
+export type AssistSuggestSalesTargetsData = {
+    body: SalesTargetAssistSuggestRequest;
+    path?: never;
+    query?: never;
+    url: '/sales-targets/assist-suggest';
+};
+
+export type AssistSuggestSalesTargetsErrors = {
+    /**
+     * Not implemented yet
+     */
+    501: unknown;
+};
+
+export type AssistSuggestSalesTargetsResponses = {
+    /**
+     * OK
+     */
+    200: SalesTargetAssistSuggestResult;
+};
+
+export type AssistSuggestSalesTargetsResponse = AssistSuggestSalesTargetsResponses[keyof AssistSuggestSalesTargetsResponses];
+
+export type AssistExplainSalesTargetsData = {
+    body: SalesTargetAssistExplainRequest;
+    path?: never;
+    query?: never;
+    url: '/sales-targets/assist-explain';
+};
+
+export type AssistExplainSalesTargetsErrors = {
+    /**
+     * Not implemented yet
+     */
+    501: unknown;
+};
+
+export type AssistExplainSalesTargetsResponses = {
+    /**
+     * OK
+     */
+    200: SalesTargetAssistExplainResult;
+};
+
+export type AssistExplainSalesTargetsResponse = AssistExplainSalesTargetsResponses[keyof AssistExplainSalesTargetsResponses];
+
+export type DeleteSalesTargetData = {
+    body?: never;
+    path: {
+        sales_target_id: string;
+    };
+    query?: never;
+    url: '/sales-targets/{sales_target_id}';
+};
+
+export type DeleteSalesTargetErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type DeleteSalesTargetResponses = {
+    /**
+     * Deleted
+     */
+    204: void;
+};
+
+export type DeleteSalesTargetResponse = DeleteSalesTargetResponses[keyof DeleteSalesTargetResponses];
+
+export type GetSalesTargetData = {
+    body?: never;
+    path: {
+        sales_target_id: string;
+    };
+    query?: never;
+    url: '/sales-targets/{sales_target_id}';
+};
+
+export type GetSalesTargetErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetSalesTargetResponses = {
+    /**
+     * OK
+     */
+    200: SalesTarget;
+};
+
+export type GetSalesTargetResponse = GetSalesTargetResponses[keyof GetSalesTargetResponses];
+
+export type UpdateSalesTargetData = {
+    body: SalesTargetUpdate;
+    path: {
+        sales_target_id: string;
+    };
+    query?: never;
+    url: '/sales-targets/{sales_target_id}';
+};
+
+export type UpdateSalesTargetErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type UpdateSalesTargetResponses = {
+    /**
+     * OK
+     */
+    200: SalesTarget;
+};
+
+export type UpdateSalesTargetResponse = UpdateSalesTargetResponses[keyof UpdateSalesTargetResponses];
+
+export type GetSalesTargetBreakdownData = {
+    body?: never;
+    path: {
+        sales_target_id: string;
+    };
+    query?: never;
+    url: '/sales-targets/{sales_target_id}/breakdown';
+};
+
+export type GetSalesTargetBreakdownErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type GetSalesTargetBreakdownResponses = {
+    /**
+     * OK
+     */
+    200: SalesTargetBreakdown;
+};
+
+export type GetSalesTargetBreakdownResponse = GetSalesTargetBreakdownResponses[keyof GetSalesTargetBreakdownResponses];
+
+export type PreviewInboundNfePoMatchData = {
+    body: InboundNfePoMatchRequest;
+    path: {
+        draft_id: string;
+    };
+    query?: never;
+    url: '/wms/inbound-nfe-drafts/{draft_id}/commands/preview-po-match';
+};
+
+export type PreviewInboundNfePoMatchErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+};
+
+export type PreviewInboundNfePoMatchResponses = {
+    /**
+     * OK
+     */
+    200: InboundNfePoMatchReport;
+};
+
+export type PreviewInboundNfePoMatchResponse = PreviewInboundNfePoMatchResponses[keyof PreviewInboundNfePoMatchResponses];
+
+export type AcceptInboundNfePoMatchData = {
+    body: InboundNfePoMatchRequest;
+    path: {
+        draft_id: string;
+    };
+    query?: never;
+    url: '/wms/inbound-nfe-drafts/{draft_id}/commands/accept-po-match';
+};
+
+export type AcceptInboundNfePoMatchErrors = {
+    /**
+     * Conflict
+     */
+    409: unknown;
+};
+
+export type AcceptInboundNfePoMatchResponses = {
+    /**
+     * OK
+     */
+    200: InboundNfePoMatchReport;
+};
+
+export type AcceptInboundNfePoMatchResponse = AcceptInboundNfePoMatchResponses[keyof AcceptInboundNfePoMatchResponses];
+
+export type ImportTreasuryStatementData = {
+    body: TreasuryImportRequest;
+    path?: never;
+    query?: never;
+    url: '/treasury/import';
+};
+
+export type ImportTreasuryStatementErrors = {
+    /**
+     * Bad request
+     */
+    400: unknown;
+};
+
+export type ImportTreasuryStatementResponses = {
+    /**
+     * Created
+     */
+    201: TreasuryImportResult;
+};
+
+export type ImportTreasuryStatementResponse = ImportTreasuryStatementResponses[keyof ImportTreasuryStatementResponses];
+
+export type ListTreasuryMatchSuggestionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        account_id?: string;
+    };
+    url: '/treasury/match-suggestions';
+};
+
+export type ListTreasuryMatchSuggestionsResponses = {
+    /**
+     * OK
+     */
+    200: TreasuryMatchSuggestionList;
+};
+
+export type ListTreasuryMatchSuggestionsResponse = ListTreasuryMatchSuggestionsResponses[keyof ListTreasuryMatchSuggestionsResponses];
+
+export type ListChartOfAccountsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/chart-of-accounts';
+};
+
+export type ListChartOfAccountsResponses = {
+    /**
+     * OK
+     */
+    200: ChartOfAccountListPage;
+};
+
+export type ListChartOfAccountsResponse = ListChartOfAccountsResponses[keyof ListChartOfAccountsResponses];
+
+export type CreateChartOfAccountData = {
+    body: ChartOfAccountCreate;
+    path?: never;
+    query?: never;
+    url: '/chart-of-accounts';
+};
+
+export type CreateChartOfAccountResponses = {
+    /**
+     * Created
+     */
+    201: ChartOfAccount;
+};
+
+export type CreateChartOfAccountResponse = CreateChartOfAccountResponses[keyof CreateChartOfAccountResponses];
+
+export type ListJournalEntriesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/journal-entries';
+};
+
+export type ListJournalEntriesResponses = {
+    /**
+     * OK
+     */
+    200: JournalEntryListPage;
+};
+
+export type ListJournalEntriesResponse = ListJournalEntriesResponses[keyof ListJournalEntriesResponses];
+
+export type GetAccountingDreData = {
+    body?: never;
+    path?: never;
+    query: {
+        period_from: string;
+        period_to: string;
+    };
+    url: '/accounting/dre';
+};
+
+export type GetAccountingDreResponses = {
+    /**
+     * OK
+     */
+    200: AccountingDreReport;
+};
+
+export type GetAccountingDreResponse = GetAccountingDreResponses[keyof GetAccountingDreResponses];
+
+export type ListBomsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+    };
+    url: '/boms';
+};
+
+export type ListBomsResponses = {
+    /**
+     * OK
+     */
+    200: BomListPage;
+};
+
+export type ListBomsResponse = ListBomsResponses[keyof ListBomsResponses];
+
+export type CreateBomData = {
+    body: BomCreate;
+    path?: never;
+    query?: never;
+    url: '/boms';
+};
+
+export type CreateBomResponses = {
+    /**
+     * Created
+     */
+    201: Bom;
+};
+
+export type CreateBomResponse = CreateBomResponses[keyof CreateBomResponses];
+
+export type ListWorkOrdersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+    };
+    url: '/work-orders';
+};
+
+export type ListWorkOrdersResponses = {
+    /**
+     * OK
+     */
+    200: WorkOrderListPage;
+};
+
+export type ListWorkOrdersResponse = ListWorkOrdersResponses[keyof ListWorkOrdersResponses];
+
+export type CreateWorkOrderData = {
+    body: WorkOrderCreate;
+    path?: never;
+    query?: never;
+    url: '/work-orders';
+};
+
+export type CreateWorkOrderResponses = {
+    /**
+     * Created
+     */
+    201: WorkOrder;
+};
+
+export type CreateWorkOrderResponse = CreateWorkOrderResponses[keyof CreateWorkOrderResponses];
+
+export type StartWorkOrderData = {
+    body?: never;
+    path: {
+        work_order_id: string;
+    };
+    query?: never;
+    url: '/work-orders/{work_order_id}/commands/start';
+};
+
+export type StartWorkOrderErrors = {
+    /**
+     * Invalid status
+     */
+    409: unknown;
+};
+
+export type StartWorkOrderResponses = {
+    /**
+     * OK
+     */
+    200: WorkOrder;
+};
+
+export type StartWorkOrderResponse = StartWorkOrderResponses[keyof StartWorkOrderResponses];
+
+export type CompleteWorkOrderData = {
+    body?: never;
+    path: {
+        work_order_id: string;
+    };
+    query?: never;
+    url: '/work-orders/{work_order_id}/commands/complete';
+};
+
+export type CompleteWorkOrderErrors = {
+    /**
+     * Invalid status / stock
+     */
+    409: unknown;
+};
+
+export type CompleteWorkOrderResponses = {
+    /**
+     * OK
+     */
+    200: WorkOrder;
+};
+
+export type CompleteWorkOrderResponse = CompleteWorkOrderResponses[keyof CompleteWorkOrderResponses];
+
+export type ListKbTopicsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+        search?: string;
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/kb/topics';
+};
+
+export type ListKbTopicsResponses = {
+    /**
+     * Página de tópicos
+     */
+    200: KbTopicListPage;
+};
+
+export type ListKbTopicsResponse = ListKbTopicsResponses[keyof ListKbTopicsResponses];
+
+export type CreateKbTopicData = {
+    body: KbTopicCreate;
+    path?: never;
+    query?: never;
+    url: '/kb/topics';
+};
+
+export type CreateKbTopicErrors = {
+    /**
+     * Slug já usado
+     */
+    409: unknown;
+};
+
+export type CreateKbTopicResponses = {
+    /**
+     * Criado
+     */
+    201: KbTopic;
+};
+
+export type CreateKbTopicResponse = CreateKbTopicResponses[keyof CreateKbTopicResponses];
+
+export type DeleteKbTopicData = {
+    body?: never;
+    path: {
+        topic_id: string;
+    };
+    query?: never;
+    url: '/kb/topics/{topic_id}';
+};
+
+export type DeleteKbTopicErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type DeleteKbTopicResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type DeleteKbTopicResponse = DeleteKbTopicResponses[keyof DeleteKbTopicResponses];
+
+export type GetKbTopicData = {
+    body?: never;
+    path: {
+        topic_id: string;
+    };
+    query?: never;
+    url: '/kb/topics/{topic_id}';
+};
+
+export type GetKbTopicErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type GetKbTopicResponses = {
+    /**
+     * OK
+     */
+    200: KbTopic;
+};
+
+export type GetKbTopicResponse = GetKbTopicResponses[keyof GetKbTopicResponses];
+
+export type UpdateKbTopicData = {
+    body: KbTopicUpdate;
+    path: {
+        topic_id: string;
+    };
+    query?: never;
+    url: '/kb/topics/{topic_id}';
+};
+
+export type UpdateKbTopicErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+    /**
+     * Slug já usado
+     */
+    409: unknown;
+};
+
+export type UpdateKbTopicResponses = {
+    /**
+     * OK
+     */
+    200: KbTopic;
+};
+
+export type UpdateKbTopicResponse = UpdateKbTopicResponses[keyof UpdateKbTopicResponses];
+
+export type ListKbEntriesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        topic_id?: string;
+        /**
+         * Quando `false` (omissão), listagens de configuração omitem entidades
+         * desactivadas / arquivadas / removidas logicamente. `true` inclui esses
+         * registos. Se a operação também aceita `status` e este for enviado,
+         * `status` tem precedência.
+         *
+         */
+        include_inactive?: boolean;
+        search?: string;
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/kb/entries';
+};
+
+export type ListKbEntriesResponses = {
+    /**
+     * Página de entradas
+     */
+    200: KbEntryListPage;
+};
+
+export type ListKbEntriesResponse = ListKbEntriesResponses[keyof ListKbEntriesResponses];
+
+export type CreateKbEntryData = {
+    body: KbEntryCreate;
+    path?: never;
+    query?: never;
+    url: '/kb/entries';
+};
+
+export type CreateKbEntryErrors = {
+    /**
+     * Tópico não encontrado
+     */
+    404: unknown;
+};
+
+export type CreateKbEntryResponses = {
+    /**
+     * Criado
+     */
+    201: KbEntry;
+};
+
+export type CreateKbEntryResponse = CreateKbEntryResponses[keyof CreateKbEntryResponses];
+
+export type DeleteKbEntryData = {
+    body?: never;
+    path: {
+        entry_id: string;
+    };
+    query?: never;
+    url: '/kb/entries/{entry_id}';
+};
+
+export type DeleteKbEntryErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type DeleteKbEntryResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type DeleteKbEntryResponse = DeleteKbEntryResponses[keyof DeleteKbEntryResponses];
+
+export type GetKbEntryData = {
+    body?: never;
+    path: {
+        entry_id: string;
+    };
+    query?: never;
+    url: '/kb/entries/{entry_id}';
+};
+
+export type GetKbEntryErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type GetKbEntryResponses = {
+    /**
+     * OK
+     */
+    200: KbEntry;
+};
+
+export type GetKbEntryResponse = GetKbEntryResponses[keyof GetKbEntryResponses];
+
+export type UpdateKbEntryData = {
+    body: KbEntryUpdate;
+    path: {
+        entry_id: string;
+    };
+    query?: never;
+    url: '/kb/entries/{entry_id}';
+};
+
+export type UpdateKbEntryErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type UpdateKbEntryResponses = {
+    /**
+     * OK
+     */
+    200: KbEntry;
+};
+
+export type UpdateKbEntryResponse = UpdateKbEntryResponses[keyof UpdateKbEntryResponses];
+
+export type UploadKbEntryAssetData = {
+    body: {
+        file: Blob | File;
+        alt_text?: string;
+    };
+    path: {
+        entry_id: string;
+    };
+    query?: never;
+    url: '/kb/entries/{entry_id}/assets/upload';
+};
+
+export type UploadKbEntryAssetErrors = {
+    /**
+     * Form inválido / MIME
+     */
+    400: unknown;
+    /**
+     * Entrada não encontrada
+     */
+    404: unknown;
+    /**
+     * Object store indisponível
+     */
+    503: unknown;
+};
+
+export type UploadKbEntryAssetResponses = {
+    /**
+     * Asset criado
+     */
+    201: KbAsset;
+};
+
+export type UploadKbEntryAssetResponse = UploadKbEntryAssetResponses[keyof UploadKbEntryAssetResponses];
+
+export type DeleteKbAssetData = {
+    body?: never;
+    path: {
+        asset_id: string;
+    };
+    query?: never;
+    url: '/kb/assets/{asset_id}';
+};
+
+export type DeleteKbAssetErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+};
+
+export type DeleteKbAssetResponses = {
+    /**
+     * Removido
+     */
+    204: void;
+};
+
+export type DeleteKbAssetResponse = DeleteKbAssetResponses[keyof DeleteKbAssetResponses];
+
+export type GetKbMediaData = {
+    body?: never;
+    path: {
+        asset_id: string;
+    };
+    query?: never;
+    url: '/kb/media/{asset_id}';
+};
+
+export type GetKbMediaErrors = {
+    /**
+     * Não encontrado
+     */
+    404: unknown;
+    /**
+     * Object store indisponível
+     */
+    503: unknown;
+};
+
+export type GetKbMediaResponses = {
+    /**
+     * Bytes da imagem
+     */
+    200: Blob | File;
+};
+
+export type GetKbMediaResponse = GetKbMediaResponses[keyof GetKbMediaResponses];
+
+export type SearchKbData = {
+    body?: never;
+    path?: never;
+    query: {
+        q: string;
+        limit?: number;
+    };
+    url: '/kb/search';
+};
+
+export type SearchKbResponses = {
+    /**
+     * Hits lexicais
+     */
+    200: KbSearchResult;
+};
+
+export type SearchKbResponse = SearchKbResponses[keyof SearchKbResponses];
+
+export type ClassifyKbData = {
+    body: KbClassifyRequest;
+    path?: never;
+    query?: never;
+    url: '/kb/classify';
+};
+
+export type ClassifyKbErrors = {
+    /**
+     * Query vazia
+     */
+    400: unknown;
+};
+
+export type ClassifyKbResponses = {
+    /**
+     * Tópicos ranqueados e entradas
+     */
+    200: KbClassifyResult;
+};
+
+export type ClassifyKbResponse = ClassifyKbResponses[keyof ClassifyKbResponses];
